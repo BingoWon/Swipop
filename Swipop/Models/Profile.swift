@@ -1,5 +1,5 @@
 //
-//  User.swift
+//  Profile.swift
 //  Swipop
 //
 //  User profile model

@@ -24,6 +24,9 @@ struct Work: Identifiable, Codable, Equatable {
     let createdAt: Date
     var updatedAt: Date
     
+    /// Associated creator profile (loaded via join)
+    var creator: Profile?
+    
     // MARK: - Coding Keys
     
     enum CodingKeys: String, CodingKey {
@@ -42,6 +45,7 @@ struct Work: Identifiable, Codable, Equatable {
         case shareCount = "share_count"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+        case creator = "profiles"
     }
 }
 
@@ -50,7 +54,7 @@ struct Work: Identifiable, Codable, Equatable {
 extension Work {
     static let sample = Work(
         id: UUID(),
-        userId: UUID(),
+        userId: Profile.sample.id,
         title: "Neon Pulse",
         description: "A mesmerizing neon animation",
         htmlContent: """
@@ -98,14 +102,15 @@ extension Work {
         commentCount: 89,
         shareCount: 23,
         createdAt: Date(),
-        updatedAt: Date()
+        updatedAt: Date(),
+        creator: Profile.sample
     )
     
     static let samples: [Work] = [
         sample,
         Work(
             id: UUID(),
-            userId: UUID(),
+            userId: Profile.sample.id,
             title: "Particle Storm",
             description: "Interactive particle system",
             htmlContent: "<canvas id='canvas'></canvas>",
@@ -154,11 +159,12 @@ extension Work {
             commentCount: 123,
             shareCount: 45,
             createdAt: Date(),
-            updatedAt: Date()
+            updatedAt: Date(),
+            creator: Profile.sample
         ),
         Work(
             id: UUID(),
-            userId: UUID(),
+            userId: Profile.sample.id,
             title: "Gradient Wave",
             description: "Smooth gradient animation",
             htmlContent: "<div class='wave'></div>",
@@ -184,7 +190,8 @@ extension Work {
             commentCount: 234,
             shareCount: 67,
             createdAt: Date(),
-            updatedAt: Date()
+            updatedAt: Date(),
+            creator: Profile.sample
         )
     ]
 }

@@ -22,10 +22,13 @@ actor WorkService {
     
     // MARK: - Fetch Works
     
+    /// Select query with joined creator profile
+    private let selectWithCreator = "*, profiles(*)"
+    
     func fetchFeed(limit: Int = 10, offset: Int = 0) async throws -> [Work] {
         let works: [Work] = try await supabase
             .from("works")
-            .select()
+            .select(selectWithCreator)
             .eq("is_published", value: true)
             .order("created_at", ascending: false)
             .range(from: offset, to: offset + limit - 1)
@@ -38,7 +41,7 @@ actor WorkService {
     func fetchWork(id: UUID) async throws -> Work {
         let work: Work = try await supabase
             .from("works")
-            .select()
+            .select(selectWithCreator)
             .eq("id", value: id)
             .single()
             .execute()
@@ -50,7 +53,7 @@ actor WorkService {
     func fetchUserWorks(userId: UUID) async throws -> [Work] {
         let works: [Work] = try await supabase
             .from("works")
-            .select()
+            .select(selectWithCreator)
             .eq("user_id", value: userId)
             .order("created_at", ascending: false)
             .execute()

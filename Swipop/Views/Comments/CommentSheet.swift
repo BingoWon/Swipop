@@ -219,7 +219,7 @@ private struct CommentRow: View {
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.white)
                     
-                    Text(timeAgo(comment.createdAt))
+                    Text(comment.createdAt.timeAgo)
                         .font(.system(size: 12))
                         .foregroundColor(.white.opacity(0.4))
                     
@@ -251,16 +251,6 @@ private struct CommentRow: View {
         }
     }
     
-    private func timeAgo(_ date: Date) -> String {
-        let seconds = Int(-date.timeIntervalSinceNow)
-        
-        if seconds < 60 { return "now" }
-        if seconds < 3600 { return "\(seconds / 60)m" }
-        if seconds < 86400 { return "\(seconds / 3600)h" }
-        if seconds < 604800 { return "\(seconds / 86400)d" }
-        
-        return "\(seconds / 604800)w"
-    }
 }
 
 #Preview {
