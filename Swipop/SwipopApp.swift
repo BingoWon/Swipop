@@ -2,14 +2,20 @@
 //  SwipopApp.swift
 //  Swipop
 //
-//  Created by Bin Wang on 12/1/25.
-//
 
 import SwiftUI
 import GoogleSignIn
 
 @main
 struct SwipopApp: App {
+    
+    init() {
+        // Configure Google Sign-In
+        GIDSignIn.sharedInstance.configuration = GIDConfiguration(
+            clientID: Secrets.googleIOSClientID
+        )
+    }
+    
     var body: some Scene {
         WindowGroup {
             RootView()
