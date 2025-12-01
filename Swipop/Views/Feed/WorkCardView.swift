@@ -41,7 +41,9 @@ struct WorkCardView: View {
             // Right side actions (on top, receives touches)
             VStack {
                 Spacer()
-                actionButtons
+                GlassEffectContainer(spacing: 16) {
+                    actionButtons
+                }
                 Spacer().frame(height: 160)
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
@@ -62,31 +64,22 @@ struct WorkCardView: View {
     // MARK: - Action Buttons
     
     private var actionButtons: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 16) {
             // Creator avatar + follow
             Button {} label: {
                 ZStack(alignment: .bottom) {
-                    Circle()
-                        .fill(Color(hex: "a855f7"))
+                    Text(work.creator?.displayName?.prefix(1).uppercased() ?? "C")
+                        .font(.system(size: 18, weight: .bold))
                         .frame(width: 48, height: 48)
-                        .overlay(
-                            Text("C")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.white)
-                        )
                     
-                    Circle()
-                        .fill(.red)
-                        .frame(width: 20, height: 20)
-                        .overlay(
-                            Image(systemName: "plus")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.white)
-                        )
-                        .offset(y: 10)
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(.red, .white)
+                        .offset(y: 20)
                 }
             }
-            .padding(.bottom, 8)
+            .buttonStyle(.glass(.regular.tint(Color(hex: "a855f7")).interactive()))
+            .padding(.bottom, 4)
             
             // Like
             ActionButton(
@@ -179,15 +172,16 @@ private struct ActionButton: View {
             VStack(spacing: 2) {
                 Image(systemName: icon)
                     .font(.system(size: 28))
-                    .foregroundColor(tint)
+                    .foregroundStyle(tint)
                 
                 if let count {
                     Text(count.formatted)
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white)
                 }
             }
+            .frame(width: 52, height: 52)
         }
+        .buttonStyle(.glass(.regular.interactive()))
     }
 }
 
