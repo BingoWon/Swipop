@@ -118,6 +118,8 @@
 			name = Swipop;
 			packageProductDependencies = (
 				D7BF49D32EDDAF9500218489 /* Supabase */,
+				D7BF4AA52EDDC0B500218489 /* GoogleSignIn */,
+				D7BF4AA62EDDC0B500218489 /* GoogleSignInSwift */,
 			);
 			productName = Swipop;
 			productReference = D7BF49A82EDDAA1200218489 /* Swipop.app */;
@@ -203,6 +205,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				D7BF49D22EDDAF9500218489 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+				D7BF4AA42EDDC0B500218489 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D7BF49A92EDDAA1200218489 /* Products */;
@@ -601,6 +604,14 @@
 				minimumVersion = 2.5.1;
 			};
 		};
+		D7BF4AA42EDDC0B500218489 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -608,6 +619,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = D7BF49D22EDDAF9500218489 /* XCRemoteSwiftPackageReference "supabase-swift" */;
 			productName = Supabase;
+		};
+		D7BF4AA52EDDC0B500218489 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D7BF4AA42EDDC0B500218489 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		D7BF4AA62EDDC0B500218489 /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D7BF4AA42EDDC0B500218489 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

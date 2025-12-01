@@ -134,9 +134,14 @@ struct LoginView: View {
     }
     
     private func handleGoogleSignIn() async {
-        // TODO: Implement Google Sign-In with GoogleSignIn SDK
-        errorMessage = "Google Sign-In coming soon"
-        showError = true
+        do {
+            try await authService.signInWithGoogle()
+        } catch {
+            // Ignore user cancellation
+            if (error as NSError).code != -5 {
+                displayError(error)
+            }
+        }
     }
     
     // MARK: - Error Handling

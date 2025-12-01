@@ -7,6 +7,7 @@
 
 import Foundation
 import AuthenticationServices
+import GoogleSignIn
 import Supabase
 
 @Observable
@@ -69,9 +70,25 @@ final class AuthService {
     
     // MARK: - Google Sign In
     
-    func signInWithGoogle(idToken: String, accessToken: String) async throws {
+    @MainActor
+    func signInWithGoogle() async throws {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootViewController = windowScene.windows.first?.rootViewController else {
+            throw AuthError.signInFailed
+        }
+        
         isLoading = true
         defer { isLoading = false }
+        
+        let result = try await GIDSignIn.sharedInstance.signIn(
+            withPresenting: rootViewController
+        )
+        
+        guard let idToken = result.user.idToken?.tokenString else {
+            throw AuthError.invalidCredential
+        }
+        
+        let accessToken = result.user.accessToken.tokenString
         
         let session = try await supabase.auth.signInWithIdToken(
             credentials: .init(
@@ -90,6 +107,7 @@ final class AuthService {
         isLoading = true
         defer { isLoading = false }
         
+        GIDSignIn.sharedInstance.signOut()
         try await supabase.auth.signOut()
         currentUser = nil
     }
@@ -110,4 +128,3 @@ enum AuthError: LocalizedError {
         }
     }
 }
-
