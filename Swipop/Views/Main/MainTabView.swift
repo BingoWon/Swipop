@@ -39,19 +39,37 @@ struct MainTabView: View {
                 SearchView(searchText: $searchText)
             }
         }
-        .tabViewBottomAccessory {
-            if selectedTab == 0 {
-                BottomAccessory(
-                    showWorkDetail: $showWorkDetail,
-                    feedViewModel: feedViewModel
-                )
-            }
-        }
+        .modifier(ConditionalBottomAccessory(
+            show: selectedTab == 0,
+            showWorkDetail: $showWorkDetail,
+            feedViewModel: feedViewModel
+        ))
         .tint(.white)
         .sheet(isPresented: $showWorkDetail) {
             if let work = feedViewModel.currentWork {
                 WorkDetailSheet(work: work, showLogin: $showLogin)
             }
+        }
+    }
+}
+
+// MARK: - Conditional Bottom Accessory Modifier
+
+struct ConditionalBottomAccessory: ViewModifier {
+    let show: Bool
+    @Binding var showWorkDetail: Bool
+    var feedViewModel: FeedViewModel
+    
+    func body(content: Content) -> some View {
+        if show {
+            content.tabViewBottomAccessory {
+                BottomAccessory(
+                    showWorkDetail: $showWorkDetail,
+                    feedViewModel: feedViewModel
+                )
+            }
+        } else {
+            content
         }
     }
 }
