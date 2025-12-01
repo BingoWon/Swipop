@@ -2,7 +2,7 @@
 //  MainTabView.swift
 //  Swipop
 //
-//  Main tab container - accessible without login
+//  Main tab container with iOS 26 liquid glass tab bar
 //
 
 import SwiftUI
@@ -12,51 +12,100 @@ struct MainTabView: View {
     
     @Binding var showLogin: Bool
     @State private var selectedTab = 0
+    @State private var searchText = ""
     
     var body: some View {
         TabView(selection: $selectedTab) {
             // Home Feed - full screen
-            FeedView(showLogin: $showLogin)
-                .ignoresSafeArea(.all)
-                .tabItem {
-                    Label("Home", systemImage: "house.fill")
-                }
-                .tag(0)
-            
-            // Discover
-            DiscoverView()
-                .tabItem {
-                    Label("Discover", systemImage: "magnifyingglass")
-                }
-                .tag(1)
+            Tab("Home", systemImage: "house.fill", value: 0) {
+                FeedView(showLogin: $showLogin)
+                    .ignoresSafeArea(.all)
+            }
             
             // Create - requires login
-            CreatePlaceholder(showLogin: $showLogin)
-                .tabItem {
-                    Label("Create", systemImage: "plus.square.fill")
-                }
-                .tag(2)
+            Tab("Create", systemImage: "plus.square.fill", value: 1) {
+                CreatePlaceholder(showLogin: $showLogin)
+            }
             
             // Profile
-            ProfileView(showLogin: $showLogin)
-                .tabItem {
-                    Label("Profile", systemImage: "person.fill")
-                }
-                .tag(3)
+            Tab("Profile", systemImage: "person.fill", value: 2) {
+                ProfileView(showLogin: $showLogin)
+            }
+            
+            // Search - appears as button in bottom right
+            Tab("Search", systemImage: "magnifyingglass", value: 3, role: .search) {
+                SearchView(searchText: $searchText)
+            }
+        }
+        .tabViewBottomAccessory {
+            NavigationControls()
         }
         .tint(.white)
     }
 }
 
-// MARK: - Discover View
+// MARK: - Navigation Controls (Bottom Accessory)
 
-struct DiscoverView: View {
+struct NavigationControls: View {
     var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-            Text("Discover")
-                .foregroundColor(.white)
-                .font(.title)
+        HStack(spacing: 0) {
+            // Previous work
+            Button {
+                NotificationCenter.default.post(name: .navigateToPrevious, object: nil)
+            } label: {
+                Image(systemName: "chevron.up")
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            
+            Divider()
+                .frame(height: 20)
+            
+            // Next work
+            Button {
+                NotificationCenter.default.post(name: .navigateToNext, object: nil)
+            } label: {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .foregroundStyle(.white)
+    }
+}
+
+// MARK: - Notification Names
+
+extension Notification.Name {
+    static let navigateToPrevious = Notification.Name("navigateToPrevious")
+    static let navigateToNext = Notification.Name("navigateToNext")
+}
+
+// MARK: - Search View
+
+struct SearchView: View {
+    @Binding var searchText: String
+    
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                
+                if searchText.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 48))
+                            .foregroundColor(.white.opacity(0.3))
+                        Text("Search works and creators")
+                            .foregroundColor(.white.opacity(0.5))
+                    }
+                } else {
+                    Text("Results for: \(searchText)")
+                        .foregroundColor(.white)
+                }
+            }
+            .navigationTitle("Search")
+            .searchable(text: $searchText, prompt: "Works, creators...")
         }
     }
 }
@@ -125,7 +174,6 @@ struct ProfileView: View {
             Color.black.ignoresSafeArea()
             
             if authService.isAuthenticated {
-                // Logged in profile
                 VStack(spacing: 24) {
                     Circle()
                         .fill(Color(hex: "a855f7"))
@@ -151,7 +199,6 @@ struct ProfileView: View {
                     }
                 }
             } else {
-                // Not logged in
                 VStack(spacing: 24) {
                     Image(systemName: "person.circle")
                         .font(.system(size: 64))

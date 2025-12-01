@@ -47,6 +47,17 @@ struct FeedView: View {
                     }
                 }
         )
+        // Listen for navigation from bottom accessory
+        .onReceive(NotificationCenter.default.publisher(for: .navigateToPrevious)) { _ in
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                goToPrevious()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .navigateToNext)) { _ in
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                goToNext()
+            }
+        }
     }
     
     private func goToNext() {
