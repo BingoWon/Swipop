@@ -29,12 +29,13 @@ struct MainTabView: View {
                 InboxView()
             }
             
-            Tab("Create", systemImage: "plus.square.fill", value: 2) {
-                CreateView(showLogin: $showLogin)
+            Tab("Profile", systemImage: "person.fill", value: 2) {
+                ProfileView(showLogin: $showLogin)
             }
             
-            Tab("Profile", systemImage: "person.fill", value: 3) {
-                ProfileView(showLogin: $showLogin)
+            // Create as prominent floating button (like search role)
+            Tab("Create", systemImage: "plus", value: 3, role: .search) {
+                CreateView(showLogin: $showLogin)
             }
         }
         .tabViewBottomAccessory {
