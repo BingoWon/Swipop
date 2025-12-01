@@ -64,25 +64,27 @@ struct WorkDetailSheet: View {
     
     // MARK: - Sections
     
+    private var creator: Profile? { work.creator }
+    
     private var creatorSection: some View {
         HStack(spacing: 12) {
             Circle()
                 .fill(Color(hex: "a855f7"))
                 .frame(width: 56, height: 56)
                 .overlay(
-                    Text("C")
+                    Text(creatorInitial)
                         .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundStyle(.white)
                 )
             
             VStack(alignment: .leading, spacing: 4) {
-                Text("@creator")
+                Text("@\(creator?.username ?? "unknown")")
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundStyle(.white)
                 
-                Text("Creative Developer")
+                Text(creator?.displayName ?? "Creator")
                     .font(.system(size: 14))
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundStyle(.white.opacity(0.6))
             }
             
             Spacer()
@@ -90,13 +92,18 @@ struct WorkDetailSheet: View {
             Button { requireLogin {} } label: {
                 Text("Follow")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundStyle(.white)
                     .padding(.horizontal, 20)
                     .padding(.vertical, 8)
                     .background(Color(hex: "a855f7"))
-                    .cornerRadius(20)
+                    .clipShape(Capsule())
             }
         }
+    }
+    
+    private var creatorInitial: String {
+        let name = creator?.displayName ?? creator?.username ?? "?"
+        return String(name.prefix(1)).uppercased()
     }
     
     private var workSection: some View {
@@ -130,8 +137,9 @@ struct WorkDetailSheet: View {
     
     private var actionsSection: some View {
         HStack(spacing: 0) {
+            // Like (stateful: outline ↔ fill)
             ActionTile(
-                icon: "heart.fill",
+                icon: interaction.isLiked ? "heart.fill" : "heart",
                 label: "Like",
                 tint: interaction.isLiked ? .red : .white
             ) {
@@ -140,12 +148,14 @@ struct WorkDetailSheet: View {
                 }
             }
             
-            ActionTile(icon: "bubble.right.fill", label: "Comment") {
+            // Comment (action: always outline)
+            ActionTile(icon: "message", label: "Comment") {
                 showComments = true
             }
             
+            // Collect (stateful: outline ↔ fill)
             ActionTile(
-                icon: "bookmark.fill",
+                icon: interaction.isCollected ? "bookmark.fill" : "bookmark",
                 label: "Save",
                 tint: interaction.isCollected ? .yellow : .white
             ) {
@@ -154,7 +164,8 @@ struct WorkDetailSheet: View {
                 }
             }
             
-            ActionTile(icon: "arrowshape.turn.up.forward.fill", label: "Share") {
+            // Share (action: always outline)
+            ActionTile(icon: "arrowshape.turn.up.right", label: "Share") {
                 showShareSheet = true
             }
         }
