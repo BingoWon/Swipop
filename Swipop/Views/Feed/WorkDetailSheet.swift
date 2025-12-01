@@ -9,10 +9,17 @@ struct WorkDetailSheet: View {
     
     let work: Work
     @Binding var showLogin: Bool
-    @Environment(\.dismiss) private var dismiss
     
-    @State private var isLiked = false
-    @State private var isCollected = false
+    @Environment(\.dismiss) private var dismiss
+    @State private var interaction: InteractionViewModel
+    @State private var showComments = false
+    @State private var showShareSheet = false
+    
+    init(work: Work, showLogin: Binding<Bool>) {
+        self.work = work
+        self._showLogin = showLogin
+        self._interaction = State(initialValue: InteractionViewModel(work: work))
+    }
     
     var body: some View {
         NavigationStack {
@@ -44,6 +51,15 @@ struct WorkDetailSheet: View {
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
         .presentationBackground(.black)
+        .task {
+            await interaction.loadState()
+        }
+        .sheet(isPresented: $showComments) {
+            CommentSheet(work: work, showLogin: $showLogin)
+        }
+        .sheet(isPresented: $showShareSheet) {
+            ShareSheet(work: work)
+        }
     }
     
     // MARK: - Sections
@@ -114,23 +130,40 @@ struct WorkDetailSheet: View {
     
     private var actionsSection: some View {
         HStack(spacing: 0) {
-            ActionTile(icon: isLiked ? "heart.fill" : "heart", label: "Like", tint: isLiked ? .red : .white) {
-                requireLogin { isLiked.toggle() }
+            ActionTile(
+                icon: interaction.isLiked ? "heart.fill" : "heart",
+                label: "Like",
+                tint: interaction.isLiked ? .red : .white
+            ) {
+                requireLogin {
+                    Task { await interaction.toggleLike() }
+                }
             }
+            
             ActionTile(icon: "bubble.right", label: "Comment") {
-                requireLogin {}
+                showComments = true
             }
-            ActionTile(icon: isCollected ? "bookmark.fill" : "bookmark", label: "Save", tint: isCollected ? .yellow : .white) {
-                requireLogin { isCollected.toggle() }
+            
+            ActionTile(
+                icon: interaction.isCollected ? "bookmark.fill" : "bookmark",
+                label: "Save",
+                tint: interaction.isCollected ? .yellow : .white
+            ) {
+                requireLogin {
+                    Task { await interaction.toggleCollect() }
+                }
             }
-            ActionTile(icon: "arrowshape.turn.up.forward", label: "Share") {}
+            
+            ActionTile(icon: "arrowshape.turn.up.forward", label: "Share") {
+                showShareSheet = true
+            }
         }
     }
     
     private var statsSection: some View {
         HStack(spacing: 32) {
             StatItem(value: work.viewCount, label: "Views")
-            StatItem(value: work.likeCount, label: "Likes")
+            StatItem(value: interaction.likeCount, label: "Likes")
             StatItem(value: work.commentCount, label: "Comments")
             StatItem(value: work.shareCount, label: "Shares")
         }
