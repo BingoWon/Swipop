@@ -47,17 +47,6 @@ struct MainTabView: View {
 
 // MARK: - Placeholder Views
 
-struct FeedView: View {
-    var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-            Text("Feed")
-                .foregroundColor(.white)
-                .font(.title)
-        }
-    }
-}
-
 struct DiscoverView: View {
     var body: some View {
         ZStack {
@@ -106,5 +95,5 @@ struct ProfileView: View {
 
 #Preview {
     MainTabView()
+        .preferredColorScheme(.dark)
 }
-

@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		D7BF49FE2EDDB66700218489 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = D7BF49D32EDDAF9500218489 /* Supabase */; };
+		D7BF4AE12EDDC16000218489 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = D7BF4AA52EDDC0B500218489 /* GoogleSignIn */; };
+		D7BF4AE22EDDC16000218489 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = D7BF4AA62EDDC0B500218489 /* GoogleSignInSwift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -56,6 +58,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D7BF4AE22EDDC16000218489 /* GoogleSignInSwift in Frameworks */,
+				D7BF4AE12EDDC16000218489 /* GoogleSignIn in Frameworks */,
 				D7BF49FE2EDDB66700218489 /* Supabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
