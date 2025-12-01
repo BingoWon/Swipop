@@ -2,8 +2,6 @@
 //  FeedViewModel.swift
 //  Swipop
 //
-//  Shared state for feed navigation
-//
 
 import Foundation
 
@@ -12,32 +10,23 @@ final class FeedViewModel {
     
     static let shared = FeedViewModel()
     
-    var currentWork: Work?
-    var works: [Work] = Work.samples
-    var currentIndex: Int = 0 {
-        didSet {
-            if currentIndex >= 0 && currentIndex < works.count {
-                currentWork = works[currentIndex]
-            }
-        }
+    private(set) var works: [Work] = Work.samples
+    private(set) var currentIndex = 0
+    
+    var currentWork: Work? {
+        guard currentIndex >= 0 && currentIndex < works.count else { return nil }
+        return works[currentIndex]
     }
     
-    private init() {
-        if !works.isEmpty {
-            currentWork = works[0]
-        }
-    }
+    private init() {}
     
     func goToNext() {
-        if currentIndex < works.count - 1 {
-            currentIndex += 1
-        }
+        guard currentIndex < works.count - 1 else { return }
+        currentIndex += 1
     }
     
     func goToPrevious() {
-        if currentIndex > 0 {
-            currentIndex -= 1
-        }
+        guard currentIndex > 0 else { return }
+        currentIndex -= 1
     }
 }
-

@@ -2,8 +2,6 @@
 //  WorkCardView.swift
 //  Swipop
 //
-//  Full-screen work card with WebView and action buttons
-//
 
 import SwiftUI
 
@@ -11,39 +9,30 @@ struct WorkCardView: View {
     
     let work: Work
     @Binding var showLogin: Bool
-    var onPrevious: () -> Void
-    var onNext: () -> Void
     
-    @State private var authService = AuthService.shared
     @State private var isLiked = false
     @State private var isCollected = false
     
     var body: some View {
         ZStack {
-            // Work content - true full screen
             WorkWebView(work: work)
             
-            // Right side action buttons
+            // Right side actions
             VStack {
                 Spacer()
                 actionButtons
-                Spacer()
-                    .frame(height: 160)
+                Spacer().frame(height: 160)
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
             .padding(.trailing, 12)
         }
-        .ignoresSafeArea(.all)
+        .ignoresSafeArea()
     }
-    
-    // MARK: - Action Buttons (Right Side)
     
     private var actionButtons: some View {
         VStack(spacing: 20) {
-            // Creator avatar with follow button (TikTok style)
-            Button {
-                // View creator profile
-            } label: {
+            // Creator avatar + follow
+            Button {} label: {
                 ZStack(alignment: .bottom) {
                     Circle()
                         .fill(Color(hex: "a855f7"))
@@ -54,7 +43,6 @@ struct WorkCardView: View {
                                 .foregroundColor(.white)
                         )
                     
-                    // Red plus button
                     Circle()
                         .fill(.red)
                         .frame(width: 20, height: 20)
@@ -74,53 +62,30 @@ struct WorkCardView: View {
                 count: work.likeCount,
                 tint: isLiked ? .red : .white
             ) {
-                handleLike()
+                requireLogin { isLiked.toggle() }
             }
             
             // Comment
             ActionButton(icon: "bubble.right.fill", count: work.commentCount) {
-                requireLogin {
-                    // Open comments
-                }
+                requireLogin {}
             }
             
             // Collect
             ActionButton(
                 icon: isCollected ? "bookmark.fill" : "bookmark",
-                count: nil,
                 tint: isCollected ? .yellow : .white
             ) {
-                handleCollect()
+                requireLogin { isCollected.toggle() }
             }
             
             // Share
-            ActionButton(icon: "arrowshape.turn.up.forward.fill", count: work.shareCount) {
-                // Share
-            }
-        }
-    }
-    
-    // MARK: - Actions
-    
-    private func handleLike() {
-        requireLogin {
-            withAnimation(.spring(response: 0.3)) {
-                isLiked.toggle()
-            }
-        }
-    }
-    
-    private func handleCollect() {
-        requireLogin {
-            withAnimation(.spring(response: 0.3)) {
-                isCollected.toggle()
-            }
+            ActionButton(icon: "arrowshape.turn.up.forward.fill", count: work.shareCount) {}
         }
     }
     
     private func requireLogin(action: @escaping () -> Void) {
-        if authService.isAuthenticated {
-            action()
+        if AuthService.shared.isAuthenticated {
+            withAnimation(.spring(response: 0.3)) { action() }
         } else {
             showLogin = true
         }
@@ -130,8 +95,9 @@ struct WorkCardView: View {
 // MARK: - Action Button
 
 private struct ActionButton: View {
+    
     let icon: String
-    let count: Int?
+    var count: Int? = nil
     var tint: Color = .white
     let action: () -> Void
     
@@ -142,31 +108,17 @@ private struct ActionButton: View {
                     .font(.system(size: 28))
                     .foregroundColor(tint)
                 
-                if let count = count {
-                    Text(formatCount(count))
+                if let count {
+                    Text(count.formatted)
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.white)
                 }
             }
         }
     }
-    
-    private func formatCount(_ count: Int) -> String {
-        if count >= 1_000_000 {
-            return String(format: "%.1fM", Double(count) / 1_000_000)
-        } else if count >= 1_000 {
-            return String(format: "%.1fK", Double(count) / 1_000)
-        }
-        return "\(count)"
-    }
 }
 
 #Preview {
-    WorkCardView(
-        work: .sample,
-        showLogin: .constant(false),
-        onPrevious: {},
-        onNext: {}
-    )
-    .preferredColorScheme(.dark)
+    WorkCardView(work: .sample, showLogin: .constant(false))
+        .preferredColorScheme(.dark)
 }

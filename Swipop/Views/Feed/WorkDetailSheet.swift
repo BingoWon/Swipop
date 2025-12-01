@@ -2,8 +2,6 @@
 //  WorkDetailSheet.swift
 //  Swipop
 //
-//  Full work and creator details sheet
-//
 
 import SwiftUI
 
@@ -12,7 +10,7 @@ struct WorkDetailSheet: View {
     let work: Work
     @Binding var showLogin: Bool
     @Environment(\.dismiss) private var dismiss
-    @State private var authService = AuthService.shared
+    
     @State private var isLiked = false
     @State private var isCollected = false
     
@@ -20,25 +18,12 @@ struct WorkDetailSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    // Creator section
                     creatorSection
-                    
-                    Divider()
-                        .background(Color.white.opacity(0.2))
-                    
-                    // Work info
+                    Divider().background(Color.white.opacity(0.2))
                     workSection
-                    
-                    Divider()
-                        .background(Color.white.opacity(0.2))
-                    
-                    // Actions
+                    Divider().background(Color.white.opacity(0.2))
                     actionsSection
-                    
-                    Divider()
-                        .background(Color.white.opacity(0.2))
-                    
-                    // Stats
+                    Divider().background(Color.white.opacity(0.2))
                     statsSection
                 }
                 .padding(20)
@@ -48,9 +33,7 @@ struct WorkDetailSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        dismiss()
-                    } label: {
+                    Button { dismiss() } label: {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundStyle(.white.opacity(0.6))
                             .font(.title2)
@@ -63,7 +46,7 @@ struct WorkDetailSheet: View {
         .presentationBackground(.black)
     }
     
-    // MARK: - Creator Section
+    // MARK: - Sections
     
     private var creatorSection: some View {
         HStack(spacing: 12) {
@@ -88,9 +71,7 @@ struct WorkDetailSheet: View {
             
             Spacer()
             
-            Button {
-                requireLogin {}
-            } label: {
+            Button { requireLogin {} } label: {
                 Text("Follow")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.white)
@@ -101,8 +82,6 @@ struct WorkDetailSheet: View {
             }
         }
     }
-    
-    // MARK: - Work Section
     
     private var workSection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -117,7 +96,6 @@ struct WorkDetailSheet: View {
                     .lineSpacing(4)
             }
             
-            // Tags (placeholder)
             HStack(spacing: 8) {
                 ForEach(["#creative", "#webdev", "#animation"], id: \.self) { tag in
                     Text(tag)
@@ -127,7 +105,6 @@ struct WorkDetailSheet: View {
             }
             .padding(.top, 4)
             
-            // Time
             Text("2 hours ago")
                 .font(.system(size: 13))
                 .foregroundColor(.white.opacity(0.4))
@@ -135,33 +112,20 @@ struct WorkDetailSheet: View {
         }
     }
     
-    // MARK: - Actions Section
-    
     private var actionsSection: some View {
         HStack(spacing: 0) {
             ActionTile(icon: isLiked ? "heart.fill" : "heart", label: "Like", tint: isLiked ? .red : .white) {
-                requireLogin {
-                    isLiked.toggle()
-                }
+                requireLogin { isLiked.toggle() }
             }
-            
-            ActionTile(icon: "bubble.right", label: "Comment", tint: .white) {
+            ActionTile(icon: "bubble.right", label: "Comment") {
                 requireLogin {}
             }
-            
             ActionTile(icon: isCollected ? "bookmark.fill" : "bookmark", label: "Save", tint: isCollected ? .yellow : .white) {
-                requireLogin {
-                    isCollected.toggle()
-                }
+                requireLogin { isCollected.toggle() }
             }
-            
-            ActionTile(icon: "arrowshape.turn.up.forward", label: "Share", tint: .white) {
-                // Share
-            }
+            ActionTile(icon: "arrowshape.turn.up.forward", label: "Share") {}
         }
     }
-    
-    // MARK: - Stats Section
     
     private var statsSection: some View {
         HStack(spacing: 32) {
@@ -175,7 +139,7 @@ struct WorkDetailSheet: View {
     // MARK: - Helpers
     
     private func requireLogin(action: @escaping () -> Void) {
-        if authService.isAuthenticated {
+        if AuthService.shared.isAuthenticated {
             action()
         } else {
             dismiss()
@@ -186,7 +150,7 @@ struct WorkDetailSheet: View {
     }
 }
 
-// MARK: - Action Tile
+// MARK: - Supporting Views
 
 private struct ActionTile: View {
     let icon: String
@@ -200,7 +164,6 @@ private struct ActionTile: View {
                 Image(systemName: icon)
                     .font(.system(size: 24))
                     .foregroundColor(tint)
-                
                 Text(label)
                     .font(.system(size: 12))
                     .foregroundColor(.white.opacity(0.6))
@@ -210,35 +173,22 @@ private struct ActionTile: View {
     }
 }
 
-// MARK: - Stat Item
-
 private struct StatItem: View {
     let value: Int
     let label: String
     
     var body: some View {
         VStack(spacing: 4) {
-            Text(formatCount(value))
+            Text(value.formatted)
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundColor(.white)
-            
             Text(label)
                 .font(.system(size: 12))
                 .foregroundColor(.white.opacity(0.5))
         }
-    }
-    
-    private func formatCount(_ count: Int) -> String {
-        if count >= 1_000_000 {
-            return String(format: "%.1fM", Double(count) / 1_000_000)
-        } else if count >= 1_000 {
-            return String(format: "%.1fK", Double(count) / 1_000)
-        }
-        return "\(count)"
     }
 }
 
 #Preview {
     WorkDetailSheet(work: .sample, showLogin: .constant(false))
 }
-

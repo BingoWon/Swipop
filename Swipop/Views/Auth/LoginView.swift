@@ -2,8 +2,6 @@
 //  LoginView.swift
 //  Swipop
 //
-//  Clean, modern login screen (presented as sheet)
-//
 
 import SwiftUI
 import AuthenticationServices
@@ -11,13 +9,17 @@ import AuthenticationServices
 struct LoginView: View {
     
     @Binding var isPresented: Bool
-    @State private var authService = AuthService.shared
     @State private var showError = false
     @State private var errorMessage = ""
     
+    private let auth = AuthService.shared
+    
+    init(isPresented: Binding<Bool>) {
+        self._isPresented = isPresented
+    }
+    
     var body: some View {
         ZStack {
-            // Background gradient
             LinearGradient(
                 colors: [Color.black, Color(hex: "1a1a2e")],
                 startPoint: .top,
@@ -26,11 +28,9 @@ struct LoginView: View {
             .ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Close button
+                // Close
                 HStack {
-                    Button {
-                        isPresented = false
-                    } label: {
+                    Button { isPresented = false } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: 18, weight: .medium))
                             .foregroundColor(.white.opacity(0.7))
@@ -45,7 +45,7 @@ struct LoginView: View {
                 
                 Spacer()
                 
-                // Logo & Tagline
+                // Logo
                 VStack(spacing: 16) {
                     Text("Swipop")
                         .font(.system(size: 48, weight: .bold, design: .rounded))
@@ -73,20 +73,15 @@ struct LoginView: View {
                 .padding(.horizontal, 32)
                 .padding(.bottom, 40)
                 
-                // Terms
                 Text("By continuing, you agree to our Terms of Service")
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.4))
                     .padding(.bottom, 32)
             }
             
-            // Loading overlay
-            if authService.isLoading {
-                Color.black.opacity(0.5)
-                    .ignoresSafeArea()
-                ProgressView()
-                    .tint(.white)
-                    .scaleEffect(1.5)
+            if auth.isLoading {
+                Color.black.opacity(0.5).ignoresSafeArea()
+                ProgressView().tint(.white).scaleEffect(1.5)
             }
         }
         .alert("Error", isPresented: $showError) {
@@ -94,22 +89,18 @@ struct LoginView: View {
         } message: {
             Text(errorMessage)
         }
-        .onChange(of: authService.isAuthenticated) { _, isAuthenticated in
-            if isAuthenticated {
-                isPresented = false
-            }
+        .onChange(of: auth.isAuthenticated) { _, isAuthenticated in
+            if isAuthenticated { isPresented = false }
         }
     }
     
-    // MARK: - Apple Sign In Button
+    // MARK: - Apple Sign In
     
     private var appleSignInButton: some View {
         SignInWithAppleButton(.signIn) { request in
             request.requestedScopes = [.fullName, .email]
         } onCompletion: { result in
-            Task {
-                await handleAppleSignIn(result)
-            }
+            Task { await handleAppleSignIn(result) }
         }
         .signInWithAppleButtonStyle(.white)
         .frame(height: 54)
@@ -121,7 +112,7 @@ struct LoginView: View {
         case .success(let authorization):
             if let credential = authorization.credential as? ASAuthorizationAppleIDCredential {
                 do {
-                    try await authService.signInWithApple(credential: credential)
+                    try await auth.signInWithApple(credential: credential)
                 } catch {
                     displayError(error)
                 }
@@ -133,18 +124,14 @@ struct LoginView: View {
         }
     }
     
-    // MARK: - Google Sign In Button
+    // MARK: - Google Sign In
     
     private var googleSignInButton: some View {
         Button {
-            Task {
-                await handleGoogleSignIn()
-            }
+            Task { await handleGoogleSignIn() }
         } label: {
             HStack(spacing: 12) {
-                GoogleLogo()
-                    .frame(width: 20, height: 20)
-                
+                GoogleLogo().frame(width: 20, height: 20)
                 Text("Sign in with Google")
                     .font(.system(size: 17, weight: .medium))
             }
@@ -158,15 +145,13 @@ struct LoginView: View {
     
     private func handleGoogleSignIn() async {
         do {
-            try await authService.signInWithGoogle()
+            try await auth.signInWithGoogle()
         } catch {
             if (error as NSError).code != -5 {
                 displayError(error)
             }
         }
     }
-    
-    // MARK: - Error Handling
     
     private func displayError(_ error: Error) {
         errorMessage = error.localizedDescription
@@ -179,48 +164,12 @@ struct LoginView: View {
 private struct GoogleLogo: View {
     var body: some View {
         ZStack {
-            Circle()
-                .trim(from: 0.0, to: 0.25)
-                .stroke(Color(hex: "4285F4"), lineWidth: 3)
-            Circle()
-                .trim(from: 0.25, to: 0.5)
-                .stroke(Color(hex: "34A853"), lineWidth: 3)
-            Circle()
-                .trim(from: 0.5, to: 0.75)
-                .stroke(Color(hex: "FBBC05"), lineWidth: 3)
-            Circle()
-                .trim(from: 0.75, to: 1.0)
-                .stroke(Color(hex: "EA4335"), lineWidth: 3)
+            Circle().trim(from: 0.0, to: 0.25).stroke(Color(hex: "4285F4"), lineWidth: 3)
+            Circle().trim(from: 0.25, to: 0.5).stroke(Color(hex: "34A853"), lineWidth: 3)
+            Circle().trim(from: 0.5, to: 0.75).stroke(Color(hex: "FBBC05"), lineWidth: 3)
+            Circle().trim(from: 0.75, to: 1.0).stroke(Color(hex: "EA4335"), lineWidth: 3)
         }
         .rotationEffect(.degrees(-90))
-    }
-}
-
-// MARK: - Color Extension
-
-extension Color {
-    init(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&int)
-        let a, r, g, b: UInt64
-        switch hex.count {
-        case 3:
-            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
-        case 6:
-            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
-        case 8:
-            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
-        default:
-            (a, r, g, b) = (255, 0, 0, 0)
-        }
-        self.init(
-            .sRGB,
-            red: Double(r) / 255,
-            green: Double(g) / 255,
-            blue: Double(b) / 255,
-            opacity: Double(a) / 255
-        )
     }
 }
 
