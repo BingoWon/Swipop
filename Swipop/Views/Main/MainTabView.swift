@@ -65,7 +65,7 @@ struct BottomAccessory: View {
     
     var body: some View {
         HStack(spacing: 0) {
-            // Left 2/3: Title - tap to show detail
+            // Left: Title - tap to show detail
             Button {
                 showWorkDetail = true
             } label: {
@@ -91,8 +91,9 @@ struct BottomAccessory: View {
                     
                     Spacer()
                     
-                    Image(systemName: "chevron.up")
-                        .font(.system(size: 12, weight: .medium))
+                    // Info icon instead of chevron
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 16))
                         .foregroundStyle(.secondary)
                 }
                 .padding(.horizontal, 12)
@@ -104,37 +105,41 @@ struct BottomAccessory: View {
                 .fill(.white.opacity(0.2))
                 .frame(width: 1, height: 28)
             
-            // Right 1/3: Navigation buttons
-            HStack(spacing: 0) {
-                Button {
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                        feedViewModel.goToPrevious()
-                    }
-                } label: {
-                    Image(systemName: "chevron.up")
-                        .font(.system(size: 15, weight: .semibold))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-                .disabled(feedViewModel.currentIndex == 0)
-                .opacity(feedViewModel.currentIndex == 0 ? 0.3 : 1)
+            // Right: Position indicator + Navigation
+            HStack(spacing: 12) {
+                // Position indicator
+                Text("\(feedViewModel.currentIndex + 1)/\(feedViewModel.works.count)")
+                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.secondary)
                 
-                Rectangle()
-                    .fill(.white.opacity(0.15))
-                    .frame(width: 1, height: 20)
-                
-                Button {
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                        feedViewModel.goToNext()
+                // Prev/Next buttons as a compact group
+                HStack(spacing: 4) {
+                    Button {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            feedViewModel.goToPrevious()
+                        }
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 14, weight: .semibold))
+                            .frame(width: 32, height: 32)
                     }
-                } label: {
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 15, weight: .semibold))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .disabled(feedViewModel.currentIndex == 0)
+                    .opacity(feedViewModel.currentIndex == 0 ? 0.3 : 1)
+                    
+                    Button {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            feedViewModel.goToNext()
+                        }
+                    } label: {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .semibold))
+                            .frame(width: 32, height: 32)
+                    }
+                    .disabled(feedViewModel.currentIndex >= feedViewModel.works.count - 1)
+                    .opacity(feedViewModel.currentIndex >= feedViewModel.works.count - 1 ? 0.3 : 1)
                 }
-                .disabled(feedViewModel.currentIndex >= feedViewModel.works.count - 1)
-                .opacity(feedViewModel.currentIndex >= feedViewModel.works.count - 1 ? 0.3 : 1)
             }
-            .frame(width: 100)
+            .padding(.trailing, 8)
         }
         .foregroundStyle(.white)
     }
