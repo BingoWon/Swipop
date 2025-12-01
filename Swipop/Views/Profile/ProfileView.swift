@@ -16,38 +16,15 @@ struct ProfileView: View {
     }
     
     var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-            
-            if auth.isAuthenticated {
-                authenticatedContent
-            } else {
-                signInPrompt
-            }
-        }
-    }
-    
-    private var authenticatedContent: some View {
-        VStack(spacing: 24) {
-            Circle()
-                .fill(Color(hex: "a855f7"))
-                .frame(width: 80, height: 80)
-                .overlay(
-                    Text(String(auth.currentUser?.email?.prefix(1).uppercased() ?? "U"))
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(.white)
-                )
-            
-            Text(auth.currentUser?.email ?? "User")
-                .font(.title3)
-                .foregroundColor(.white)
-            
-            Button {
-                Task { try? await auth.signOut() }
-            } label: {
-                Text("Sign Out")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(.red)
+        NavigationStack {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                
+                if auth.isAuthenticated, let userId = auth.currentUser?.id {
+                    ProfileContentView(userId: userId, showLogin: $showLogin)
+                } else {
+                    signInPrompt
+                }
             }
         }
     }
@@ -76,8 +53,237 @@ struct ProfileView: View {
     }
 }
 
+// MARK: - Profile Content View
+
+struct ProfileContentView: View {
+    
+    let userId: UUID
+    @Binding var showLogin: Bool
+    
+    @State private var viewModel: ProfileViewModel
+    @State private var selectedTab = 0
+    @State private var showSettings = false
+    @State private var showEditProfile = false
+    
+    init(userId: UUID, showLogin: Binding<Bool>) {
+        self.userId = userId
+        self._showLogin = showLogin
+        self._viewModel = State(initialValue: ProfileViewModel(userId: userId))
+    }
+    
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                profileHeader
+                statsRow
+                actionButtons
+                contentTabs
+                workGrid
+            }
+        }
+        .background(Color.black)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                if viewModel.isCurrentUser {
+                    Button { showSettings = true } label: {
+                        Image(systemName: "gearshape")
+                            .foregroundColor(.white)
+                    }
+                }
+            }
+        }
+        .task {
+            await viewModel.load()
+        }
+        .sheet(isPresented: $showSettings) {
+            SettingsView()
+        }
+        .sheet(isPresented: $showEditProfile) {
+            EditProfileView(profile: viewModel.profile)
+        }
+    }
+    
+    // MARK: - Profile Header
+    
+    private var profileHeader: some View {
+        VStack(spacing: 12) {
+            Circle()
+                .fill(Color(hex: "a855f7"))
+                .frame(width: 88, height: 88)
+                .overlay(
+                    Text(viewModel.profile?.username?.prefix(1).uppercased() ?? "U")
+                        .font(.system(size: 36, weight: .bold))
+                        .foregroundColor(.white)
+                )
+            
+            Text(viewModel.profile?.displayName ?? viewModel.profile?.username ?? "User")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(.white)
+            
+            if let username = viewModel.profile?.username {
+                Text("@\(username)")
+                    .font(.system(size: 14))
+                    .foregroundColor(.white.opacity(0.6))
+            }
+            
+            if let bio = viewModel.profile?.bio, !bio.isEmpty {
+                Text(bio)
+                    .font(.system(size: 14))
+                    .foregroundColor(.white.opacity(0.8))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+            }
+        }
+        .padding(.top, 20)
+        .padding(.bottom, 16)
+    }
+    
+    // MARK: - Stats Row
+    
+    private var statsRow: some View {
+        HStack(spacing: 40) {
+            StatColumn(value: viewModel.workCount, label: "Works")
+            StatColumn(value: viewModel.followerCount, label: "Followers")
+            StatColumn(value: viewModel.followingCount, label: "Following")
+        }
+        .padding(.vertical, 16)
+    }
+    
+    // MARK: - Action Buttons
+    
+    private var actionButtons: some View {
+        HStack(spacing: 12) {
+            if viewModel.isCurrentUser {
+                Button { showEditProfile = true } label: {
+                    Text("Edit Profile")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 36)
+                        .background(Color.white.opacity(0.15))
+                        .cornerRadius(8)
+                }
+            } else {
+                Button {
+                    Task { await viewModel.toggleFollow() }
+                } label: {
+                    Text(viewModel.isFollowing ? "Following" : "Follow")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(viewModel.isFollowing ? .white : .black)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 36)
+                        .background(viewModel.isFollowing ? Color.white.opacity(0.15) : Color.white)
+                        .cornerRadius(8)
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 20)
+    }
+    
+    // MARK: - Content Tabs
+    
+    private var contentTabs: some View {
+        HStack(spacing: 0) {
+            TabButton(icon: "square.grid.2x2", isSelected: selectedTab == 0) {
+                selectedTab = 0
+            }
+            
+            if viewModel.isCurrentUser {
+                TabButton(icon: "heart", isSelected: selectedTab == 1) {
+                    selectedTab = 1
+                }
+                
+                TabButton(icon: "bookmark", isSelected: selectedTab == 2) {
+                    selectedTab = 2
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+    }
+    
+    // MARK: - Work Grid
+    
+    private var workGrid: some View {
+        let items = currentItems
+        
+        return LazyVGrid(columns: [
+            GridItem(.flexible(), spacing: 2),
+            GridItem(.flexible(), spacing: 2),
+            GridItem(.flexible(), spacing: 2)
+        ], spacing: 2) {
+            ForEach(items) { work in
+                WorkThumbnail(work: work)
+            }
+        }
+        .padding(.top, 2)
+    }
+    
+    private var currentItems: [Work] {
+        switch selectedTab {
+        case 1: return viewModel.likedWorks
+        case 2: return viewModel.collectedWorks
+        default: return viewModel.works
+        }
+    }
+}
+
+// MARK: - Supporting Views
+
+private struct StatColumn: View {
+    let value: Int
+    let label: String
+    
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(value.formatted)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(.white)
+            Text(label)
+                .font(.system(size: 13))
+                .foregroundColor(.white.opacity(0.6))
+        }
+    }
+}
+
+private struct TabButton: View {
+    let icon: String
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Image(systemName: isSelected ? "\(icon).fill" : icon)
+                    .font(.system(size: 20))
+                    .foregroundColor(isSelected ? .white : .white.opacity(0.5))
+                
+                Rectangle()
+                    .fill(isSelected ? Color.white : Color.clear)
+                    .frame(height: 2)
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+}
+
+private struct WorkThumbnail: View {
+    let work: Work
+    
+    var body: some View {
+        Rectangle()
+            .fill(Color(hex: "1a1a2e"))
+            .aspectRatio(1, contentMode: .fill)
+            .overlay(
+                Text(work.title.prefix(2).uppercased())
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(.white.opacity(0.3))
+            )
+    }
+}
+
 #Preview {
     ProfileView(showLogin: .constant(false))
         .preferredColorScheme(.dark)
 }
-
