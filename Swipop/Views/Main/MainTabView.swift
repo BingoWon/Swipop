@@ -13,6 +13,8 @@ struct MainTabView: View {
     @Binding var showLogin: Bool
     @State private var selectedTab = 0
     @State private var searchText = ""
+    @State private var showWorkDetail = false
+    @State private var feedViewModel = FeedViewModel.shared
     
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -38,47 +40,71 @@ struct MainTabView: View {
             }
         }
         .tabViewBottomAccessory {
-            NavigationControls()
+            BottomAccessory(
+                showWorkDetail: $showWorkDetail,
+                feedViewModel: feedViewModel
+            )
         }
         .tint(.white)
+        .sheet(isPresented: $showWorkDetail) {
+            if let work = feedViewModel.currentWork {
+                WorkDetailSheet(work: work, showLogin: $showLogin)
+            }
+        }
     }
 }
 
-// MARK: - Navigation Controls (Bottom Accessory)
+// MARK: - Bottom Accessory
 
-struct NavigationControls: View {
+struct BottomAccessory: View {
+    
+    @Binding var showWorkDetail: Bool
+    var feedViewModel: FeedViewModel
+    
     var body: some View {
         HStack(spacing: 0) {
-            // Previous work
+            // Left: Title - tap to show detail
             Button {
-                NotificationCenter.default.post(name: .navigateToPrevious, object: nil)
+                showWorkDetail = true
             } label: {
-                Image(systemName: "chevron.up")
-                    .font(.system(size: 16, weight: .semibold))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(Color(hex: "a855f7"))
+                        .frame(width: 24, height: 24)
+                        .overlay(
+                            Text("C")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.white)
+                        )
+                    
+                    Text(feedViewModel.currentWork?.title ?? "Swipop")
+                        .font(.system(size: 14, weight: .medium))
+                        .lineLimit(1)
+                    
+                    Image(systemName: "chevron.up")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.leading, 12)
             }
             
             Divider()
                 .frame(height: 20)
             
-            // Next work
+            // Right: Next work
             Button {
-                NotificationCenter.default.post(name: .navigateToNext, object: nil)
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    feedViewModel.goToNext()
+                }
             } label: {
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 16, weight: .semibold))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .font(.system(size: 14, weight: .semibold))
+                    .frame(width: 60)
             }
         }
         .foregroundStyle(.white)
     }
-}
-
-// MARK: - Notification Names
-
-extension Notification.Name {
-    static let navigateToPrevious = Notification.Name("navigateToPrevious")
-    static let navigateToNext = Notification.Name("navigateToNext")
 }
 
 // MARK: - Search View

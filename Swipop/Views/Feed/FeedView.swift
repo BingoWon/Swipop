@@ -10,22 +10,29 @@ import SwiftUI
 struct FeedView: View {
     
     @Binding var showLogin: Bool
-    @State private var works: [Work] = Work.samples
-    @State private var currentIndex = 0
+    @State private var feedViewModel = FeedViewModel.shared
     
     var body: some View {
         ZStack {
             Color.black
             
             // Current work - full screen
-            if !works.isEmpty {
+            if let work = feedViewModel.currentWork {
                 WorkCardView(
-                    work: works[currentIndex],
+                    work: work,
                     showLogin: $showLogin,
-                    onPrevious: goToPrevious,
-                    onNext: goToNext
+                    onPrevious: {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            feedViewModel.goToPrevious()
+                        }
+                    },
+                    onNext: {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            feedViewModel.goToNext()
+                        }
+                    }
                 )
-                .id(currentIndex)
+                .id(feedViewModel.currentIndex)
                 .transition(.asymmetric(
                     insertion: .move(edge: .bottom),
                     removal: .move(edge: .top)
@@ -40,36 +47,13 @@ struct FeedView: View {
                     
                     withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                         if verticalMovement < -50 {
-                            goToNext()
+                            feedViewModel.goToNext()
                         } else if verticalMovement > 50 {
-                            goToPrevious()
+                            feedViewModel.goToPrevious()
                         }
                     }
                 }
         )
-        // Listen for navigation from bottom accessory
-        .onReceive(NotificationCenter.default.publisher(for: .navigateToPrevious)) { _ in
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                goToPrevious()
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .navigateToNext)) { _ in
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                goToNext()
-            }
-        }
-    }
-    
-    private func goToNext() {
-        if currentIndex < works.count - 1 {
-            currentIndex += 1
-        }
-    }
-    
-    private func goToPrevious() {
-        if currentIndex > 0 {
-            currentIndex -= 1
-        }
     }
 }
 
