@@ -19,69 +19,118 @@ struct WorkCardView: View {
     @State private var isCollected = false
     
     var body: some View {
-        ZStack {
+        ZStack(alignment: .bottom) {
             // Work content - true full screen
             WorkWebView(work: work)
             
-            // Overlay gradient for readability
+            // Bottom gradient for readability
+            LinearGradient(
+                colors: [.clear, .black.opacity(0.7)],
+                startPoint: .center,
+                endPoint: .bottom
+            )
+            .frame(height: 300)
+            
+            // Right side action buttons - vertically centered
             VStack {
                 Spacer()
-                LinearGradient(
-                    colors: [.clear, .black.opacity(0.6)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 200)
-            }
-            
-            // UI overlay
-            HStack(alignment: .bottom) {
-                // Work info
-                workInfo
-                
-                Spacer()
-                
-                // Action buttons
                 actionButtons
+                Spacer()
+                    .frame(height: 150)
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 100) // Above tab bar
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .padding(.trailing, 12)
+            
+            // Bottom left - creator info
+            VStack(alignment: .leading, spacing: 0) {
+                Spacer()
+                workInfo
+                    .padding(.leading, 16)
+                    .padding(.bottom, 120)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .ignoresSafeArea(.all)
     }
     
-    // MARK: - Work Info
+    // MARK: - Work Info (Bottom Left)
     
     private var workInfo: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("@creator")
-                .font(.system(size: 16, weight: .semibold))
+            // Creator
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(Color(hex: "a855f7"))
+                    .frame(width: 40, height: 40)
+                    .overlay(
+                        Text("C")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.white)
+                    )
+                
+                Text("@creator")
+                    .font(.system(size: 16, weight: .semibold))
+                
+                Button {
+                    requireLogin {}
+                } label: {
+                    Text("Follow")
+                        .font(.system(size: 13, weight: .semibold))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 4)
+                        .background(Color.white.opacity(0.2))
+                        .cornerRadius(4)
+                }
+            }
             
+            // Title
             Text(work.title)
-                .font(.system(size: 14))
-                .lineLimit(2)
+                .font(.system(size: 14, weight: .medium))
+                .lineLimit(1)
             
+            // Description
             if let description = work.description {
                 Text(description)
                     .font(.system(size: 13))
-                    .foregroundColor(.white.opacity(0.7))
-                    .lineLimit(1)
+                    .foregroundColor(.white.opacity(0.8))
+                    .lineLimit(2)
             }
         }
         .foregroundColor(.white)
-        .frame(maxWidth: 250, alignment: .leading)
+        .frame(maxWidth: 280, alignment: .leading)
     }
     
-    // MARK: - Action Buttons
+    // MARK: - Action Buttons (Right Side)
     
     private var actionButtons: some View {
-        VStack(spacing: 20) {
-            // Navigate up
-            ActionButton(icon: "chevron.up", count: nil) {
-                onPrevious()
+        VStack(spacing: 24) {
+            // Creator avatar
+            Button {
+                // View profile
+            } label: {
+                Circle()
+                    .fill(Color(hex: "a855f7"))
+                    .frame(width: 48, height: 48)
+                    .overlay(
+                        Text("C")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.white)
+                    )
+                    .overlay(
+                        Circle()
+                            .fill(.red)
+                            .frame(width: 20, height: 20)
+                            .overlay(
+                                Image(systemName: "plus")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.white)
+                            )
+                            .offset(y: 24)
+                    )
             }
+            .padding(.bottom, 8)
             
-            // Like - requires login
+            // Like
             ActionButton(
                 icon: isLiked ? "heart.fill" : "heart",
                 count: work.likeCount,
@@ -90,7 +139,14 @@ struct WorkCardView: View {
                 handleLike()
             }
             
-            // Collect - requires login
+            // Comment
+            ActionButton(icon: "bubble.right.fill", count: work.commentCount) {
+                requireLogin {
+                    // Open comments
+                }
+            }
+            
+            // Collect
             ActionButton(
                 icon: isCollected ? "bookmark.fill" : "bookmark",
                 count: nil,
@@ -99,21 +155,9 @@ struct WorkCardView: View {
                 handleCollect()
             }
             
-            // Comment - requires login
-            ActionButton(icon: "bubble.right", count: work.commentCount) {
-                requireLogin {
-                    // Open comments
-                }
-            }
-            
             // Share
-            ActionButton(icon: "arrowshape.turn.up.right", count: work.shareCount) {
-                // Share (doesn't require login)
-            }
-            
-            // Navigate down
-            ActionButton(icon: "chevron.down", count: nil) {
-                onNext()
+            ActionButton(icon: "arrowshape.turn.up.forward.fill", count: work.shareCount) {
+                // Share
             }
         }
     }
@@ -155,7 +199,7 @@ private struct ActionButton: View {
     
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 4) {
+            VStack(spacing: 2) {
                 Image(systemName: icon)
                     .font(.system(size: 28))
                     .foregroundColor(tint)
