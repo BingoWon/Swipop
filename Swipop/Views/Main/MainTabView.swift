@@ -123,41 +123,33 @@ struct BottomAccessory: View {
                 .fill(.white.opacity(0.2))
                 .frame(width: 1, height: 28)
             
-            // Right: Position indicator + Navigation
-            HStack(spacing: 12) {
-                // Position indicator
-                Text("\(feedViewModel.currentIndex + 1)/\(feedViewModel.works.count)")
-                    .font(.system(size: 12, weight: .medium, design: .monospaced))
-                    .foregroundStyle(.secondary)
+            // Right: Up/Down navigation
+            HStack(spacing: 0) {
+                Button {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        feedViewModel.goToPrevious()
+                    }
+                } label: {
+                    Image(systemName: "chevron.up")
+                        .font(.system(size: 15, weight: .semibold))
+                        .frame(width: 44, height: 36)
+                }
+                .opacity(feedViewModel.currentIndex == 0 ? 0.3 : 1)
                 
-                // Prev/Next buttons as a compact group
-                HStack(spacing: 4) {
-                    Button {
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                            feedViewModel.goToPrevious()
-                        }
-                    } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 14, weight: .semibold))
-                            .frame(width: 32, height: 32)
+                Rectangle()
+                    .fill(.white.opacity(0.15))
+                    .frame(width: 1, height: 18)
+                
+                Button {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        feedViewModel.goToNext()
                     }
-                    .disabled(feedViewModel.currentIndex == 0)
-                    .opacity(feedViewModel.currentIndex == 0 ? 0.3 : 1)
-                    
-                    Button {
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                            feedViewModel.goToNext()
-                        }
-                    } label: {
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 14, weight: .semibold))
-                            .frame(width: 32, height: 32)
-                    }
-                    .disabled(feedViewModel.currentIndex >= feedViewModel.works.count - 1)
-                    .opacity(feedViewModel.currentIndex >= feedViewModel.works.count - 1 ? 0.3 : 1)
+                } label: {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 15, weight: .semibold))
+                        .frame(width: 44, height: 36)
                 }
             }
-            .padding(.trailing, 8)
         }
         .foregroundStyle(.white)
     }
