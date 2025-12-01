@@ -40,6 +40,34 @@ struct WorkCardView: View {
     
     private var actionButtons: some View {
         VStack(spacing: 20) {
+            // Creator avatar with follow button (TikTok style)
+            Button {
+                // View creator profile
+            } label: {
+                ZStack(alignment: .bottom) {
+                    Circle()
+                        .fill(Color(hex: "a855f7"))
+                        .frame(width: 48, height: 48)
+                        .overlay(
+                            Text("C")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+                        )
+                    
+                    // Red plus button
+                    Circle()
+                        .fill(.red)
+                        .frame(width: 20, height: 20)
+                        .overlay(
+                            Image(systemName: "plus")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(.white)
+                        )
+                        .offset(y: 10)
+                }
+            }
+            .padding(.bottom, 8)
+            
             // Like
             ActionButton(
                 icon: isLiked ? "heart.fill" : "heart",
