@@ -9,8 +9,7 @@ import AuthenticationServices
 struct LoginView: View {
     
     @Binding var isPresented: Bool
-    @State private var showError = false
-    @State private var errorMessage = ""
+    @State private var errorAlert: ErrorAlert?
     
     private let auth = AuthService.shared
     
@@ -84,10 +83,15 @@ struct LoginView: View {
                 ProgressView().tint(.white).scaleEffect(1.5)
             }
         }
-        .alert("Error", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(errorMessage)
+        .alert(item: $errorAlert) { alert in
+            Alert(
+                title: Text(alert.title),
+                message: Text(alert.message),
+                primaryButton: alert.showSettings
+                    ? .default(Text("Open Settings"), action: openSettings)
+                    : .default(Text("Try Again")),
+                secondaryButton: .cancel(Text("Later"))
+            )
         }
         .onChange(of: auth.isAuthenticated) { _, isAuthenticated in
             if isAuthenticated { isPresented = false }
@@ -114,12 +118,14 @@ struct LoginView: View {
                 do {
                     try await auth.signInWithApple(credential: credential)
                 } catch {
-                    displayError(error)
+                    showError(for: error, provider: .apple)
                 }
             }
         case .failure(let error):
-            if (error as NSError).code != ASAuthorizationError.canceled.rawValue {
-                displayError(error)
+            let nsError = error as NSError
+            // Ignore user cancellation
+            if nsError.code != ASAuthorizationError.canceled.rawValue {
+                showError(for: error, provider: .apple)
             }
         }
     }
@@ -147,16 +153,76 @@ struct LoginView: View {
         do {
             try await auth.signInWithGoogle()
         } catch {
-            if (error as NSError).code != -5 {
-                displayError(error)
+            let nsError = error as NSError
+            // Ignore user cancellation (-5)
+            if nsError.code != -5 {
+                showError(for: error, provider: .google)
             }
         }
     }
     
-    private func displayError(_ error: Error) {
-        errorMessage = error.localizedDescription
-        showError = true
+    // MARK: - Error Handling
+    
+    private enum Provider { case apple, google }
+    
+    private func showError(for error: Error, provider: Provider) {
+        let nsError = error as NSError
+        
+        // Map Apple Sign In errors
+        if nsError.domain == ASAuthorizationError.errorDomain {
+            switch nsError.code {
+            case ASAuthorizationError.unknown.rawValue:
+                errorAlert = ErrorAlert(
+                    title: "Apple ID Required",
+                    message: "Please sign in to your Apple ID in Settings to continue.",
+                    showSettings: true
+                )
+            case ASAuthorizationError.invalidResponse.rawValue,
+                 ASAuthorizationError.notHandled.rawValue:
+                errorAlert = ErrorAlert(
+                    title: "Sign In Failed",
+                    message: "Apple Sign In is temporarily unavailable. Please try again or use Google Sign In.",
+                    showSettings: false
+                )
+            case ASAuthorizationError.failed.rawValue:
+                errorAlert = ErrorAlert(
+                    title: "Sign In Failed",
+                    message: "Unable to complete sign in. Please check your Apple ID in Settings.",
+                    showSettings: true
+                )
+            default:
+                errorAlert = ErrorAlert(
+                    title: "Sign In Failed",
+                    message: "Something went wrong. Please try again.",
+                    showSettings: false
+                )
+            }
+            return
+        }
+        
+        // Generic error for other cases
+        let providerName = provider == .apple ? "Apple" : "Google"
+        errorAlert = ErrorAlert(
+            title: "\(providerName) Sign In Failed",
+            message: "Unable to complete sign in. Please check your internet connection and try again.",
+            showSettings: false
+        )
     }
+    
+    private func openSettings() {
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url)
+        }
+    }
+}
+
+// MARK: - Error Alert Model
+
+private struct ErrorAlert: Identifiable {
+    let id = UUID()
+    let title: String
+    let message: String
+    let showSettings: Bool
 }
 
 // MARK: - Google Logo
