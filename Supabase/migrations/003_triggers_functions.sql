@@ -46,6 +46,24 @@ CREATE TRIGGER on_like_change
     AFTER INSERT OR DELETE ON public.likes
     FOR EACH ROW EXECUTE FUNCTION update_work_like_count();
 
+-- Function to update collect_count on works
+CREATE OR REPLACE FUNCTION update_work_collect_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        UPDATE public.works SET collect_count = collect_count + 1 WHERE id = NEW.work_id;
+    ELSIF TG_OP = 'DELETE' THEN
+        UPDATE public.works SET collect_count = collect_count - 1 WHERE id = OLD.work_id;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_collect_change ON public.collections;
+CREATE TRIGGER on_collect_change
+    AFTER INSERT OR DELETE ON public.collections
+    FOR EACH ROW EXECUTE FUNCTION update_work_collect_count();
+
 -- Function to update comment_count on works
 CREATE OR REPLACE FUNCTION update_work_comment_count()
 RETURNS TRIGGER AS $$

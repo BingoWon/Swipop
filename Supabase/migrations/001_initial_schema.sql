@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS public.works (
     is_published BOOLEAN DEFAULT FALSE,
     view_count INTEGER DEFAULT 0,
     like_count INTEGER DEFAULT 0,
+    collect_count INTEGER DEFAULT 0,
     comment_count INTEGER DEFAULT 0,
     share_count INTEGER DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW(),
