@@ -11,9 +11,9 @@ struct FeedView: View {
     
     @State private var interaction: InteractionViewModel?
     @State private var showComments = false
-    @State private var showShareSheet = false
+    @State private var showShare = false
     @State private var showSearch = false
-    @State private var triggerLikeAnimation = false
+    @State private var showLikeAnimation = false
     
     private let feed = FeedViewModel.shared
     
@@ -23,104 +23,28 @@ struct FeedView: View {
                 Color.black
                 
                 if let work = feed.currentWork {
-                    WorkCardView(work: work, triggerLikeAnimation: $triggerLikeAnimation)
+                    WorkCardView(work: work, showLikeAnimation: showLikeAnimation)
                         .id(feed.currentIndex)
                         .transition(.asymmetric(
                             insertion: .move(edge: .bottom),
                             removal: .move(edge: .top)
                         ))
-                        .onTapGesture(count: 2) {
-                            doubleTapLike()
-                        }
-                }
-                
-                // Like animation overlay
-                if triggerLikeAnimation {
-                    Image(systemName: "heart.fill")
-                        .font(.system(size: 80))
-                        .foregroundColor(.red)
-                        .transition(.scale.combined(with: .opacity))
-                        .allowsHitTesting(false)
+                        .onTapGesture(count: 2, perform: doubleTapLike)
                 }
             }
             .ignoresSafeArea()
-            .toolbar {
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                    if let work = feed.currentWork {
-                        // Like
-                        Button {
-                            handleLike()
-                        } label: {
-                            Label(
-                                "\(interaction?.likeCount ?? work.likeCount)",
-                                systemImage: interaction?.isLiked == true ? "heart.fill" : "heart"
-                            )
-                        }
-                        .tint(interaction?.isLiked == true ? .red : .white)
-                        
-                        // Comment
-                        Button {
-                            showComments = true
-                        } label: {
-                            Label("\(work.commentCount)", systemImage: "bubble.right")
-                        }
-                        
-                        // Collect
-                        Button {
-                            handleCollect()
-                        } label: {
-                            Label(
-                                "\(interaction?.collectCount ?? work.collectCount)",
-                                systemImage: interaction?.isCollected == true ? "bookmark.fill" : "bookmark"
-                            )
-                        }
-                        .tint(interaction?.isCollected == true ? .yellow : .white)
-                        
-                        // Share
-                        Button {
-                            showShareSheet = true
-                        } label: {
-                            Image(systemName: "square.and.arrow.up")
-                        }
-                    }
-                }
-                
-                ToolbarSpacer(.fixed, placement: .topBarTrailing)
-                
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showSearch = true
-                    } label: {
-                        Image(systemName: "magnifyingglass")
-                    }
-                }
-            }
+            .toolbar { toolbarContent }
             .toolbarBackground(.hidden, for: .navigationBar)
         }
-        .gesture(
-            DragGesture(minimumDistance: 50)
-                .onEnded { value in
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                        if value.translation.height < -50 {
-                            feed.goToNext()
-                        } else if value.translation.height > 50 {
-                            feed.goToPrevious()
-                        }
-                    }
-                }
-        )
-        .onChange(of: feed.currentWork?.id) { _, _ in
-            loadInteraction()
-        }
-        .task {
-            loadInteraction()
-        }
+        .gesture(swipeGesture)
+        .onChange(of: feed.currentWork?.id) { _, _ in loadInteraction() }
+        .task { loadInteraction() }
         .sheet(isPresented: $showComments) {
             if let work = feed.currentWork {
                 CommentSheet(work: work, showLogin: $showLogin)
             }
         }
-        .sheet(isPresented: $showShareSheet) {
+        .sheet(isPresented: $showShare) {
             if let work = feed.currentWork {
                 ShareSheet(work: work)
             }
@@ -130,14 +54,72 @@ struct FeedView: View {
         }
     }
     
-    // MARK: - Helpers
+    // MARK: - Toolbar
+    
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            if let work = feed.currentWork {
+                // Like
+                Button(action: handleLike) {
+                    Label(
+                        "\(interaction?.likeCount ?? work.likeCount)",
+                        systemImage: interaction?.isLiked == true ? "heart.fill" : "heart"
+                    )
+                }
+                .tint(interaction?.isLiked == true ? .red : .white)
+                
+                // Comment
+                Button { showComments = true } label: {
+                    Label("\(work.commentCount)", systemImage: "bubble.right.fill")
+                }
+                
+                // Collect
+                Button(action: handleCollect) {
+                    Label(
+                        "\(interaction?.collectCount ?? work.collectCount)",
+                        systemImage: interaction?.isCollected == true ? "bookmark.fill" : "bookmark"
+                    )
+                }
+                .tint(interaction?.isCollected == true ? .yellow : .white)
+                
+                // Share
+                Button { showShare = true } label: {
+                    Image(systemName: "square.and.arrow.up")
+                }
+            }
+        }
+        
+        ToolbarSpacer(.fixed, placement: .topBarTrailing)
+        
+        ToolbarItem(placement: .topBarTrailing) {
+            Button { showSearch = true } label: {
+                Image(systemName: "magnifyingglass")
+            }
+        }
+    }
+    
+    // MARK: - Gestures
+    
+    private var swipeGesture: some Gesture {
+        DragGesture(minimumDistance: 50)
+            .onEnded { value in
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    if value.translation.height < -50 {
+                        feed.goToNext()
+                    } else if value.translation.height > 50 {
+                        feed.goToPrevious()
+                    }
+                }
+            }
+    }
+    
+    // MARK: - Actions
     
     private func loadInteraction() {
         guard let work = feed.currentWork else { return }
         interaction = InteractionViewModel(work: work)
-        Task {
-            await interaction?.loadState()
-        }
+        Task { await interaction?.loadState() }
     }
     
     private func handleLike() {
@@ -145,10 +127,7 @@ struct FeedView: View {
             showLogin = true
             return
         }
-        
-        withAnimation(.spring(response: 0.3)) {
-            Task { await interaction?.toggleLike() }
-        }
+        Task { await interaction?.toggleLike() }
     }
     
     private func handleCollect() {
@@ -156,10 +135,7 @@ struct FeedView: View {
             showLogin = true
             return
         }
-        
-        withAnimation(.spring(response: 0.3)) {
-            Task { await interaction?.toggleCollect() }
-        }
+        Task { await interaction?.toggleCollect() }
     }
     
     private func doubleTapLike() {
@@ -168,20 +144,17 @@ struct FeedView: View {
             return
         }
         
-        // Only like, don't unlike on double-tap
         if interaction?.isLiked != true {
             Task { await interaction?.toggleLike() }
         }
         
-        // Show animation
         withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-            triggerLikeAnimation = true
+            showLikeAnimation = true
         }
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-            withAnimation {
-                triggerLikeAnimation = false
-            }
+        Task {
+            try? await Task.sleep(for: .milliseconds(800))
+            withAnimation { showLikeAnimation = false }
         }
     }
 }

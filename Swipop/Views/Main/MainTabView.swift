@@ -15,10 +15,6 @@ struct MainTabView: View {
     
     private let feed = FeedViewModel.shared
     
-    init(showLogin: Binding<Bool>) {
-        self._showLogin = showLogin
-    }
-    
     var body: some View {
         TabView(selection: $selectedTab) {
             Tab("Home", systemImage: "house.fill", value: 0) {
@@ -33,7 +29,6 @@ struct MainTabView: View {
                 ProfileView(showLogin: $showLogin)
             }
             
-            // Create as prominent floating button (like search role)
             Tab("Create", systemImage: "plus", value: 3, role: .search) {
                 CreateView(showLogin: $showLogin)
             }
@@ -62,7 +57,10 @@ private struct BottomAccessory: View {
     @Binding var showDetail: Bool
     let goToFeed: () -> Void
     
-    let feed = FeedViewModel.shared
+    private let feed = FeedViewModel.shared
+    
+    private var currentWork: Work? { feed.currentWork }
+    private var creator: Profile? { currentWork?.creator }
     
     var body: some View {
         if isOnFeed {
@@ -72,52 +70,54 @@ private struct BottomAccessory: View {
         }
     }
     
-    // MARK: - Feed Mode (上下切换作品)
+    // MARK: - Feed Mode
     
     private var feedModeContent: some View {
         HStack(spacing: 0) {
-            // Work info - tap for detail
             Button { showDetail = true } label: {
                 workInfoLabel
             }
             .frame(maxWidth: .infinity)
             
-            Rectangle()
-                .fill(.white.opacity(0.2))
-                .frame(width: 1, height: 28)
+            Divider()
+                .frame(height: 28)
+                .overlay(Color.white.opacity(0.2))
             
-            // Navigation
-            HStack(spacing: 0) {
-                Button {
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                        feed.goToPrevious()
-                    }
-                } label: {
-                    Image(systemName: "chevron.up")
-                        .font(.system(size: 15, weight: .semibold))
-                        .frame(width: 44, height: 36)
-                }
-                .opacity(feed.currentIndex == 0 ? 0.3 : 1)
-                
-                Rectangle()
-                    .fill(.white.opacity(0.15))
-                    .frame(width: 1, height: 18)
-                
-                Button {
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                        feed.goToNext()
-                    }
-                } label: {
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 15, weight: .semibold))
-                        .frame(width: 44, height: 36)
-                }
-            }
+            navigationButtons
         }
         .foregroundStyle(.white)
     }
     
-    // MARK: - Return Mode (点击返回 Feed)
+    private var navigationButtons: some View {
+        HStack(spacing: 0) {
+            Button {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    feed.goToPrevious()
+                }
+            } label: {
+                Image(systemName: "chevron.up")
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(width: 44, height: 36)
+            }
+            .opacity(feed.currentIndex == 0 ? 0.3 : 1)
+            
+            Divider()
+                .frame(height: 18)
+                .overlay(Color.white.opacity(0.15))
+            
+            Button {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    feed.goToNext()
+                }
+            } label: {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(width: 44, height: 36)
+            }
+        }
+    }
+    
+    // MARK: - Return Mode
     
     private var returnModeContent: some View {
         Button(action: goToFeed) {
@@ -125,11 +125,10 @@ private struct BottomAccessory: View {
                 workInfoLabel
                     .frame(maxWidth: .infinity)
                 
-                Rectangle()
-                    .fill(.white.opacity(0.2))
-                    .frame(width: 1, height: 28)
+                Divider()
+                    .frame(height: 28)
+                    .overlay(Color.white.opacity(0.2))
                 
-                // Continue watching
                 HStack(spacing: 6) {
                     Image(systemName: "play.fill")
                         .font(.system(size: 12))
@@ -142,25 +141,27 @@ private struct BottomAccessory: View {
         }
     }
     
-    // MARK: - Shared Work Info
+    // MARK: - Work Info
     
     private var workInfoLabel: some View {
         HStack(spacing: 10) {
+            // Avatar
             Circle()
                 .fill(Color(hex: "a855f7"))
                 .frame(width: 28, height: 28)
                 .overlay(
-                    Text("C")
+                    Text(creatorInitial)
                         .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundStyle(.white)
                 )
             
+            // Info
             VStack(alignment: .leading, spacing: 2) {
-                Text(feed.currentWork?.title ?? "Swipop")
+                Text(currentWork?.title ?? "Swipop")
                     .font(.system(size: 14, weight: .semibold))
                     .lineLimit(1)
                 
-                Text("@creator")
+                Text("@\(creator?.username ?? "swipop")")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
@@ -174,6 +175,11 @@ private struct BottomAccessory: View {
             }
         }
         .padding(.horizontal, 12)
+    }
+    
+    private var creatorInitial: String {
+        let name = creator?.displayName ?? creator?.username ?? "S"
+        return String(name.prefix(1)).uppercased()
     }
 }
 
