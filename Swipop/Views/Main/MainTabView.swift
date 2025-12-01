@@ -40,10 +40,12 @@ struct MainTabView: View {
             }
         }
         .tabViewBottomAccessory {
-            BottomAccessory(
-                showWorkDetail: $showWorkDetail,
-                feedViewModel: feedViewModel
-            )
+            if selectedTab == 0 {
+                BottomAccessory(
+                    showWorkDetail: $showWorkDetail,
+                    feedViewModel: feedViewModel
+                )
+            }
         }
         .tint(.white)
         .sheet(isPresented: $showWorkDetail) {
