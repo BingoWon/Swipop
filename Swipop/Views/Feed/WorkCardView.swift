@@ -8,193 +8,54 @@ import SwiftUI
 struct WorkCardView: View {
     
     let work: Work
-    @Binding var showLogin: Bool
-    
-    @State private var interaction: InteractionViewModel
-    @State private var showComments = false
-    @State private var showShareSheet = false
-    @State private var triggerLikeAnimation = false
-    
-    init(work: Work, showLogin: Binding<Bool>) {
-        self.work = work
-        self._showLogin = showLogin
-        self._interaction = State(initialValue: InteractionViewModel(work: work))
-    }
+    @Binding var triggerLikeAnimation: Bool
     
     var body: some View {
         ZStack {
-            // Content with double-tap gesture
             WorkWebView(work: work)
-                .onTapGesture(count: 2) {
-                    doubleTapLike()
-                }
             
-            // Like animation overlay (doesn't block touches)
-            if triggerLikeAnimation {
-                Image(systemName: "heart.fill")
-                    .font(.system(size: 80))
-                    .foregroundColor(.red)
-                    .transition(.scale.combined(with: .opacity))
-                    .allowsHitTesting(false)
-            }
-            
-            // Right side actions (on top, receives touches)
+            // Creator info overlay (bottom-left)
             VStack {
                 Spacer()
-                actionButtons
-                Spacer().frame(height: 160)
+                creatorOverlay
             }
-            .frame(maxWidth: .infinity, alignment: .trailing)
-            .padding(.trailing, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.leading, 16)
+            .padding(.bottom, 160)
         }
         .ignoresSafeArea()
-        .task {
-            await interaction.loadState()
-        }
-        .sheet(isPresented: $showComments) {
-            CommentSheet(work: work, showLogin: $showLogin)
-        }
-        .sheet(isPresented: $showShareSheet) {
-            ShareSheet(work: work)
-        }
     }
     
-    // MARK: - Action Buttons
+    // MARK: - Creator Overlay
     
-    private var actionButtons: some View {
-        VStack(spacing: 20) {
-            // Creator avatar + follow
-            Button {} label: {
-                ZStack(alignment: .bottom) {
-                    Circle()
-                        .fill(Color(hex: "a855f7"))
-                        .frame(width: 48, height: 48)
-                        .overlay(
-                            Text("C")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.white)
-                        )
-                    
-                    Circle()
-                        .fill(.red)
-                        .frame(width: 20, height: 20)
-                        .overlay(
-                            Image(systemName: "plus")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.white)
-                        )
-                        .offset(y: 10)
-                }
-            }
-            .padding(.bottom, 8)
+    private var creatorOverlay: some View {
+        HStack(spacing: 12) {
+            Circle()
+                .fill(Color(hex: "a855f7"))
+                .frame(width: 44, height: 44)
+                .overlay(
+                    Text(work.creator?.displayName?.prefix(1).uppercased() ?? "C")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                )
             
-            // Like
-            ActionButton(
-                icon: "heart.fill",
-                count: interaction.likeCount,
-                tint: interaction.isLiked ? .red : .white
-            ) {
-                handleLike()
-            }
-            
-            // Comment
-            ActionButton(icon: "bubble.right.fill", count: work.commentCount) {
-                showComments = true
-            }
-            
-            // Collect
-            ActionButton(
-                icon: "bookmark.fill",
-                count: interaction.collectCount,
-                tint: interaction.isCollected ? .yellow : .white
-            ) {
-                handleCollect()
-            }
-            
-            // Share
-            ActionButton(icon: "arrowshape.turn.up.forward.fill", count: work.shareCount) {
-                showShareSheet = true
-            }
-        }
-    }
-    
-    // MARK: - Actions
-    
-    private func handleLike() {
-        guard AuthService.shared.isAuthenticated else {
-            showLogin = true
-            return
-        }
-        
-        withAnimation(.spring(response: 0.3)) {
-            Task { await interaction.toggleLike() }
-        }
-    }
-    
-    private func handleCollect() {
-        guard AuthService.shared.isAuthenticated else {
-            showLogin = true
-            return
-        }
-        
-        withAnimation(.spring(response: 0.3)) {
-            Task { await interaction.toggleCollect() }
-        }
-    }
-    
-    private func doubleTapLike() {
-        guard AuthService.shared.isAuthenticated else {
-            showLogin = true
-            return
-        }
-        
-        // Only like, don't unlike on double-tap
-        if !interaction.isLiked {
-            Task { await interaction.toggleLike() }
-        }
-        
-        // Show animation
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-            triggerLikeAnimation = true
-        }
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-            withAnimation {
-                triggerLikeAnimation = false
-            }
-        }
-    }
-}
-
-// MARK: - Action Button
-
-private struct ActionButton: View {
-    
-    let icon: String
-    var count: Int? = nil
-    var tint: Color = .white
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 2) {
-                Image(systemName: icon)
-                    .font(.system(size: 28))
-                    .foregroundColor(tint)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(work.creator?.displayName ?? "Creator")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.white)
                     .shadow(color: .black.opacity(0.5), radius: 2, y: 1)
                 
-                if let count {
-                    Text(count.formatted)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.white)
-                        .shadow(color: .black.opacity(0.5), radius: 2, y: 1)
-                }
+                Text(work.title)
+                    .font(.system(size: 13))
+                    .foregroundColor(.white.opacity(0.9))
+                    .lineLimit(2)
+                    .shadow(color: .black.opacity(0.5), radius: 2, y: 1)
             }
         }
     }
 }
 
 #Preview {
-    WorkCardView(work: .sample, showLogin: .constant(false))
+    WorkCardView(work: .sample, triggerLikeAnimation: .constant(false))
         .preferredColorScheme(.dark)
 }

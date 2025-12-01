@@ -26,15 +26,19 @@ struct MainTabView: View {
                 FeedView(showLogin: $showLogin)
             }
             
-            Tab("Create", systemImage: "plus.square.fill", value: 1) {
+            Tab("Inbox", systemImage: "bell.fill", value: 1) {
+                InboxView()
+            }
+            
+            Tab("Create", systemImage: "plus.square.fill", value: 2) {
                 CreateView(showLogin: $showLogin)
             }
             
-            Tab("Profile", systemImage: "person.fill", value: 2) {
+            Tab("Profile", systemImage: "person.fill", value: 3) {
                 ProfileView(showLogin: $showLogin)
             }
             
-            Tab("Search", systemImage: "magnifyingglass", value: 3, role: .search) {
+            Tab("Search", systemImage: "magnifyingglass", value: 4, role: .search) {
                 SearchView(searchText: $searchText)
             }
         }

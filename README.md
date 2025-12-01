@@ -1,6 +1,8 @@
 # Swipop
 
-**TikTok for Frontend Creations** — A platform where anyone can showcase interactive web-based works without showing their face.
+> **Swipe through live code.**
+
+A platform where anyone can showcase interactive web-based works without showing their face — TikTok for Frontend Creations.
 
 ## Overview
 
