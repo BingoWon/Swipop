@@ -20,9 +20,8 @@ struct WorkCardView: View {
     
     var body: some View {
         ZStack {
-            // Work content
+            // Work content - true full screen
             WorkWebView(work: work)
-                .ignoresSafeArea()
             
             // Overlay gradient for readability
             VStack {
@@ -34,7 +33,6 @@ struct WorkCardView: View {
                 )
                 .frame(height: 200)
             }
-            .ignoresSafeArea()
             
             // UI overlay
             HStack(alignment: .bottom) {
@@ -47,8 +45,9 @@ struct WorkCardView: View {
                 actionButtons
             }
             .padding(.horizontal, 16)
-            .padding(.bottom, 100)
+            .padding(.bottom, 100) // Above tab bar
         }
+        .ignoresSafeArea(.all)
     }
     
     // MARK: - Work Info

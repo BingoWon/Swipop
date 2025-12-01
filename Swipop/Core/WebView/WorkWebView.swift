@@ -2,7 +2,7 @@
 //  WorkWebView.swift
 //  Swipop
 //
-//  SwiftUI wrapper for WKWebView to render works
+//  SwiftUI wrapper for WKWebView to render works (full screen)
 //
 
 import SwiftUI
@@ -18,11 +18,18 @@ struct WorkWebView: UIViewRepresentable {
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
         
+        // Allow content to extend into safe areas
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.isOpaque = false
-        webView.backgroundColor = .clear
-        webView.scrollView.backgroundColor = .clear
+        webView.backgroundColor = .black
+        webView.scrollView.backgroundColor = .black
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.navigationDelegate = context.coordinator
+        
+        // Disable scrolling bounces for immersive feel
+        webView.scrollView.bounces = false
+        webView.scrollView.alwaysBounceVertical = false
+        webView.scrollView.alwaysBounceHorizontal = false
         
         return webView
     }
@@ -54,4 +61,3 @@ struct WorkWebView: UIViewRepresentable {
         }
     }
 }
-

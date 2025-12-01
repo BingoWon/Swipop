@@ -15,8 +15,9 @@ struct MainTabView: View {
     
     var body: some View {
         TabView(selection: $selectedTab) {
-            // Home Feed
+            // Home Feed - full screen
             FeedView(showLogin: $showLogin)
+                .ignoresSafeArea(.all)
                 .tabItem {
                     Label("Home", systemImage: "house.fill")
                 }
