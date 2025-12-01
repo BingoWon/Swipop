@@ -2,28 +2,24 @@
 //  RootView.swift
 //  Swipop
 //
-//  Root view that switches between auth and main content
+//  Root view - users can browse without login
 //
 
 import SwiftUI
 
 struct RootView: View {
     
-    @State private var authService = AuthService.shared
+    @State private var showLogin = false
     
     var body: some View {
-        Group {
-            if authService.isAuthenticated {
-                MainTabView()
-            } else {
-                LoginView()
+        MainTabView(showLogin: $showLogin)
+            .sheet(isPresented: $showLogin) {
+                LoginView(isPresented: $showLogin)
             }
-        }
-        .animation(.easeInOut(duration: 0.3), value: authService.isAuthenticated)
     }
 }
 
 #Preview {
     RootView()
+        .preferredColorScheme(.dark)
 }
-

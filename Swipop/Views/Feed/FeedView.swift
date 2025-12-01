@@ -9,6 +9,7 @@ import SwiftUI
 
 struct FeedView: View {
     
+    @Binding var showLogin: Bool
     @State private var works: [Work] = Work.samples
     @State private var currentIndex = 0
     
@@ -19,12 +20,17 @@ struct FeedView: View {
                 
                 // Current work
                 if !works.isEmpty {
-                    WorkCardView(work: works[currentIndex])
-                        .id(currentIndex)
-                        .transition(.asymmetric(
-                            insertion: .move(edge: .bottom),
-                            removal: .move(edge: .top)
-                        ))
+                    WorkCardView(
+                        work: works[currentIndex],
+                        showLogin: $showLogin,
+                        onPrevious: goToPrevious,
+                        onNext: goToNext
+                    )
+                    .id(currentIndex)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .bottom),
+                        removal: .move(edge: .top)
+                    ))
                 }
             }
             .gesture(
@@ -34,10 +40,8 @@ struct FeedView: View {
                         
                         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                             if verticalMovement < -50 {
-                                // Swipe up - next
                                 goToNext()
                             } else if verticalMovement > 50 {
-                                // Swipe down - previous
                                 goToPrevious()
                             }
                         }
@@ -60,7 +64,6 @@ struct FeedView: View {
 }
 
 #Preview {
-    FeedView()
+    FeedView(showLogin: .constant(false))
         .preferredColorScheme(.dark)
 }
-

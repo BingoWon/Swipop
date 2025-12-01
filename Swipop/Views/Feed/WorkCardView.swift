@@ -10,6 +10,11 @@ import SwiftUI
 struct WorkCardView: View {
     
     let work: Work
+    @Binding var showLogin: Bool
+    var onPrevious: () -> Void
+    var onNext: () -> Void
+    
+    @State private var authService = AuthService.shared
     @State private var isLiked = false
     @State private var isCollected = false
     
@@ -74,45 +79,69 @@ struct WorkCardView: View {
         VStack(spacing: 20) {
             // Navigate up
             ActionButton(icon: "chevron.up", count: nil) {
-                // Handle in parent
+                onPrevious()
             }
             
-            // Like
+            // Like - requires login
             ActionButton(
                 icon: isLiked ? "heart.fill" : "heart",
                 count: work.likeCount,
                 tint: isLiked ? .red : .white
             ) {
-                withAnimation(.spring(response: 0.3)) {
-                    isLiked.toggle()
-                }
+                handleLike()
             }
             
-            // Collect
+            // Collect - requires login
             ActionButton(
                 icon: isCollected ? "bookmark.fill" : "bookmark",
                 count: nil,
                 tint: isCollected ? .yellow : .white
             ) {
-                withAnimation(.spring(response: 0.3)) {
-                    isCollected.toggle()
-                }
+                handleCollect()
             }
             
-            // Comment
+            // Comment - requires login
             ActionButton(icon: "bubble.right", count: work.commentCount) {
-                // Open comments
+                requireLogin {
+                    // Open comments
+                }
             }
             
             // Share
             ActionButton(icon: "arrowshape.turn.up.right", count: work.shareCount) {
-                // Share
+                // Share (doesn't require login)
             }
             
             // Navigate down
             ActionButton(icon: "chevron.down", count: nil) {
-                // Handle in parent
+                onNext()
             }
+        }
+    }
+    
+    // MARK: - Actions
+    
+    private func handleLike() {
+        requireLogin {
+            withAnimation(.spring(response: 0.3)) {
+                isLiked.toggle()
+            }
+        }
+    }
+    
+    private func handleCollect() {
+        requireLogin {
+            withAnimation(.spring(response: 0.3)) {
+                isCollected.toggle()
+            }
+        }
+    }
+    
+    private func requireLogin(action: @escaping () -> Void) {
+        if authService.isAuthenticated {
+            action()
+        } else {
+            showLogin = true
         }
     }
 }
@@ -152,7 +181,11 @@ private struct ActionButton: View {
 }
 
 #Preview {
-    WorkCardView(work: .sample)
-        .preferredColorScheme(.dark)
+    WorkCardView(
+        work: .sample,
+        showLogin: .constant(false),
+        onPrevious: {},
+        onNext: {}
+    )
+    .preferredColorScheme(.dark)
 }
-

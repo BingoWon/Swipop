@@ -2,7 +2,7 @@
 //  LoginView.swift
 //  Swipop
 //
-//  Clean, modern login screen
+//  Clean, modern login screen (presented as sheet)
 //
 
 import SwiftUI
@@ -10,6 +10,7 @@ import AuthenticationServices
 
 struct LoginView: View {
     
+    @Binding var isPresented: Bool
     @State private var authService = AuthService.shared
     @State private var showError = false
     @State private var errorMessage = ""
@@ -25,6 +26,23 @@ struct LoginView: View {
             .ignoresSafeArea()
             
             VStack(spacing: 0) {
+                // Close button
+                HStack {
+                    Button {
+                        isPresented = false
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(.white.opacity(0.7))
+                            .frame(width: 36, height: 36)
+                            .background(Color.white.opacity(0.1))
+                            .clipShape(Circle())
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                
                 Spacer()
                 
                 // Logo & Tagline
@@ -39,8 +57,8 @@ struct LoginView: View {
                             )
                         )
                     
-                    Text("Create. Share. Inspire.")
-                        .font(.system(size: 18, weight: .medium))
+                    Text("Sign in to like, collect, and create")
+                        .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.white.opacity(0.7))
                 }
                 .padding(.bottom, 60)
@@ -75,6 +93,11 @@ struct LoginView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage)
+        }
+        .onChange(of: authService.isAuthenticated) { _, isAuthenticated in
+            if isAuthenticated {
+                isPresented = false
+            }
         }
     }
     
@@ -137,7 +160,6 @@ struct LoginView: View {
         do {
             try await authService.signInWithGoogle()
         } catch {
-            // Ignore user cancellation
             if (error as NSError).code != -5 {
                 displayError(error)
             }
@@ -203,5 +225,5 @@ extension Color {
 }
 
 #Preview {
-    LoginView()
+    LoginView(isPresented: .constant(true))
 }
