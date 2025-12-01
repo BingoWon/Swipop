@@ -23,9 +23,22 @@ struct WorkCardView: View {
     
     var body: some View {
         ZStack {
+            // Content with double-tap gesture
             WorkWebView(work: work)
+                .onTapGesture(count: 2) {
+                    doubleTapLike()
+                }
             
-            // Right side actions
+            // Like animation overlay (doesn't block touches)
+            if triggerLikeAnimation {
+                Image(systemName: "heart.fill")
+                    .font(.system(size: 80))
+                    .foregroundColor(.red)
+                    .transition(.scale.combined(with: .opacity))
+                    .allowsHitTesting(false)
+            }
+            
+            // Right side actions (on top, receives touches)
             VStack {
                 Spacer()
                 actionButtons
@@ -33,21 +46,6 @@ struct WorkCardView: View {
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
             .padding(.trailing, 12)
-            
-            // Double-tap to like
-            Color.clear
-                .contentShape(Rectangle())
-                .onTapGesture(count: 2) {
-                    doubleTapLike()
-                }
-            
-            // Like animation overlay
-            if triggerLikeAnimation {
-                Image(systemName: "heart.fill")
-                    .font(.system(size: 80))
-                    .foregroundColor(.red)
-                    .transition(.scale.combined(with: .opacity))
-            }
         }
         .ignoresSafeArea()
         .task {
@@ -201,7 +199,6 @@ struct ShareSheet: UIViewControllerRepresentable {
     
     func makeUIViewController(context: Context) -> UIActivityViewController {
         let text = "\(work.title) on Swipop"
-        // TODO: Generate actual share URL
         let url = URL(string: "https://swipop.app/work/\(work.id)")!
         
         return UIActivityViewController(
