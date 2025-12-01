@@ -65,45 +65,76 @@ struct BottomAccessory: View {
     
     var body: some View {
         HStack(spacing: 0) {
-            // Left: Title - tap to show detail
+            // Left 2/3: Title - tap to show detail
             Button {
                 showWorkDetail = true
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: 10) {
                     Circle()
                         .fill(Color(hex: "a855f7"))
-                        .frame(width: 24, height: 24)
+                        .frame(width: 28, height: 28)
                         .overlay(
                             Text("C")
-                                .font(.system(size: 10, weight: .bold))
+                                .font(.system(size: 12, weight: .bold))
                                 .foregroundColor(.white)
                         )
                     
-                    Text(feedViewModel.currentWork?.title ?? "Swipop")
-                        .font(.system(size: 14, weight: .medium))
-                        .lineLimit(1)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(feedViewModel.currentWork?.title ?? "Swipop")
+                            .font(.system(size: 14, weight: .semibold))
+                            .lineLimit(1)
+                        
+                        Text("@creator")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    Spacer()
                     
                     Image(systemName: "chevron.up")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 12)
+                .padding(.horizontal, 12)
             }
+            .frame(maxWidth: .infinity)
             
-            Divider()
-                .frame(height: 20)
+            // Divider
+            Rectangle()
+                .fill(.white.opacity(0.2))
+                .frame(width: 1, height: 28)
             
-            // Right: Next work
-            Button {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                    feedViewModel.goToNext()
+            // Right 1/3: Navigation buttons
+            HStack(spacing: 0) {
+                Button {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        feedViewModel.goToPrevious()
+                    }
+                } label: {
+                    Image(systemName: "chevron.up")
+                        .font(.system(size: 15, weight: .semibold))
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-            } label: {
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 14, weight: .semibold))
-                    .frame(width: 60)
+                .disabled(feedViewModel.currentIndex == 0)
+                .opacity(feedViewModel.currentIndex == 0 ? 0.3 : 1)
+                
+                Rectangle()
+                    .fill(.white.opacity(0.15))
+                    .frame(width: 1, height: 20)
+                
+                Button {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        feedViewModel.goToNext()
+                    }
+                } label: {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 15, weight: .semibold))
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .disabled(feedViewModel.currentIndex >= feedViewModel.works.count - 1)
+                .opacity(feedViewModel.currentIndex >= feedViewModel.works.count - 1 ? 0.3 : 1)
             }
+            .frame(width: 100)
         }
         .foregroundStyle(.white)
     }
