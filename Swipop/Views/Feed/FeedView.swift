@@ -12,6 +12,7 @@ struct FeedView: View {
     @State private var interaction: InteractionViewModel?
     @State private var showComments = false
     @State private var showShareSheet = false
+    @State private var showSearch = false
     @State private var triggerLikeAnimation = false
     
     private let feed = FeedViewModel.shared
@@ -61,7 +62,7 @@ struct FeedView: View {
                         Button {
                             showComments = true
                         } label: {
-                            Label("\(work.commentCount)", systemImage: "bubble.right.fill")
+                            Label("\(work.commentCount)", systemImage: "bubble.right")
                         }
                         
                         // Collect
@@ -74,19 +75,23 @@ struct FeedView: View {
                             )
                         }
                         .tint(interaction?.isCollected == true ? .yellow : .white)
+                        
+                        // Share
+                        Button {
+                            showShareSheet = true
+                        } label: {
+                            Image(systemName: "square.and.arrow.up")
+                        }
                     }
                 }
                 
                 ToolbarSpacer(.fixed, placement: .topBarTrailing)
                 
                 ToolbarItem(placement: .topBarTrailing) {
-                    if feed.currentWork != nil {
-                        Button {
-                            showShareSheet = true
-                        } label: {
-                            Image(systemName: "square.and.arrow.up")
-                        }
-                        .tint(.white)
+                    Button {
+                        showSearch = true
+                    } label: {
+                        Image(systemName: "magnifyingglass")
                     }
                 }
             }
@@ -119,6 +124,9 @@ struct FeedView: View {
             if let work = feed.currentWork {
                 ShareSheet(work: work)
             }
+        }
+        .sheet(isPresented: $showSearch) {
+            SearchSheet()
         }
     }
     

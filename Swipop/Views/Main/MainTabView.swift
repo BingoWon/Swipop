@@ -11,7 +11,6 @@ struct MainTabView: View {
     
     @Binding var showLogin: Bool
     @State private var selectedTab = 0
-    @State private var searchText = ""
     @State private var showWorkDetail = false
     
     private let feed = FeedViewModel.shared
@@ -36,10 +35,6 @@ struct MainTabView: View {
             
             Tab("Profile", systemImage: "person.fill", value: 3) {
                 ProfileView(showLogin: $showLogin)
-            }
-            
-            Tab("Search", systemImage: "magnifyingglass", value: 4, role: .search) {
-                SearchView(searchText: $searchText)
             }
         }
         .tabViewBottomAccessory {
