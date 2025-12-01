@@ -29,3 +29,14 @@ Podfile.lock
 # Project-specific
 Docs/
 References/
+
+# Environment files (contains secrets)
+.env
+.env.local
+.env*.local
+
+# Supabase secrets
+Supabase/config.sh
+
+# Apple auth key (sensitive)
+AuthKey_*.p8
