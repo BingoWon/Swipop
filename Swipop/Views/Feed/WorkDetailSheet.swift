@@ -131,7 +131,7 @@ struct WorkDetailSheet: View {
     private var actionsSection: some View {
         HStack(spacing: 0) {
             ActionTile(
-                icon: interaction.isLiked ? "heart.fill" : "heart",
+                icon: "heart.fill",
                 label: "Like",
                 tint: interaction.isLiked ? .red : .white
             ) {
@@ -140,12 +140,12 @@ struct WorkDetailSheet: View {
                 }
             }
             
-            ActionTile(icon: "bubble.right", label: "Comment") {
+            ActionTile(icon: "bubble.right.fill", label: "Comment") {
                 showComments = true
             }
             
             ActionTile(
-                icon: interaction.isCollected ? "bookmark.fill" : "bookmark",
+                icon: "bookmark.fill",
                 label: "Save",
                 tint: interaction.isCollected ? .yellow : .white
             ) {
@@ -154,7 +154,7 @@ struct WorkDetailSheet: View {
                 }
             }
             
-            ActionTile(icon: "arrowshape.turn.up.forward", label: "Share") {
+            ActionTile(icon: "arrowshape.turn.up.forward.fill", label: "Share") {
                 showShareSheet = true
             }
         }

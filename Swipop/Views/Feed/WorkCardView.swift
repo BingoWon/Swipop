@@ -90,7 +90,7 @@ struct WorkCardView: View {
             
             // Like
             ActionButton(
-                icon: interaction.isLiked ? "heart.fill" : "heart",
+                icon: "heart.fill",
                 count: interaction.likeCount,
                 tint: interaction.isLiked ? .red : .white
             ) {
@@ -104,7 +104,7 @@ struct WorkCardView: View {
             
             // Collect
             ActionButton(
-                icon: interaction.isCollected ? "bookmark.fill" : "bookmark",
+                icon: "bookmark.fill",
                 tint: interaction.isCollected ? .yellow : .white
             ) {
                 handleCollect()
@@ -180,11 +180,13 @@ private struct ActionButton: View {
                 Image(systemName: icon)
                     .font(.system(size: 28))
                     .foregroundColor(tint)
+                    .shadow(color: .black.opacity(0.5), radius: 2, y: 1)
                 
                 if let count {
                     Text(count.formatted)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(.white)
+                        .shadow(color: .black.opacity(0.5), radius: 2, y: 1)
                 }
             }
         }
