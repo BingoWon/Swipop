@@ -16,6 +16,7 @@ final class InteractionViewModel {
     private(set) var isLiked = false
     private(set) var isCollected = false
     private(set) var likeCount: Int
+    private(set) var collectCount: Int
     
     private let service = InteractionService.shared
     private let auth = AuthService.shared
@@ -23,6 +24,7 @@ final class InteractionViewModel {
     init(work: Work) {
         self.work = work
         self.likeCount = work.likeCount
+        self.collectCount = work.collectCount
     }
     
     // MARK: - Load State
@@ -79,6 +81,7 @@ final class InteractionViewModel {
         // Optimistic update
         let wasCollected = isCollected
         isCollected.toggle()
+        collectCount += isCollected ? 1 : -1
         
         do {
             if isCollected {
@@ -89,6 +92,7 @@ final class InteractionViewModel {
         } catch {
             // Revert on failure
             isCollected = wasCollected
+            collectCount += wasCollected ? 1 : -1
             print("Failed to toggle collect: \(error)")
         }
     }

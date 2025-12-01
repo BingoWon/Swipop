@@ -105,6 +105,7 @@ struct WorkCardView: View {
             // Collect
             ActionButton(
                 icon: "bookmark.fill",
+                count: interaction.collectCount,
                 tint: interaction.isCollected ? .yellow : .white
             ) {
                 handleCollect()

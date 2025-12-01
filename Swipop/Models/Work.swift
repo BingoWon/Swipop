@@ -19,6 +19,7 @@ struct Work: Identifiable, Codable, Equatable {
     var isPublished: Bool
     var viewCount: Int
     var likeCount: Int
+    var collectCount: Int
     var commentCount: Int
     var shareCount: Int
     let createdAt: Date
@@ -41,6 +42,7 @@ struct Work: Identifiable, Codable, Equatable {
         case isPublished = "is_published"
         case viewCount = "view_count"
         case likeCount = "like_count"
+        case collectCount = "collect_count"
         case commentCount = "comment_count"
         case shareCount = "share_count"
         case createdAt = "created_at"
@@ -99,6 +101,7 @@ extension Work {
         isPublished: true,
         viewCount: 1234,
         likeCount: 567,
+        collectCount: 45,
         commentCount: 89,
         shareCount: 23,
         createdAt: Date(),
@@ -156,6 +159,7 @@ extension Work {
             isPublished: true,
             viewCount: 2345,
             likeCount: 890,
+            collectCount: 78,
             commentCount: 123,
             shareCount: 45,
             createdAt: Date(),
@@ -187,6 +191,7 @@ extension Work {
             isPublished: true,
             viewCount: 3456,
             likeCount: 1234,
+            collectCount: 156,
             commentCount: 234,
             shareCount: 67,
             createdAt: Date(),
