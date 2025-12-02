@@ -54,24 +54,33 @@ struct CreateView: View {
     
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        // Save & Visibility grouped together
-        ToolbarItemGroup(placement: .topBarTrailing) {
-            // Save indicator
-            Button(action: handleSave) {
-                HStack(spacing: 4) {
-                    if workEditor.isSaving {
-                        ProgressView()
-                            .scaleEffect(0.7)
-                    } else {
-                        Image(systemName: workEditor.isDirty ? "circle.fill" : "checkmark")
-                            .font(.system(size: 10))
-                    }
-                    Text(saveStatusText)
-                        .font(.system(size: 13, weight: .medium))
-                }
-                .foregroundStyle(workEditor.isDirty ? .orange : .green)
+        // Leading: Model selector (Chat only)
+        if selectedSubTab == .chat {
+            ToolbarItem(placement: .topBarLeading) {
+                modelSelector
             }
-            .disabled(workEditor.isSaving || !workEditor.isDirty)
+        }
+        
+        // Trailing: Save (non-chat pages only), Visibility, Options
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            // Save indicator (only for non-chat pages)
+            if selectedSubTab != .chat {
+                Button(action: handleSave) {
+                    HStack(spacing: 4) {
+                        if workEditor.isSaving {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                        } else {
+                            Image(systemName: workEditor.isDirty ? "circle.fill" : "checkmark")
+                                .font(.system(size: 10))
+                        }
+                        Text(saveStatusText)
+                            .font(.system(size: 13, weight: .medium))
+                    }
+                    .foregroundStyle(workEditor.isDirty ? .orange : .green)
+                }
+                .disabled(workEditor.isSaving || !workEditor.isDirty)
+            }
             
             // Visibility toggle
             Button {
@@ -87,7 +96,7 @@ struct CreateView: View {
         
         ToolbarSpacer(.fixed, placement: .topBarTrailing)
         
-        // Work options (separate from save/visibility)
+        // Work options
         ToolbarItem(placement: .topBarTrailing) {
             Button { showSettings = true } label: {
                 Image(systemName: "slider.horizontal.3")
@@ -131,24 +140,9 @@ struct CreateView: View {
     
     private var chatInterface: some View {
         VStack(spacing: 0) {
-            header
             messageList
             inputBar
         }
-    }
-    
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text("Create with AI")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(.white)
-            
-            modelSelector
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
-        .background(Color.black.opacity(0.3))
     }
     
     private var modelSelector: some View {
