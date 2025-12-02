@@ -1,12 +1,11 @@
 //
 //  ToolCallView.swift
 //  Swipop
-//
 
 import SwiftUI
 
 struct ToolCallView: View {
-    let toolCall: ChatMessage.ToolCallInfo
+    let toolCall: ChatMessage.ToolCallSegment
     @State private var isExpanded = false
     
     var body: some View {
@@ -66,9 +65,10 @@ struct ToolCallView: View {
     
     private var iconForTool: String {
         switch toolCall.name {
-        case "get_weather": "cloud.sun"
-        case "generate_code": "chevron.left.forwardslash.chevron.right"
-        case "search_works": "magnifyingglass"
+        case "edit_html": "chevron.left.forwardslash.chevron.right"
+        case "edit_css": "paintbrush"
+        case "edit_javascript": "curlybraces"
+        case "update_metadata": "text.badge.star"
         default: "wrench"
         }
     }

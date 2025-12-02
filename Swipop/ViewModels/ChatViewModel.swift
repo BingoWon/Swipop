@@ -1,7 +1,6 @@
 //
 //  ChatViewModel.swift
 //  Swipop
-//
 
 import Foundation
 import SwiftUI
@@ -25,11 +24,15 @@ final class ChatViewModel {
     private var history: [[String: Any]] = []
     private var streamTask: Task<Void, Never>?
     
+    // Current streaming state
+    private var currentMessageIndex: Int = 0
+    private var currentThinkingIndex: Int? = nil
+    
     // Debouncing for streaming updates
     private var pendingContent: String = ""
     private var pendingReasoning: String = ""
     private var debounceTask: Task<Void, Never>?
-    private let debounceInterval: UInt64 = 50_000_000 // 50ms in nanoseconds
+    private let debounceInterval: UInt64 = 50_000_000 // 50ms
     
     // MARK: - System Prompt
     
@@ -68,7 +71,7 @@ final class ChatViewModel {
         guard !text.isEmpty else { return }
         
         inputText = ""
-        messages.append(ChatMessage(role: .user, content: text))
+        messages.append(.user(text))
         history.append(["role": "user", "content": text])
         syncToWorkEditor()
         
@@ -77,12 +80,9 @@ final class ChatViewModel {
     
     /// Retry the last failed request
     func retry() {
-        // Remove the error message
         if let lastIndex = messages.indices.last, messages[lastIndex].role == .error {
             messages.removeLast()
         }
-        
-        // Restart streaming
         streamTask = Task { await streamResponse() }
     }
     
@@ -91,14 +91,9 @@ final class ChatViewModel {
         streamTask?.cancel()
         streamTask = nil
         
-        // Finalize the last message if streaming
-        if let lastIndex = messages.indices.last, messages[lastIndex].isStreaming {
-            messages[lastIndex].isStreaming = false
-            let content = messages[lastIndex].content
-            if !content.isEmpty {
-                history.append(["role": "assistant", "content": content])
-                syncToWorkEditor()
-            }
+        if currentMessageIndex < messages.count {
+            flushPendingContent()
+            finalizeCurrentMessage()
         }
         
         isLoading = false
@@ -108,6 +103,9 @@ final class ChatViewModel {
         messages.removeAll()
         history.removeAll()
         history.append(["role": "system", "content": systemPrompt])
+        pendingContent = ""
+        pendingReasoning = ""
+        currentThinkingIndex = nil
         syncToWorkEditor()
     }
     
@@ -116,57 +114,75 @@ final class ChatViewModel {
         guard let editor = workEditor, !editor.chatMessages.isEmpty else { return }
         history = editor.chatMessages
         
-        // Reconstruct messages for UI
         messages = []
+        var currentAssistantMsg: ChatMessage?
         
-        for msg in history {
+        for (index, msg) in history.enumerated() {
             guard let role = msg["role"] as? String else { continue }
             
             switch role {
             case "user":
+                // Flush any pending assistant message
+                if var assistantMsg = currentAssistantMsg {
+                    messages.append(assistantMsg)
+                    currentAssistantMsg = nil
+                }
+                
                 if let content = msg["content"] as? String {
-                    messages.append(ChatMessage(role: .user, content: content))
+                    messages.append(.user(content))
                 }
                 
             case "assistant":
-                // Check for tool_calls (assistant message with function call)
-                if let toolCalls = msg["tool_calls"] as? [[String: Any]],
-                   let firstCall = toolCalls.first,
-                   let function = firstCall["function"] as? [String: Any],
-                   let name = function["name"] as? String,
-                   let arguments = function["arguments"] as? String {
-                    // Find the corresponding tool response for the result
-                    let callId = firstCall["id"] as? String ?? ""
-                    let result = findToolResult(for: callId)
-                    
-                    var message = ChatMessage(role: .assistant, content: "")
-                    message.toolCall = ChatMessage.ToolCallInfo(name: name, arguments: arguments)
-                    message.toolCall?.result = result
-                    messages.append(message)
+                // Start or continue assistant message
+                if currentAssistantMsg == nil {
+                    currentAssistantMsg = ChatMessage(role: .assistant)
                 }
-                // Regular assistant message (may include reasoning)
-                else if let content = msg["content"] as? String {
-                    var message = ChatMessage(role: .assistant, content: content)
-                    // Restore reasoning if present
-                    if let reasoning = msg["reasoning_content"] as? String {
-                        message.reasoning = reasoning
+                
+                // Add reasoning as thinking segment
+                if let reasoning = msg["reasoning_content"] as? String, !reasoning.isEmpty {
+                    var thinking = ChatMessage.ThinkingSegment()
+                    thinking.text = reasoning
+                    thinking.isActive = false
+                    currentAssistantMsg?.segments.append(.thinking(thinking))
+                }
+                
+                // Add tool calls
+                if let toolCalls = msg["tool_calls"] as? [[String: Any]] {
+                    for call in toolCalls {
+                        if let function = call["function"] as? [String: Any],
+                           let callId = call["id"] as? String,
+                           let name = function["name"] as? String,
+                           let arguments = function["arguments"] as? String {
+                            var toolSegment = ChatMessage.ToolCallSegment(callId: callId, name: name, arguments: arguments)
+                            toolSegment.result = findToolResult(for: callId, startingFrom: index)
+                            currentAssistantMsg?.segments.append(.toolCall(toolSegment))
+                        }
                     }
-                    messages.append(message)
+                }
+                
+                // Add content
+                if let content = msg["content"] as? String, !content.isEmpty {
+                    currentAssistantMsg?.segments.append(.content(content))
                 }
                 
             case "system", "tool":
-                // Skip system prompts and tool responses (tool responses are merged into tool_calls)
                 continue
                 
             default:
                 continue
             }
         }
+        
+        // Flush final assistant message
+        if let assistantMsg = currentAssistantMsg, !assistantMsg.segments.isEmpty {
+            messages.append(assistantMsg)
+        }
     }
     
     /// Find tool result from history for a given call ID
-    private func findToolResult(for callId: String) -> String? {
-        for msg in history {
+    private func findToolResult(for callId: String, startingFrom index: Int) -> String? {
+        for i in index..<history.count {
+            let msg = history[i]
             if let role = msg["role"] as? String,
                role == "tool",
                let toolCallId = msg["tool_call_id"] as? String,
@@ -178,7 +194,6 @@ final class ChatViewModel {
         return nil
     }
     
-    /// Sync chat history to work editor for persistence
     private func syncToWorkEditor() {
         workEditor?.chatMessages = history
         workEditor?.markDirty()
@@ -190,12 +205,26 @@ final class ChatViewModel {
         isLoading = true
         pendingContent = ""
         pendingReasoning = ""
+        currentThinkingIndex = nil
         
-        let messageIndex = messages.count
-        var newMessage = ChatMessage(role: .assistant, content: "", isStreaming: true, isThinking: true)
-        newMessage.thinkingStartTime = Date()
+        // Create a new assistant message
+        currentMessageIndex = messages.count
+        var newMessage = ChatMessage(role: .assistant)
+        newMessage.isStreaming = true
+        
+        // Start with an active thinking segment
+        var thinking = ChatMessage.ThinkingSegment()
+        thinking.startTime = Date()
+        thinking.isActive = true
+        newMessage.segments.append(.thinking(thinking))
+        currentThinkingIndex = 0
+        
         messages.append(newMessage)
         
+        await processStream()
+    }
+    
+    private func processStream() async {
         do {
             for try await event in AIService.shared.streamChat(messages: history) {
                 try Task.checkCancellation()
@@ -203,63 +232,102 @@ final class ChatViewModel {
                 switch event {
                 case .reasoning(let text):
                     pendingReasoning += text
-                    scheduleUIUpdate(at: messageIndex)
+                    scheduleUIUpdate()
                     
                 case .delta(let text):
                     // First content delta means thinking is done
-                    if messages[messageIndex].isThinking {
-                        messages[messageIndex].isThinking = false
-                        messages[messageIndex].thinkingEndTime = Date()
-                    }
+                    finalizeCurrentThinking()
                     pendingContent += text
-                    scheduleUIUpdate(at: messageIndex)
+                    scheduleUIUpdate()
                     
                 case .toolCall(let id, let name, let arguments):
-                    flushPendingContent(at: messageIndex)
-                    await handleToolCall(id: id, name: name, arguments: arguments, at: messageIndex)
-                    return
+                    flushPendingContent()
+                    finalizeCurrentThinking()
+                    await handleToolCall(id: id, name: name, arguments: arguments)
+                    return // Will continue in handleToolCall
                 }
             }
             
-            flushPendingContent(at: messageIndex)
-            finalizeMessage(at: messageIndex)
+            flushPendingContent()
+            finalizeCurrentMessage()
         } catch is CancellationError {
-            flushPendingContent(at: messageIndex)
+            flushPendingContent()
         } catch {
-            messages.remove(at: messageIndex)
+            messages[currentMessageIndex].isStreaming = false
+            messages[currentMessageIndex].segments.removeAll { segment in
+                if case .thinking(let info) = segment { return info.text.isEmpty }
+                return false
+            }
+            if messages[currentMessageIndex].segments.isEmpty {
+                messages.remove(at: currentMessageIndex)
+            }
             messages.append(.error(friendlyErrorMessage(for: error)))
             isLoading = false
         }
     }
     
-    /// Schedule a debounced UI update
-    private func scheduleUIUpdate(at index: Int) {
+    private func scheduleUIUpdate() {
         debounceTask?.cancel()
         debounceTask = Task {
             do {
                 try await Task.sleep(nanoseconds: debounceInterval)
-                flushPendingContent(at: index)
+                flushPendingContent()
             } catch {
-                // Cancelled - content will be flushed elsewhere
+                // Cancelled
             }
         }
     }
     
-    /// Immediately apply pending content to the message
-    private func flushPendingContent(at index: Int) {
+    private func flushPendingContent() {
         debounceTask?.cancel()
         debounceTask = nil
         
-        guard index < messages.count else { return }
+        guard currentMessageIndex < messages.count else { return }
         
+        // Update thinking segment with pending reasoning
         if !pendingReasoning.isEmpty {
-            messages[index].reasoning += pendingReasoning
+            if let thinkingIdx = currentThinkingIndex,
+               thinkingIdx < messages[currentMessageIndex].segments.count,
+               case .thinking(var info) = messages[currentMessageIndex].segments[thinkingIdx] {
+                info.text += pendingReasoning
+                messages[currentMessageIndex].segments[thinkingIdx] = .thinking(info)
+            }
             pendingReasoning = ""
         }
         
+        // Update content
         if !pendingContent.isEmpty {
-            messages[index].content += pendingContent
+            // Find or create content segment at end
+            if let lastIdx = messages[currentMessageIndex].segments.indices.last,
+               case .content(let existing) = messages[currentMessageIndex].segments[lastIdx] {
+                messages[currentMessageIndex].segments[lastIdx] = .content(existing + pendingContent)
+            } else {
+                messages[currentMessageIndex].segments.append(.content(pendingContent))
+            }
             pendingContent = ""
+        }
+    }
+    
+    private func finalizeCurrentThinking() {
+        guard let thinkingIdx = currentThinkingIndex,
+              currentMessageIndex < messages.count,
+              thinkingIdx < messages[currentMessageIndex].segments.count,
+              case .thinking(var info) = messages[currentMessageIndex].segments[thinkingIdx] else {
+            return
+        }
+        
+        if info.isActive {
+            info.isActive = false
+            info.endTime = Date()
+            
+            // Remove if empty
+            if info.text.isEmpty {
+                messages[currentMessageIndex].segments.remove(at: thinkingIdx)
+                currentThinkingIndex = nil
+            } else {
+                messages[currentMessageIndex].segments[thinkingIdx] = .thinking(info)
+                currentThinkingIndex = nil
+            }
         }
     }
     
@@ -279,14 +347,16 @@ final class ChatViewModel {
         }
     }
     
-    private func handleToolCall(id: String, name: String, arguments: String, at index: Int) async {
-        messages[index].toolCall = ChatMessage.ToolCallInfo(name: name, arguments: arguments)
-        
-        // Execute tool and get result
+    // MARK: - Tool Handling
+    
+    private func handleToolCall(id: String, name: String, arguments: String) async {
+        // Add tool call segment to current message
+        var toolSegment = ChatMessage.ToolCallSegment(callId: id, name: name, arguments: arguments)
         let result = executeToolCall(name: name, arguments: arguments)
-        messages[index].toolCall?.result = result
+        toolSegment.result = result
+        messages[currentMessageIndex].segments.append(.toolCall(toolSegment))
         
-        // Add tool call to history
+        // Add to history
         history.append([
             "role": "assistant",
             "content": NSNull(),
@@ -297,7 +367,6 @@ final class ChatViewModel {
             ]]
         ])
         
-        // Add tool result to history
         history.append([
             "role": "tool",
             "tool_call_id": id,
@@ -305,7 +374,24 @@ final class ChatViewModel {
         ])
         
         syncToWorkEditor()
+        
+        // Continue streaming - may get more thinking, tool calls, or content
         await continueAfterToolCall()
+    }
+    
+    private func continueAfterToolCall() async {
+        pendingContent = ""
+        pendingReasoning = ""
+        
+        // Start new thinking segment (may be filled or may be empty)
+        var thinking = ChatMessage.ThinkingSegment()
+        thinking.startTime = Date()
+        thinking.isActive = true
+        let newThinkingIdx = messages[currentMessageIndex].segments.count
+        messages[currentMessageIndex].segments.append(.thinking(thinking))
+        currentThinkingIndex = newThinkingIdx
+        
+        await processStream()
     }
     
     // MARK: - Tool Execution
@@ -391,7 +477,6 @@ final class ChatViewModel {
         
         editor.isDirty = true
         
-        // Build response
         let updatedJson = updated.map { #""\#($0)""# }.joined(separator: ", ")
         return #"{"success": true, "updated": [\#(updatedJson)], "current": {"title": "\#(editor.title)", "description": "\#(editor.description)", "tags": \#(tagsToJson(editor.tags))}}"#
     }
@@ -401,69 +486,43 @@ final class ChatViewModel {
         return "[\(escaped)]"
     }
     
-    private func continueAfterToolCall() async {
-        pendingContent = ""
-        pendingReasoning = ""
-        let messageIndex = messages.count
-        var newMessage = ChatMessage(role: .assistant, content: "", isStreaming: true, isThinking: true)
-        newMessage.thinkingStartTime = Date()
-        messages.append(newMessage)
+    private func finalizeCurrentMessage() {
+        guard currentMessageIndex < messages.count else { return }
         
-        do {
-            for try await event in AIService.shared.streamChat(messages: history) {
-                try Task.checkCancellation()
-                
-                switch event {
-                case .reasoning(let text):
-                    pendingReasoning += text
-                    scheduleUIUpdate(at: messageIndex)
-                    
-                case .delta(let text):
-                    if messages[messageIndex].isThinking {
-                        messages[messageIndex].isThinking = false
-                        messages[messageIndex].thinkingEndTime = Date()
-                    }
-                    pendingContent += text
-                    scheduleUIUpdate(at: messageIndex)
-                    
-                case .toolCall(let id, let name, let arguments):
-                    flushPendingContent(at: messageIndex)
-                    await handleToolCall(id: id, name: name, arguments: arguments, at: messageIndex)
-                    return
-                }
-            }
-            
-            flushPendingContent(at: messageIndex)
-            finalizeMessage(at: messageIndex)
-        } catch is CancellationError {
-            flushPendingContent(at: messageIndex)
-        } catch {
-            messages.remove(at: messageIndex)
-            messages.append(.error(friendlyErrorMessage(for: error)))
-            isLoading = false
-        }
-    }
-    
-    private func finalizeMessage(at index: Int) {
-        messages[index].isStreaming = false
-        messages[index].isThinking = false
+        messages[currentMessageIndex].isStreaming = false
+        finalizeCurrentThinking()
         isLoading = false
         
-        let message = messages[index]
-        let content = message.content
-        let reasoning = message.reasoning
+        // Build history entries for assistant content and reasoning
+        var hasContent = false
+        var allReasoning = ""
+        var finalContent = ""
         
-        // Only save if there's content
-        guard !content.isEmpty || !reasoning.isEmpty else { return }
-        
-        var historyEntry: [String: Any] = ["role": "assistant", "content": content]
-        
-        // Include reasoning if present
-        if !reasoning.isEmpty {
-            historyEntry["reasoning_content"] = reasoning
+        for segment in messages[currentMessageIndex].segments {
+            switch segment {
+            case .thinking(let info):
+                if !info.text.isEmpty {
+                    allReasoning += info.text
+                }
+            case .content(let text):
+                if !text.isEmpty {
+                    finalContent += text
+                    hasContent = true
+                }
+            case .toolCall:
+                // Already added to history
+                break
+            }
         }
         
-        history.append(historyEntry)
-        syncToWorkEditor()
+        // Only add final content to history (tool calls already added)
+        if hasContent || !allReasoning.isEmpty {
+            var entry: [String: Any] = ["role": "assistant", "content": finalContent]
+            if !allReasoning.isEmpty {
+                entry["reasoning_content"] = allReasoning
+            }
+            history.append(entry)
+            syncToWorkEditor()
+        }
     }
 }

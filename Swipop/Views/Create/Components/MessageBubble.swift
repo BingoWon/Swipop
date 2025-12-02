@@ -1,17 +1,12 @@
 //
 //  MessageBubble.swift
 //  Swipop
-//
 
 import SwiftUI
 
 struct MessageBubble: View {
     let message: ChatMessage
     var onRetry: (() -> Void)?
-    
-    @State private var isReasoningExpanded = false
-    @State private var elapsedSeconds = 0
-    @State private var timer: Timer?
     
     var body: some View {
         switch message.role {
@@ -30,7 +25,7 @@ struct MessageBubble: View {
         HStack(alignment: .top, spacing: 12) {
             Spacer(minLength: 60)
             
-            Text(message.content)
+            Text(message.userContent)
                 .font(.system(size: 15))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 14)
@@ -40,37 +35,41 @@ struct MessageBubble: View {
         }
     }
     
-    // MARK: - Assistant Message
+    // MARK: - Assistant Message (single avatar, multiple segments)
     
     private var assistantBubble: some View {
         HStack(alignment: .top, spacing: 12) {
             aiAvatar
             
             VStack(alignment: .leading, spacing: 8) {
-                // Thinking: active or completed
-                if message.isThinking {
-                    activeThinkingView
-                } else if message.hasReasoning {
-                    completedThinkingView
-                }
-                
-                // Main content
-                if !message.content.isEmpty || (!message.isThinking && !message.hasReasoning) {
-                    contentBubble
-                }
-                
-                // Tool call
-                if let toolCall = message.toolCall {
-                    ToolCallView(toolCall: toolCall)
+                ForEach(Array(message.segments.enumerated()), id: \.offset) { index, segment in
+                    segmentView(segment, at: index)
                 }
             }
             
             Spacer(minLength: 60)
         }
-        .onAppear { startTimerIfNeeded() }
-        .onDisappear { stopTimer() }
-        .onChange(of: message.isThinking) { _, isThinking in
-            if !isThinking { stopTimer() }
+    }
+    
+    @ViewBuilder
+    private func segmentView(_ segment: ChatMessage.Segment, at index: Int) -> some View {
+        switch segment {
+        case .thinking(let info):
+            ThinkingSegmentView(info: info)
+        case .toolCall(let info):
+            ToolCallView(toolCall: info)
+        case .content(let text):
+            if !text.isEmpty {
+                contentBubble(text)
+            } else if message.isStreaming && index == message.segments.count - 1 {
+                // Show placeholder only for last segment while streaming
+                Text("...")
+                    .foregroundStyle(.white.opacity(0.5))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(Color.assistantBubble)
+                    .clipShape(RoundedRectangle(cornerRadius: 18))
+            }
         }
     }
     
@@ -80,8 +79,7 @@ struct MessageBubble: View {
                 .fill(.brandGradient)
                 .frame(width: 32, height: 32)
             
-            if message.isThinking {
-                // Animated brain during thinking
+            if message.isActivelyThinking {
                 Image(systemName: "brain")
                     .font(.system(size: 14))
                     .foregroundStyle(.white)
@@ -94,131 +92,12 @@ struct MessageBubble: View {
         }
     }
     
-    // MARK: - Active Thinking (with live timer)
-    
-    private var activeThinkingView: some View {
-        HStack(spacing: 8) {
-            // Pulsing brain icon
-            Image(systemName: "brain")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(Color.brand)
-                .symbolEffect(.pulse, options: .repeating, isActive: true)
-            
-            Text("Thinking")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.white.opacity(0.8))
-            
-            // Live elapsed time
-            Text("\(elapsedSeconds)s")
-                .font(.system(size: 12, weight: .medium, design: .monospaced))
-                .foregroundStyle(Color.brand)
-                .contentTransition(.numericText())
-            
-            // Animated shimmer bar
-            ShimmerBar()
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(Color.brand.opacity(0.12))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.brand.opacity(0.3), lineWidth: 1)
-        )
-    }
-    
-    // MARK: - Completed Thinking (expandable)
-    
-    private var completedThinkingView: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Header - tappable
-            HStack(spacing: 8) {
-                Image(systemName: "brain")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Color.brand.opacity(0.8))
-                
-                Text("Thought for \(message.thinkingDuration ?? 0)s")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.6))
-                
-                Spacer()
-                
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.4))
-                    .rotationEffect(.degrees(isReasoningExpanded ? 90 : 0))
-            }
-            .padding(.horizontal, 12)
+    private func contentBubble(_ text: String) -> some View {
+        RichMessageContent(content: text)
+            .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .contentShape(Rectangle())
-            .onTapGesture {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                    isReasoningExpanded.toggle()
-                }
-            }
-            
-            // Expandable content
-            if isReasoningExpanded {
-                Divider()
-                    .background(Color.white.opacity(0.1))
-                
-                ScrollView {
-                    Text(message.reasoning)
-                        .font(.system(size: 13))
-                        .foregroundStyle(.white.opacity(0.65))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                }
-                .frame(maxHeight: 200)
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-        .background(Color.white.opacity(0.05))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-        )
-    }
-    
-    // MARK: - Content Bubble
-    
-    private var contentBubble: some View {
-        Group {
-            if message.content.isEmpty && message.isStreaming {
-                Text("...")
-                    .foregroundStyle(.white.opacity(0.5))
-            } else if !message.content.isEmpty {
-                RichMessageContent(content: message.content)
-            }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(Color.assistantBubble)
-        .clipShape(RoundedRectangle(cornerRadius: 18))
-    }
-    
-    // MARK: - Timer
-    
-    private func startTimerIfNeeded() {
-        guard message.isThinking, timer == nil else { return }
-        
-        // Initialize elapsed time
-        if let start = message.thinkingStartTime {
-            elapsedSeconds = Int(Date().timeIntervalSince(start))
-        }
-        
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            withAnimation(.easeInOut(duration: 0.2)) {
-                elapsedSeconds += 1
-            }
-        }
-    }
-    
-    private func stopTimer() {
-        timer?.invalidate()
-        timer = nil
+            .background(Color.assistantBubble)
+            .clipShape(RoundedRectangle(cornerRadius: 18))
     }
     
     // MARK: - Error Message
@@ -235,7 +114,7 @@ struct MessageBubble: View {
                 }
             
             VStack(alignment: .leading, spacing: 10) {
-                Text(message.content)
+                Text(message.errorContent)
                     .font(.system(size: 14))
                     .foregroundStyle(.white.opacity(0.9))
                 
@@ -268,7 +147,129 @@ struct MessageBubble: View {
     }
 }
 
-// MARK: - Shimmer Animation Bar
+// MARK: - Thinking Segment View
+
+struct ThinkingSegmentView: View {
+    let info: ChatMessage.ThinkingSegment
+    
+    @State private var isExpanded = false
+    @State private var elapsedSeconds = 0
+    @State private var timer: Timer?
+    
+    var body: some View {
+        if info.isActive {
+            activeThinkingView
+                .onAppear { startTimer() }
+                .onDisappear { stopTimer() }
+        } else if !info.text.isEmpty {
+            completedThinkingView
+        }
+    }
+    
+    // MARK: - Active Thinking
+    
+    private var activeThinkingView: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "brain")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Color.brand)
+                .symbolEffect(.pulse, options: .repeating, isActive: true)
+            
+            Text("Thinking")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.white.opacity(0.8))
+            
+            Text("\(elapsedSeconds)s")
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                .foregroundStyle(Color.brand)
+                .contentTransition(.numericText())
+            
+            ShimmerBar()
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(Color.brand.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.brand.opacity(0.3), lineWidth: 1)
+        )
+    }
+    
+    // MARK: - Completed Thinking
+    
+    private var completedThinkingView: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: "brain")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Color.brand.opacity(0.8))
+                
+                Text("Thought for \(info.duration ?? 0)s")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.6))
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.4))
+                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    isExpanded.toggle()
+                }
+            }
+            
+            if isExpanded {
+                Divider()
+                    .background(Color.white.opacity(0.1))
+                
+                ScrollView {
+                    Text(info.text)
+                        .font(.system(size: 13))
+                        .foregroundStyle(.white.opacity(0.65))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                }
+                .frame(maxHeight: 200)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .background(Color.white.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        )
+    }
+    
+    // MARK: - Timer
+    
+    private func startTimer() {
+        if let start = info.startTime {
+            elapsedSeconds = Int(Date().timeIntervalSince(start))
+        }
+        
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+            withAnimation(.easeInOut(duration: 0.2)) {
+                elapsedSeconds += 1
+            }
+        }
+    }
+    
+    private func stopTimer() {
+        timer?.invalidate()
+        timer = nil
+    }
+}
+
+// MARK: - Shimmer Bar
 
 private struct ShimmerBar: View {
     @State private var phase: CGFloat = 0
