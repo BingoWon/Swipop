@@ -9,23 +9,31 @@ struct CreateView: View {
     @Binding var showLogin: Bool
     @Bindable var workEditor: WorkEditorViewModel
     @State private var chatViewModel = ChatViewModel()
+    @State private var showSettings = false
     @FocusState private var isInputFocused: Bool
     
     var body: some View {
-        ZStack {
-            LinearGradient.darkBackgroundGradient.ignoresSafeArea()
-            
-            if AuthService.shared.isAuthenticated {
-                content
-            } else {
-                signInPrompt
+        NavigationStack {
+            ZStack {
+                LinearGradient.darkBackgroundGradient.ignoresSafeArea()
+                
+                if AuthService.shared.isAuthenticated {
+                    content
+                } else {
+                    signInPrompt
+                }
             }
+            .toolbar { toolbarContent }
+            .toolbarBackground(.hidden, for: .navigationBar)
         }
         .sheet(isPresented: $chatViewModel.showModelPicker) {
             ModelPickerSheet(selectedModel: $chatViewModel.selectedModel)
                 .presentationDetents([.height(280)])
                 .presentationDragIndicator(.visible)
                 .presentationBackground(Color.darkSheet)
+        }
+        .sheet(isPresented: $showSettings) {
+            WorkSettingsSheet(workEditor: workEditor)
         }
         .alert("Error", isPresented: .init(
             get: { chatViewModel.error != nil },
@@ -35,6 +43,56 @@ struct CreateView: View {
         } message: {
             Text(chatViewModel.error?.localizedDescription ?? "")
         }
+    }
+    
+    // MARK: - Toolbar
+    
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            // Save indicator
+            Button(action: handleSave) {
+                HStack(spacing: 4) {
+                    if workEditor.isSaving {
+                        ProgressView()
+                            .scaleEffect(0.7)
+                    } else {
+                        Image(systemName: workEditor.isDirty ? "circle.fill" : "checkmark")
+                            .font(.system(size: 10))
+                    }
+                    Text(saveStatusText)
+                        .font(.system(size: 13, weight: .medium))
+                }
+                .foregroundStyle(workEditor.isDirty ? .orange : .green)
+            }
+            .disabled(workEditor.isSaving || !workEditor.isDirty)
+            
+            // Publish status toggle
+            Button {
+                withAnimation(.spring(response: 0.3)) {
+                    workEditor.isPublished.toggle()
+                    workEditor.isDirty = true
+                }
+            } label: {
+                Image(systemName: workEditor.isPublished ? "eye" : "eye.slash")
+            }
+            .tint(workEditor.isPublished ? .green : .orange)
+            
+            // Settings
+            Button { showSettings = true } label: {
+                Image(systemName: "gearshape")
+            }
+        }
+    }
+    
+    private var saveStatusText: String {
+        if workEditor.isSaving { return "Saving" }
+        if workEditor.isDirty { return "Save" }
+        return "Saved"
+    }
+    
+    private func handleSave() {
+        Task { await workEditor.save() }
     }
     
     // MARK: - Content Switcher
