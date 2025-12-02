@@ -64,6 +64,7 @@ struct ProfileContentView: View {
     @State private var selectedTab = 0
     @State private var showSettings = false
     @State private var showEditProfile = false
+    @State private var selectedWorkForEdit: Work?
     
     init(userId: UUID, showLogin: Binding<Bool>) {
         self.userId = userId
@@ -101,6 +102,12 @@ struct ProfileContentView: View {
         }
         .sheet(isPresented: $showEditProfile) {
             EditProfileView(profile: viewModel.profile)
+        }
+        .sheet(item: $selectedWorkForEdit) { work in
+            WorkEditorSheet(work: work) {
+                // Refresh works after editing
+                Task { await viewModel.refreshWorks() }
+            }
         }
     }
     
@@ -214,7 +221,12 @@ struct ProfileContentView: View {
             GridItem(.flexible(), spacing: 2)
         ], spacing: 2) {
             ForEach(items) { work in
-                WorkThumbnail(work: work)
+                WorkThumbnail(work: work, showDraftBadge: viewModel.isCurrentUser && !work.isPublished)
+                    .onTapGesture {
+                        if viewModel.isCurrentUser {
+                            selectedWorkForEdit = work
+                        }
+                    }
             }
         }
         .padding(.top, 2)
@@ -270,16 +282,50 @@ private struct TabButton: View {
 
 private struct WorkThumbnail: View {
     let work: Work
+    var showDraftBadge = false
     
     var body: some View {
         Rectangle()
             .fill(Color(hex: "1a1a2e"))
             .aspectRatio(1, contentMode: .fill)
-            .overlay(
-                Text(work.title.prefix(2).uppercased())
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(.white.opacity(0.3))
-            )
+            .overlay {
+                VStack(spacing: 4) {
+                    Text(displayText)
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(.white.opacity(0.3))
+                    
+                    if !work.title.isEmpty {
+                        Text(work.title)
+                            .font(.system(size: 10))
+                            .foregroundColor(.white.opacity(0.5))
+                            .lineLimit(1)
+                            .padding(.horizontal, 4)
+                    }
+                }
+            }
+            .overlay(alignment: .topTrailing) {
+                if showDraftBadge {
+                    Text("Draft")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.orange)
+                        .cornerRadius(4)
+                        .padding(4)
+                }
+            }
+    }
+    
+    private var displayText: String {
+        if !work.title.isEmpty {
+            return String(work.title.prefix(2)).uppercased()
+        }
+        // Show icon based on content
+        if work.htmlContent?.isEmpty == false { return "H" }
+        if work.cssContent?.isEmpty == false { return "C" }
+        if work.jsContent?.isEmpty == false { return "J" }
+        return "?"
     }
 }
 

@@ -40,37 +40,55 @@ final class ProfileViewModel {
         isLoading = true
         
         async let profileTask = userService.fetchProfile(userId: userId)
-        async let worksTask = workService.fetchUserWorks(userId: userId)
         async let followerTask = userService.fetchFollowerCount(userId: userId)
         async let followingTask = userService.fetchFollowingCount(userId: userId)
         async let workCountTask = userService.fetchWorkCount(userId: userId)
         
         do {
-            let (p, w, fc, fgc, wc) = try await (profileTask, worksTask, followerTask, followingTask, workCountTask)
+            let (p, fc, fgc, wc) = try await (profileTask, followerTask, followingTask, workCountTask)
             
             profile = p
-            works = w
             followerCount = fc
             followingCount = fgc
             workCount = wc
             
-            // Load liked/collected if current user
+            // Load works
             if isCurrentUser {
+                // Current user sees all works including drafts
+                works = try await workService.fetchMyWorks()
+                
+                // Also load liked/collected
                 async let liked = interactionService.fetchLikedWorks(userId: userId)
                 async let collected = interactionService.fetchCollectedWorks(userId: userId)
                 
                 let (l, c) = try await (liked, collected)
                 likedWorks = l
                 collectedWorks = c
-            } else if let currentUserId = AuthService.shared.currentUser?.id {
-                // Check if following this user
-                isFollowing = try await userService.isFollowing(followerId: currentUserId, followingId: userId)
+            } else {
+                // Other users only see published works
+                works = try await workService.fetchUserWorks(userId: userId)
+                
+                if let currentUserId = AuthService.shared.currentUser?.id {
+                    // Check if following this user
+                    isFollowing = try await userService.isFollowing(followerId: currentUserId, followingId: userId)
+                }
             }
         } catch {
             print("Failed to load profile: \(error)")
         }
         
         isLoading = false
+    }
+    
+    /// Refresh works list (called after editing)
+    @MainActor
+    func refreshWorks() async {
+        guard isCurrentUser else { return }
+        do {
+            works = try await workService.fetchMyWorks()
+        } catch {
+            print("Failed to refresh works: \(error)")
+        }
     }
     
     // MARK: - Follow
