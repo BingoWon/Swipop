@@ -8,17 +8,10 @@ import SwiftUI
 struct CreateView: View {
     @Binding var showLogin: Bool
     @Bindable var workEditor: WorkEditorViewModel
+    @Bindable var chatViewModel: ChatViewModel
     @Binding var selectedSubTab: CreateSubTab
-    @State private var chatViewModel: ChatViewModel
     @State private var showSettings = false
     @FocusState private var isInputFocused: Bool
-    
-    init(showLogin: Binding<Bool>, workEditor: WorkEditorViewModel, selectedSubTab: Binding<CreateSubTab>) {
-        self._showLogin = showLogin
-        self.workEditor = workEditor
-        self._selectedSubTab = selectedSubTab
-        self._chatViewModel = State(initialValue: ChatViewModel(workEditor: workEditor))
-    }
     
     var body: some View {
         NavigationStack {
@@ -39,14 +32,6 @@ struct CreateView: View {
                 workEditor.reset()
                 chatViewModel.clear()
             }
-        }
-        .alert("Error", isPresented: .init(
-            get: { chatViewModel.error != nil },
-            set: { if !$0 { chatViewModel.error = nil } }
-        )) {
-            Button("OK") { chatViewModel.error = nil }
-        } message: {
-            Text(chatViewModel.error?.localizedDescription ?? "")
         }
     }
     
@@ -161,7 +146,22 @@ struct CreateView: View {
 }
 
 #Preview {
-    @Previewable @State var workEditor = WorkEditorViewModel()
-    CreateView(showLogin: .constant(false), workEditor: workEditor, selectedSubTab: .constant(.chat))
+    CreateViewPreview()
+}
+
+private struct CreateViewPreview: View {
+    @State private var workEditor = WorkEditorViewModel()
+    @State private var chatViewModel: ChatViewModel?
+    
+    var body: some View {
+        Group {
+            if let chat = chatViewModel {
+                CreateView(showLogin: .constant(false), workEditor: workEditor, chatViewModel: chat, selectedSubTab: .constant(.chat))
+            }
+        }
+        .onAppear {
+            chatViewModel = ChatViewModel(workEditor: workEditor)
+        }
         .preferredColorScheme(.dark)
+    }
 }

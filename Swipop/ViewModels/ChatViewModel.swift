@@ -24,7 +24,11 @@ final class ChatViewModel {
     
     private var history: [[String: Any]] = []
     private var streamTask: Task<Void, Never>?
-    private var lastUserMessage: String?
+    
+    // Debouncing for streaming updates
+    private var pendingContent: String = ""
+    private var debounceTask: Task<Void, Never>?
+    private let debounceInterval: UInt64 = 50_000_000 // 50ms in nanoseconds
     
     // MARK: - System Prompt
     
@@ -62,7 +66,6 @@ final class ChatViewModel {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         
-        lastUserMessage = text
         inputText = ""
         messages.append(ChatMessage(role: .user, content: text))
         history.append(["role": "user", "content": text])
@@ -103,7 +106,6 @@ final class ChatViewModel {
     func clear() {
         messages.removeAll()
         history.removeAll()
-        error = nil
         history.append(["role": "system", "content": systemPrompt])
         syncToWorkEditor()
     }
@@ -134,6 +136,7 @@ final class ChatViewModel {
     
     private func streamResponse() async {
         isLoading = true
+        pendingContent = ""
         
         let messageIndex = messages.count
         messages.append(ChatMessage(role: .assistant, content: "", isStreaming: true))
@@ -145,17 +148,24 @@ final class ChatViewModel {
                 
                 switch event {
                 case .delta(let text):
-                    messages[messageIndex].content += text
+                    // Accumulate content and debounce UI updates
+                    pendingContent += text
+                    scheduleUIUpdate(at: messageIndex)
                     
                 case .toolCall(let id, let name, let arguments):
+                    // Flush pending content before handling tool call
+                    flushPendingContent(at: messageIndex)
                     await handleToolCall(id: id, name: name, arguments: arguments, at: messageIndex)
                     return
                 }
             }
             
+            // Flush any remaining content
+            flushPendingContent(at: messageIndex)
             finalizeMessage(at: messageIndex)
         } catch is CancellationError {
-            // User stopped - already handled in stop()
+            // User stopped - flush pending content
+            flushPendingContent(at: messageIndex)
         } catch {
             // Remove the empty assistant message
             messages.remove(at: messageIndex)
@@ -163,6 +173,29 @@ final class ChatViewModel {
             messages.append(.error(friendlyErrorMessage(for: error)))
             isLoading = false
         }
+    }
+    
+    /// Schedule a debounced UI update
+    private func scheduleUIUpdate(at index: Int) {
+        debounceTask?.cancel()
+        debounceTask = Task {
+            do {
+                try await Task.sleep(nanoseconds: debounceInterval)
+                flushPendingContent(at: index)
+            } catch {
+                // Cancelled - content will be flushed elsewhere
+            }
+        }
+    }
+    
+    /// Immediately apply pending content to the message
+    private func flushPendingContent(at index: Int) {
+        debounceTask?.cancel()
+        debounceTask = nil
+        
+        guard !pendingContent.isEmpty, index < messages.count else { return }
+        messages[index].content += pendingContent
+        pendingContent = ""
     }
     
     private func friendlyErrorMessage(for error: Error) -> String {
@@ -304,6 +337,7 @@ final class ChatViewModel {
     }
     
     private func continueAfterToolCall() async {
+        pendingContent = ""
         let messageIndex = messages.count
         messages.append(ChatMessage(role: .assistant, content: "", isStreaming: true))
         
@@ -314,17 +348,20 @@ final class ChatViewModel {
                 
                 switch event {
                 case .delta(let text):
-                    messages[messageIndex].content += text
+                    pendingContent += text
+                    scheduleUIUpdate(at: messageIndex)
                     
                 case .toolCall(let id, let name, let arguments):
+                    flushPendingContent(at: messageIndex)
                     await handleToolCall(id: id, name: name, arguments: arguments, at: messageIndex)
                     return
                 }
             }
             
+            flushPendingContent(at: messageIndex)
             finalizeMessage(at: messageIndex)
         } catch is CancellationError {
-            // User stopped - already handled in stop()
+            flushPendingContent(at: messageIndex)
         } catch {
             messages.remove(at: messageIndex)
             messages.append(.error(friendlyErrorMessage(for: error)))

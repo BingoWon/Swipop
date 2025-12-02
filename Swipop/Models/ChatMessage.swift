@@ -12,7 +12,6 @@ struct ChatMessage: Identifiable {
     var content: String
     var toolCall: ToolCallInfo?
     var isStreaming = false
-    var isError = false
     let timestamp = Date()
     
     enum Role {
@@ -29,7 +28,7 @@ struct ChatMessage: Identifiable {
     
     /// Create an error message
     static func error(_ message: String) -> ChatMessage {
-        ChatMessage(role: .error, content: message, isError: true)
+        ChatMessage(role: .error, content: message)
     }
 }
 

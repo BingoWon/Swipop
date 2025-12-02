@@ -57,13 +57,23 @@ struct MessageBubble: View {
     }
     
     private var contentBubble: some View {
-        Text(message.content.isEmpty && message.isStreaming ? "..." : message.content)
-            .font(.system(size: 15))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(message.role == .user ? Color.userBubble : Color.assistantBubble)
-            .clipShape(RoundedRectangle(cornerRadius: 18))
+        Group {
+            if message.role == .user {
+                // User messages: simple text
+                Text(message.content)
+                    .font(.system(size: 15))
+                    .foregroundStyle(.white)
+            } else {
+                // Assistant messages: rich Markdown rendering
+                RichMessageContent(
+                    content: message.content.isEmpty && message.isStreaming ? "..." : message.content
+                )
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(message.role == .user ? Color.userBubble : Color.assistantBubble)
+        .clipShape(RoundedRectangle(cornerRadius: 18))
     }
     
     private var streamingIndicator: some View {

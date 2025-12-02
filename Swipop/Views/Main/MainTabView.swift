@@ -12,10 +12,18 @@ struct MainTabView: View {
     @State private var selectedTab = 0
     @State private var previousTab = 0
     @State private var showWorkDetail = false
-    @State private var workEditor = WorkEditorViewModel()
+    @State private var workEditor: WorkEditorViewModel
+    @State private var chatViewModel: ChatViewModel
     @State private var createSubTab: CreateSubTab = .chat
     
     private let feed = FeedViewModel.shared
+    
+    init(showLogin: Binding<Bool>) {
+        self._showLogin = showLogin
+        let editor = WorkEditorViewModel()
+        self._workEditor = State(initialValue: editor)
+        self._chatViewModel = State(initialValue: ChatViewModel(workEditor: editor))
+    }
     
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -32,7 +40,7 @@ struct MainTabView: View {
             }
             
             Tab("Create", systemImage: "plus", value: 3, role: .search) {
-                CreateView(showLogin: $showLogin, workEditor: workEditor, selectedSubTab: $createSubTab)
+                CreateView(showLogin: $showLogin, workEditor: workEditor, chatViewModel: chatViewModel, selectedSubTab: $createSubTab)
             }
         }
         .tabViewBottomAccessory {
@@ -54,6 +62,7 @@ struct MainTabView: View {
             if newValue == 3 && oldValue != 3 {
                 Task {
                     await workEditor.saveAndReset()
+                    chatViewModel.clear()  // Sync reset chat history
                     createSubTab = .chat
                 }
             }
