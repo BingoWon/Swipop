@@ -13,7 +13,9 @@ struct CreateSubTabBar: View {
     var body: some View {
         HStack(spacing: 0) {
             ForEach(CreateSubTab.allCases) { tab in
-                tabButton(tab)
+                TabButton(tab: tab, isSelected: selectedTab == tab) {
+                    selectedTab = tab
+                }
                 
                 if tab != CreateSubTab.allCases.last {
                     Divider()
@@ -23,13 +25,17 @@ struct CreateSubTabBar: View {
             }
         }
     }
+}
+
+// MARK: - Tab Button (extracted for performance)
+
+private struct TabButton: View {
+    let tab: CreateSubTab
+    let isSelected: Bool
+    let action: () -> Void
     
-    private func tabButton(_ tab: CreateSubTab) -> some View {
-        Button {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                selectedTab = tab
-            }
-        } label: {
+    var body: some View {
+        Button(action: action) {
             VStack(spacing: 4) {
                 Image(systemName: tab.icon)
                     .font(.system(size: 16, weight: .medium))
@@ -37,16 +43,17 @@ struct CreateSubTabBar: View {
                 Text(tab.title)
                     .font(.system(size: 10, weight: .medium))
             }
-            .foregroundStyle(selectedTab == tab ? tab.color : .white.opacity(0.5))
+            .foregroundStyle(isSelected ? tab.color : .white.opacity(0.5))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 6)
             .background {
-                if selectedTab == tab {
+                if isSelected {
                     RoundedRectangle(cornerRadius: 8)
                         .fill(tab.color.opacity(0.15))
                         .padding(.horizontal, 8)
                 }
             }
+            .animation(.easeInOut(duration: 0.15), value: isSelected)
         }
         .buttonStyle(.plain)
     }

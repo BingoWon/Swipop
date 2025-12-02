@@ -10,9 +10,6 @@ import SwiftUI
 @MainActor
 @Observable
 final class WorkEditorViewModel {
-    // MARK: - Navigation
-    var selectedTab: CreateSubTab = .chat
-    
     // MARK: - Work Content
     var html: String = ""
     var css: String = ""
@@ -66,7 +63,6 @@ final class WorkEditorViewModel {
     }
     
     func reset() {
-        selectedTab = .chat
         html = ""
         css = ""
         javascript = ""

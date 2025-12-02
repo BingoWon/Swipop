@@ -8,6 +8,7 @@ import SwiftUI
 struct CreateView: View {
     @Binding var showLogin: Bool
     @Bindable var workEditor: WorkEditorViewModel
+    @Binding var selectedSubTab: CreateSubTab
     @State private var chatViewModel = ChatViewModel()
     @State private var showSettings = false
     @FocusState private var isInputFocused: Bool
@@ -99,7 +100,7 @@ struct CreateView: View {
     
     @ViewBuilder
     private var content: some View {
-        switch workEditor.selectedTab {
+        switch selectedSubTab {
         case .chat:
             chatInterface
         case .preview:
@@ -318,6 +319,6 @@ struct CreateView: View {
 }
 
 #Preview {
-    CreateView(showLogin: .constant(false), workEditor: WorkEditorViewModel())
+    CreateView(showLogin: .constant(false), workEditor: WorkEditorViewModel(), selectedSubTab: .constant(.chat))
         .preferredColorScheme(.dark)
 }

@@ -12,6 +12,7 @@ struct MainTabView: View {
     @State private var selectedTab = 0
     @State private var showWorkDetail = false
     @State private var workEditor = WorkEditorViewModel()
+    @State private var createSubTab: CreateSubTab = .chat
     
     private let feed = FeedViewModel.shared
     
@@ -30,25 +31,43 @@ struct MainTabView: View {
             }
             
             Tab("Create", systemImage: "plus", value: 3, role: .search) {
-                CreateView(showLogin: $showLogin, workEditor: workEditor)
+                CreateView(showLogin: $showLogin, workEditor: workEditor, selectedSubTab: $createSubTab)
             }
         }
         .tabViewBottomAccessory {
-            if selectedTab == 3 {
-                CreateSubTabBar(selectedTab: $workEditor.selectedTab)
-            } else {
-                BottomAccessory(
-                    isOnFeed: selectedTab == 0,
-                    showDetail: $showWorkDetail,
-                    goToFeed: { selectedTab = 0 }
-                )
-            }
+            BottomAccessoryContent(
+                selectedTab: selectedTab,
+                createSubTab: $createSubTab,
+                showWorkDetail: $showWorkDetail,
+                goToFeed: { selectedTab = 0 }
+            )
         }
         .tint(.white)
         .sheet(isPresented: $showWorkDetail) {
             if let work = feed.currentWork {
                 WorkDetailSheet(work: work, showLogin: $showLogin)
             }
+        }
+    }
+}
+
+// MARK: - Bottom Accessory Content (extracted to prevent unnecessary redraws)
+
+private struct BottomAccessoryContent: View {
+    let selectedTab: Int
+    @Binding var createSubTab: CreateSubTab
+    @Binding var showWorkDetail: Bool
+    let goToFeed: () -> Void
+    
+    var body: some View {
+        if selectedTab == 3 {
+            CreateSubTabBar(selectedTab: $createSubTab)
+        } else {
+            BottomAccessory(
+                isOnFeed: selectedTab == 0,
+                showDetail: $showWorkDetail,
+                goToFeed: goToFeed
+            )
         }
     }
 }
