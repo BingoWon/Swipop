@@ -17,6 +17,20 @@ struct MainTabView: View {
     
     private let feed = FeedViewModel.shared
     
+    /// Custom binding to detect re-selection of Create tab
+    private var tabSelection: Binding<Int> {
+        Binding(
+            get: { selectedTab },
+            set: { newValue in
+                // If Create tab is re-selected while already on it, create new work
+                if newValue == 3 && selectedTab == 3 {
+                    Task { await createNewWork() }
+                }
+                selectedTab = newValue
+            }
+        )
+    }
+    
     init(showLogin: Binding<Bool>) {
         self._showLogin = showLogin
         let editor = WorkEditorViewModel()
@@ -25,7 +39,7 @@ struct MainTabView: View {
     }
     
     var body: some View {
-        TabView(selection: $selectedTab) {
+        TabView(selection: tabSelection) {
             Tab("Home", systemImage: "house.fill", value: 0) {
                 FeedView(showLogin: $showLogin)
             }
@@ -69,17 +83,22 @@ struct MainTabView: View {
         }
     }
     
-    // MARK: - Edit Work Action
+    // MARK: - Actions
     
     /// Navigate to Create tab with a work loaded for editing
     private func editWork(_ work: Work) {
-        // Load work into editor
         workEditor.load(work: work)
         chatViewModel.loadFromWorkEditor()
-        
-        // Switch to Create tab
         createSubTab = .chat
         selectedTab = 3
+    }
+    
+    /// Save current work and reset to create a new one
+    @MainActor
+    private func createNewWork() async {
+        await workEditor.saveAndReset()
+        chatViewModel.clear()
+        createSubTab = .chat
     }
 }
 
