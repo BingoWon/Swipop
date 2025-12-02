@@ -7,8 +7,8 @@
 
 import SwiftUI
 import Runestone
-import TreeSitterHTML
-import TreeSitterCSS
+import TreeSitterHTMLRunestone
+import TreeSitterCSSRunestone
 import TreeSitterJavaScriptRunestone
 
 // MARK: - Code Language
@@ -18,19 +18,11 @@ enum CodeLanguage: String, CaseIterable {
     case css = "CSS"
     case javascript = "JS"
     
-    var treeSitterLanguage: TreeSitterLanguage {
+    var language: TreeSitterLanguage {
         switch self {
-        case .html: TreeSitterLanguage(tree_sitter_html())
-        case .css: TreeSitterLanguage(tree_sitter_css())
-        case .javascript: TreeSitterLanguage(tree_sitter_javascript())
-        }
-    }
-    
-    var highlightsQuery: String {
-        switch self {
-        case .html: TreeSitterHTML.Query.highlights
-        case .css: TreeSitterCSS.Query.highlights
-        case .javascript: TreeSitterJavaScriptRunestone.Query.highlights
+        case .html: .html
+        case .css: .css
+        case .javascript: .javaScript
         }
     }
 }
@@ -65,10 +57,7 @@ struct RunestoneCodeView: UIViewRepresentable {
         let state = TextViewState(
             text: code,
             theme: CodeTheme(),
-            language: language.treeSitterLanguage,
-            languageMode: .treeSitter(
-                .init(language: language.treeSitterLanguage, languageQuery: .init(highlightsQuery: language.highlightsQuery))
-            )
+            language: language.language
         )
         textView.setState(state)
     }
@@ -187,4 +176,3 @@ private final class CodeTheme: Runestone.Theme {
     .frame(height: 300)
     .background(Color.black)
 }
-

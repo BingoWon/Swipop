@@ -7,9 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		D730436A2EDE77ED0059DD01 /* TreeSitterCSS in Frameworks */ = {isa = PBXBuildFile; productRef = D73043692EDE77ED0059DD01 /* TreeSitterCSS */; };
-		D730436C2EDE77ED0059DD01 /* TreeSitterHTML in Frameworks */ = {isa = PBXBuildFile; productRef = D730436B2EDE77ED0059DD01 /* TreeSitterHTML */; };
-		D730436E2EDE77ED0059DD01 /* TreeSitterJavaScript in Frameworks */ = {isa = PBXBuildFile; productRef = D730436D2EDE77ED0059DD01 /* TreeSitterJavaScript */; };
+		D73043702EDE78000059DD01 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
+		D73043732EDE7A080059DD01 /* TreeSitterCSSRunestone in Frameworks */ = {isa = PBXBuildFile; productRef = D73043722EDE7A080059DD01 /* TreeSitterCSSRunestone */; };
+		D73043752EDE7A080059DD01 /* TreeSitterHTMLRunestone in Frameworks */ = {isa = PBXBuildFile; productRef = D73043742EDE7A080059DD01 /* TreeSitterHTMLRunestone */; };
+		D73043772EDE7A080059DD01 /* TreeSitterJavaScriptRunestone in Frameworks */ = {isa = PBXBuildFile; productRef = D73043762EDE7A080059DD01 /* TreeSitterJavaScriptRunestone */; };
 		D7BF49FE2EDDB66700218489 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = D7BF49D32EDDAF9500218489 /* Supabase */; };
 		D7BF4AE12EDDC16000218489 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = D7BF4AA52EDDC0B500218489 /* GoogleSignIn */; };
 		D7BF4AE22EDDC16000218489 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = D7BF4AA62EDDC0B500218489 /* GoogleSignInSwift */; };
@@ -62,10 +63,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				D7BF4AE22EDDC16000218489 /* GoogleSignInSwift in Frameworks */,
-				D730436A2EDE77ED0059DD01 /* TreeSitterCSS in Frameworks */,
-				D730436C2EDE77ED0059DD01 /* TreeSitterHTML in Frameworks */,
+				D73043702EDE78000059DD01 /* (null) in Frameworks */,
+				D73043752EDE7A080059DD01 /* TreeSitterHTMLRunestone in Frameworks */,
+				D73043772EDE7A080059DD01 /* TreeSitterJavaScriptRunestone in Frameworks */,
 				D7BF4AE12EDDC16000218489 /* GoogleSignIn in Frameworks */,
-				D730436E2EDE77ED0059DD01 /* TreeSitterJavaScript in Frameworks */,
+				D73043732EDE7A080059DD01 /* TreeSitterCSSRunestone in Frameworks */,
 				D7BF49FE2EDDB66700218489 /* Supabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -130,9 +132,9 @@
 				D7BF49D32EDDAF9500218489 /* Supabase */,
 				D7BF4AA52EDDC0B500218489 /* GoogleSignIn */,
 				D7BF4AA62EDDC0B500218489 /* GoogleSignInSwift */,
-				D73043692EDE77ED0059DD01 /* TreeSitterCSS */,
-				D730436B2EDE77ED0059DD01 /* TreeSitterHTML */,
-				D730436D2EDE77ED0059DD01 /* TreeSitterJavaScript */,
+				D73043722EDE7A080059DD01 /* TreeSitterCSSRunestone */,
+				D73043742EDE7A080059DD01 /* TreeSitterHTMLRunestone */,
+				D73043762EDE7A080059DD01 /* TreeSitterJavaScriptRunestone */,
 			);
 			productName = Swipop;
 			productReference = D7BF49A82EDDAA1200218489 /* Swipop.app */;
@@ -646,20 +648,25 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		D73043692EDE77ED0059DD01 /* TreeSitterCSS */ = {
+		D730436F2EDE78000059DD01 /* Runestone */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = D73043682EDE77ED0059DD01 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */;
-			productName = TreeSitterCSS;
+			package = D73043672EDE77540059DD01 /* XCRemoteSwiftPackageReference "Runestone" */;
+			productName = Runestone;
 		};
-		D730436B2EDE77ED0059DD01 /* TreeSitterHTML */ = {
+		D73043722EDE7A080059DD01 /* TreeSitterCSSRunestone */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = D73043682EDE77ED0059DD01 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */;
-			productName = TreeSitterHTML;
+			productName = TreeSitterCSSRunestone;
 		};
-		D730436D2EDE77ED0059DD01 /* TreeSitterJavaScript */ = {
+		D73043742EDE7A080059DD01 /* TreeSitterHTMLRunestone */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = D73043682EDE77ED0059DD01 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */;
-			productName = TreeSitterJavaScript;
+			productName = TreeSitterHTMLRunestone;
+		};
+		D73043762EDE7A080059DD01 /* TreeSitterJavaScriptRunestone */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D73043682EDE77ED0059DD01 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */;
+			productName = TreeSitterJavaScriptRunestone;
 		};
 		D7BF49D32EDDAF9500218489 /* Supabase */ = {
 			isa = XCSwiftPackageProductDependency;
