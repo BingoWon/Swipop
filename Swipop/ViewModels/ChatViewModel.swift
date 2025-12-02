@@ -24,6 +24,7 @@ final class ChatViewModel {
     weak var workEditor: WorkEditorViewModel?
     
     private var history: [[String: Any]] = []
+    private var streamTask: Task<Void, Never>?
     
     // MARK: - System Prompt
     
@@ -66,7 +67,25 @@ final class ChatViewModel {
         history.append(["role": "user", "content": text])
         syncToWorkEditor()
         
-        Task { await streamResponse() }
+        streamTask = Task { await streamResponse() }
+    }
+    
+    /// Stop the current streaming response
+    func stop() {
+        streamTask?.cancel()
+        streamTask = nil
+        
+        // Finalize the last message if streaming
+        if let lastIndex = messages.indices.last, messages[lastIndex].isStreaming {
+            messages[lastIndex].isStreaming = false
+            let content = messages[lastIndex].content
+            if !content.isEmpty {
+                history.append(["role": "assistant", "content": content])
+                syncToWorkEditor()
+            }
+        }
+        
+        isLoading = false
     }
     
     func clear() {
@@ -110,6 +129,9 @@ final class ChatViewModel {
         
         do {
             for try await event in AIService.shared.streamChat(messages: history) {
+                // Check for cancellation
+                try Task.checkCancellation()
+                
                 switch event {
                 case .delta(let text):
                     messages[messageIndex].content += text
@@ -121,6 +143,8 @@ final class ChatViewModel {
             }
             
             finalizeMessage(at: messageIndex)
+        } catch is CancellationError {
+            // User stopped - already handled in stop()
         } catch {
             messages[messageIndex].content = "Error: \(error.localizedDescription)"
             messages[messageIndex].isStreaming = false
@@ -257,6 +281,9 @@ final class ChatViewModel {
         
         do {
             for try await event in AIService.shared.streamChat(messages: history) {
+                // Check for cancellation
+                try Task.checkCancellation()
+                
                 switch event {
                 case .delta(let text):
                     messages[messageIndex].content += text
@@ -268,6 +295,8 @@ final class ChatViewModel {
             }
             
             finalizeMessage(at: messageIndex)
+        } catch is CancellationError {
+            // User stopped - already handled in stop()
         } catch {
             messages[messageIndex].content = "Error: \(error.localizedDescription)"
             messages[messageIndex].isStreaming = false

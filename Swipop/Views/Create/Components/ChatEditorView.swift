@@ -156,25 +156,25 @@ struct ChatEditorView: View {
     
     private var sendButton: some View {
         Button {
-            chatViewModel.send()
-            isInputFocused = false
+            if chatViewModel.isLoading {
+                chatViewModel.stop()
+            } else {
+                chatViewModel.send()
+                isInputFocused = false
+            }
         } label: {
             Circle()
-                .fill(chatViewModel.inputText.isEmpty
-                      ? LinearGradient(colors: [.white.opacity(0.2)], startPoint: .top, endPoint: .bottom)
-                      : .brandGradient)
+                .fill(chatViewModel.isLoading || !chatViewModel.inputText.isEmpty
+                      ? .brandGradient
+                      : LinearGradient(colors: [.white.opacity(0.2)], startPoint: .top, endPoint: .bottom))
                 .frame(width: 44, height: 44)
                 .overlay {
-                    if chatViewModel.isLoading {
-                        ProgressView().tint(.white)
-                    } else {
-                        Image(systemName: "arrow.up")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(.white)
-                    }
+                    Image(systemName: chatViewModel.isLoading ? "stop.fill" : "arrow.up")
+                        .font(.system(size: chatViewModel.isLoading ? 16 : 18, weight: .semibold))
+                        .foregroundStyle(.white)
                 }
         }
-        .disabled(chatViewModel.inputText.isEmpty || chatViewModel.isLoading)
+        .disabled(!chatViewModel.isLoading && chatViewModel.inputText.isEmpty)
     }
 }
 
