@@ -29,12 +29,23 @@ final class ChatViewModel {
     
     private let systemPrompt = """
     You are a creative AI assistant in Swipop, a social app for sharing HTML/CSS/JS creative works.
-    Help users create components, find inspiration, and answer web development questions.
+    Help users create interactive, visually appealing web components.
     
     You have tools to:
-    - update_metadata: Set or change the work's title, description, and tags
+    - edit_html: Set the HTML content (body content only, no html/head/body tags)
+    - edit_css: Set the CSS styles (animations, layouts, effects)
+    - edit_javascript: Set the JavaScript code (interactivity, logic)
+    - update_metadata: Set title, description, and tags
     
-    Use tools when appropriate. Be creative, helpful, and concise.
+    When creating works:
+    1. Use modern CSS (flexbox, grid, custom properties, animations)
+    2. Write clean, semantic HTML
+    3. Use ES6+ JavaScript
+    4. Make it visually impressive - users share these as creative works
+    5. Add smooth animations and transitions
+    6. Consider mobile responsiveness
+    
+    Be creative and make things that look amazing!
     """
     
     // MARK: - Init
@@ -137,7 +148,44 @@ final class ChatViewModel {
         switch tool {
         case .updateMetadata:
             return executeUpdateMetadata(args)
+        case .editHtml:
+            return executeEditCode(args, type: .html)
+        case .editCss:
+            return executeEditCode(args, type: .css)
+        case .editJavascript:
+            return executeEditCode(args, type: .javascript)
         }
+    }
+    
+    private enum CodeType { case html, css, javascript }
+    
+    private func executeEditCode(_ args: [String: Any], type: CodeType) -> String {
+        guard let editor = workEditor else {
+            return #"{"error": "Work editor not available"}"#
+        }
+        
+        guard let content = args["content"] as? String else {
+            return #"{"error": "Missing content parameter"}"#
+        }
+        
+        let typeName: String
+        switch type {
+        case .html:
+            editor.html = content
+            typeName = "HTML"
+        case .css:
+            editor.css = content
+            typeName = "CSS"
+        case .javascript:
+            editor.javascript = content
+            typeName = "JavaScript"
+        }
+        
+        editor.isDirty = true
+        
+        let charCount = content.count
+        let lineCount = content.components(separatedBy: .newlines).count
+        return #"{"success": true, "type": "\#(typeName)", "stats": {"characters": \#(charCount), "lines": \#(lineCount)}}"#
     }
     
     private func executeUpdateMetadata(_ args: [String: Any]) -> String {

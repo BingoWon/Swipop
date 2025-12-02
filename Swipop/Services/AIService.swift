@@ -109,6 +109,9 @@ final class AIService {
     
     enum ToolName: String {
         case updateMetadata = "update_metadata"
+        case editHtml = "edit_html"
+        case editCss = "edit_css"
+        case editJavascript = "edit_javascript"
     }
     
     // MARK: - Types
@@ -135,28 +138,64 @@ final class AIService {
     // MARK: - Tools Definition
     
     static let tools: [[String: Any]] = [
+        // Metadata tool
         [
             "type": "function",
             "function": [
                 "name": "update_metadata",
-                "description": "Update the work's metadata. Use this when the user wants to set or change the title, description, or tags of their creative work.",
+                "description": "Update the work's metadata (title, description, tags). Use when user wants to name or describe their work.",
                 "parameters": [
                     "type": "object",
                     "properties": [
-                        "title": [
-                            "type": "string",
-                            "description": "The title of the work. Keep it concise and descriptive."
-                        ],
-                        "description": [
-                            "type": "string",
-                            "description": "A brief description of what the work does or shows."
-                        ],
-                        "tags": [
-                            "type": "array",
-                            "items": ["type": "string"],
-                            "description": "Relevant tags for discovery. Use lowercase, no # prefix. Examples: animation, button, 3d, particle"
-                        ]
+                        "title": ["type": "string", "description": "Work title, concise and descriptive"],
+                        "description": ["type": "string", "description": "Brief description of what the work does"],
+                        "tags": ["type": "array", "items": ["type": "string"], "description": "Tags for discovery (lowercase, no #)"]
                     ]
+                ]
+            ]
+        ],
+        // HTML editor
+        [
+            "type": "function",
+            "function": [
+                "name": "edit_html",
+                "description": "Replace the entire HTML content of the work. Use for creating or modifying the structure and content. Include semantic HTML elements. Do NOT include <html>, <head>, or <body> tags - only the content that goes inside body.",
+                "parameters": [
+                    "type": "object",
+                    "properties": [
+                        "content": ["type": "string", "description": "The complete HTML content to set"]
+                    ],
+                    "required": ["content"]
+                ]
+            ]
+        ],
+        // CSS editor
+        [
+            "type": "function",
+            "function": [
+                "name": "edit_css",
+                "description": "Replace the entire CSS content of the work. Use for styling, animations, and visual effects. Include responsive design when appropriate. Write clean, modern CSS.",
+                "parameters": [
+                    "type": "object",
+                    "properties": [
+                        "content": ["type": "string", "description": "The complete CSS content to set"]
+                    ],
+                    "required": ["content"]
+                ]
+            ]
+        ],
+        // JavaScript editor
+        [
+            "type": "function",
+            "function": [
+                "name": "edit_javascript",
+                "description": "Replace the entire JavaScript content of the work. Use for interactivity, animations, and dynamic behavior. Write clean ES6+ code. Avoid external dependencies unless via CDN.",
+                "parameters": [
+                    "type": "object",
+                    "properties": [
+                        "content": ["type": "string", "description": "The complete JavaScript content to set"]
+                    ],
+                    "required": ["content"]
                 ]
             ]
         ]
