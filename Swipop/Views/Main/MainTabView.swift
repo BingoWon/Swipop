@@ -58,11 +58,11 @@ struct MainTabView: View {
             }
         }
         .onChange(of: selectedTab) { oldValue, newValue in
-            // When navigating TO Create tab, save current work and start fresh
-            if newValue == 3 && oldValue != 3 {
+            // When LEAVING Create tab, save and reset for next visit
+            if oldValue == 3 && newValue != 3 {
                 Task {
                     await workEditor.saveAndReset()
-                    chatViewModel.clear()  // Sync reset chat history
+                    chatViewModel.clear()
                     createSubTab = .chat
                 }
             }
