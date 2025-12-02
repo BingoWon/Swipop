@@ -29,8 +29,11 @@ struct ChatEditorView: View {
                         emptyState
                     } else {
                         ForEach(chatViewModel.messages) { message in
-                            MessageBubble(message: message)
-                                .id(message.id)
+                            MessageBubble(
+                                message: message,
+                                onRetry: message.role == .error ? { chatViewModel.retry() } : nil
+                            )
+                            .id(message.id)
                         }
                     }
                 }

@@ -11,18 +11,25 @@ struct ChatMessage: Identifiable {
     let role: Role
     var content: String
     var toolCall: ToolCallInfo?
-    var isStreaming: Bool = false
+    var isStreaming = false
+    var isError = false
     let timestamp = Date()
     
     enum Role {
         case user
         case assistant
+        case error
     }
     
     struct ToolCallInfo {
         let name: String
         let arguments: String
         var result: String?
+    }
+    
+    /// Create an error message
+    static func error(_ message: String) -> ChatMessage {
+        ChatMessage(role: .error, content: message, isError: true)
     }
 }
 

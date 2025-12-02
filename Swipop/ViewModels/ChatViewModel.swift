@@ -15,7 +15,6 @@ final class ChatViewModel {
     var messages: [ChatMessage] = []
     var inputText = ""
     var isLoading = false
-    var error: Error?
     var selectedModel: AIModel = .deepseekV3Exp {
         didSet { AIService.shared.currentModel = selectedModel }
     }
@@ -25,6 +24,7 @@ final class ChatViewModel {
     
     private var history: [[String: Any]] = []
     private var streamTask: Task<Void, Never>?
+    private var lastUserMessage: String?
     
     // MARK: - System Prompt
     
@@ -62,11 +62,23 @@ final class ChatViewModel {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         
+        lastUserMessage = text
         inputText = ""
         messages.append(ChatMessage(role: .user, content: text))
         history.append(["role": "user", "content": text])
         syncToWorkEditor()
         
+        streamTask = Task { await streamResponse() }
+    }
+    
+    /// Retry the last failed request
+    func retry() {
+        // Remove the error message
+        if let lastIndex = messages.indices.last, messages[lastIndex].role == .error {
+            messages.removeLast()
+        }
+        
+        // Restart streaming
         streamTask = Task { await streamResponse() }
     }
     
@@ -122,7 +134,6 @@ final class ChatViewModel {
     
     private func streamResponse() async {
         isLoading = true
-        error = nil
         
         let messageIndex = messages.count
         messages.append(ChatMessage(role: .assistant, content: "", isStreaming: true))
@@ -146,10 +157,27 @@ final class ChatViewModel {
         } catch is CancellationError {
             // User stopped - already handled in stop()
         } catch {
-            messages[messageIndex].content = "Error: \(error.localizedDescription)"
-            messages[messageIndex].isStreaming = false
-            self.error = error
+            // Remove the empty assistant message
+            messages.remove(at: messageIndex)
+            // Add error message with friendly description
+            messages.append(.error(friendlyErrorMessage(for: error)))
             isLoading = false
+        }
+    }
+    
+    private func friendlyErrorMessage(for error: Error) -> String {
+        let description = error.localizedDescription.lowercased()
+        
+        if description.contains("timed out") || description.contains("timeout") {
+            return "The request timed out. Please check your connection and try again."
+        } else if description.contains("network") || description.contains("internet") {
+            return "Network error. Please check your internet connection."
+        } else if description.contains("unauthorized") || description.contains("401") {
+            return "Authentication failed. Please sign in again."
+        } else if description.contains("server") || description.contains("500") {
+            return "Server error. Please try again later."
+        } else {
+            return "Something went wrong. Please try again."
         }
     }
     
@@ -298,9 +326,8 @@ final class ChatViewModel {
         } catch is CancellationError {
             // User stopped - already handled in stop()
         } catch {
-            messages[messageIndex].content = "Error: \(error.localizedDescription)"
-            messages[messageIndex].isStreaming = false
-            self.error = error
+            messages.remove(at: messageIndex)
+            messages.append(.error(friendlyErrorMessage(for: error)))
             isLoading = false
         }
     }
