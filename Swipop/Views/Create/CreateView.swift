@@ -54,6 +54,13 @@ struct CreateView: View {
     
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
+        // Leading: Model selector (Chat only)
+        if selectedSubTab == .chat {
+            ToolbarItem(placement: .topBarLeading) {
+                modelSelector
+            }
+        }
+        
         // Trailing: Save (non-chat pages only), Visibility, Options
         ToolbarItemGroup(placement: .topBarTrailing) {
             // Save indicator (only for non-chat pages)
@@ -133,19 +140,9 @@ struct CreateView: View {
     
     private var chatInterface: some View {
         VStack(spacing: 0) {
-            chatHeader
             messageList
             inputBar
         }
-    }
-    
-    private var chatHeader: some View {
-        HStack {
-            modelSelector
-            Spacer()
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
     }
     
     private var modelSelector: some View {
@@ -153,20 +150,20 @@ struct CreateView: View {
             HStack(spacing: 6) {
                 Circle().fill(.green).frame(width: 8, height: 8)
                 Image(systemName: chatViewModel.selectedModel.icon)
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .foregroundStyle(Color.brand)
                 Text(chatViewModel.selectedModel.displayName)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.white)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.8))
                 Image(systemName: "chevron.down")
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.5))
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(Color.white.opacity(0.1), in: Capsule())
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Color.white.opacity(0.08))
+            .clipShape(Capsule())
         }
-        .buttonStyle(.plain)
     }
     
     private var messageList: some View {
