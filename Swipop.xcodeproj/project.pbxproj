@@ -7,10 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		D73043702EDE78000059DD01 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
-		D73043732EDE7A080059DD01 /* TreeSitterCSSRunestone in Frameworks */ = {isa = PBXBuildFile; productRef = D73043722EDE7A080059DD01 /* TreeSitterCSSRunestone */; };
-		D73043752EDE7A080059DD01 /* TreeSitterHTMLRunestone in Frameworks */ = {isa = PBXBuildFile; productRef = D73043742EDE7A080059DD01 /* TreeSitterHTMLRunestone */; };
-		D73043772EDE7A080059DD01 /* TreeSitterJavaScriptRunestone in Frameworks */ = {isa = PBXBuildFile; productRef = D73043762EDE7A080059DD01 /* TreeSitterJavaScriptRunestone */; };
+		D73043832EDE7C000059DD01 /* Runestone in Frameworks */ = {isa = PBXBuildFile; productRef = D73043842EDE7C000059DD01 /* Runestone */; };
+		D730457E2EDE7B030059DD01 /* TreeSitterCSSRunestone in Frameworks */ = {isa = PBXBuildFile; productRef = D730457D2EDE7B030059DD01 /* TreeSitterCSSRunestone */; };
+		D73045802EDE7B030059DD01 /* TreeSitterHTMLRunestone in Frameworks */ = {isa = PBXBuildFile; productRef = D730457F2EDE7B030059DD01 /* TreeSitterHTMLRunestone */; };
+		D73045822EDE7B030059DD01 /* TreeSitterJavaScriptRunestone in Frameworks */ = {isa = PBXBuildFile; productRef = D73045812EDE7B030059DD01 /* TreeSitterJavaScriptRunestone */; };
 		D7BF49FE2EDDB66700218489 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = D7BF49D32EDDAF9500218489 /* Supabase */; };
 		D7BF4AE12EDDC16000218489 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = D7BF4AA52EDDC0B500218489 /* GoogleSignIn */; };
 		D7BF4AE22EDDC16000218489 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = D7BF4AA62EDDC0B500218489 /* GoogleSignInSwift */; };
@@ -62,12 +62,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D73043832EDE7C000059DD01 /* Runestone in Frameworks */,
+				D73045822EDE7B030059DD01 /* TreeSitterJavaScriptRunestone in Frameworks */,
+				D73045802EDE7B030059DD01 /* TreeSitterHTMLRunestone in Frameworks */,
 				D7BF4AE22EDDC16000218489 /* GoogleSignInSwift in Frameworks */,
-				D73043702EDE78000059DD01 /* (null) in Frameworks */,
-				D73043752EDE7A080059DD01 /* TreeSitterHTMLRunestone in Frameworks */,
-				D73043772EDE7A080059DD01 /* TreeSitterJavaScriptRunestone in Frameworks */,
+				D730457E2EDE7B030059DD01 /* TreeSitterCSSRunestone in Frameworks */,
 				D7BF4AE12EDDC16000218489 /* GoogleSignIn in Frameworks */,
-				D73043732EDE7A080059DD01 /* TreeSitterCSSRunestone in Frameworks */,
 				D7BF49FE2EDDB66700218489 /* Supabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -132,9 +132,10 @@
 				D7BF49D32EDDAF9500218489 /* Supabase */,
 				D7BF4AA52EDDC0B500218489 /* GoogleSignIn */,
 				D7BF4AA62EDDC0B500218489 /* GoogleSignInSwift */,
-				D73043722EDE7A080059DD01 /* TreeSitterCSSRunestone */,
-				D73043742EDE7A080059DD01 /* TreeSitterHTMLRunestone */,
-				D73043762EDE7A080059DD01 /* TreeSitterJavaScriptRunestone */,
+				D73043842EDE7C000059DD01 /* Runestone */,
+				D730457D2EDE7B030059DD01 /* TreeSitterCSSRunestone */,
+				D730457F2EDE7B030059DD01 /* TreeSitterHTMLRunestone */,
+				D73045812EDE7B030059DD01 /* TreeSitterJavaScriptRunestone */,
 			);
 			productName = Swipop;
 			productReference = D7BF49A82EDDAA1200218489 /* Swipop.app */;
@@ -222,7 +223,7 @@
 				D7BF49D22EDDAF9500218489 /* XCRemoteSwiftPackageReference "supabase-swift" */,
 				D7BF4AA42EDDC0B500218489 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 				D73043672EDE77540059DD01 /* XCRemoteSwiftPackageReference "Runestone" */,
-				D73043682EDE77ED0059DD01 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */,
+				D730457C2EDE7B030059DD01 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D7BF49A92EDDAA1200218489 /* Products */;
@@ -621,7 +622,7 @@
 				minimumVersion = 0.5.1;
 			};
 		};
-		D73043682EDE77ED0059DD01 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */ = {
+		D730457C2EDE7B030059DD01 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/simonbs/TreeSitterLanguages.git";
 			requirement = {
@@ -648,24 +649,24 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		D730436F2EDE78000059DD01 /* Runestone */ = {
+		D73043842EDE7C000059DD01 /* Runestone */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = D73043672EDE77540059DD01 /* XCRemoteSwiftPackageReference "Runestone" */;
 			productName = Runestone;
 		};
-		D73043722EDE7A080059DD01 /* TreeSitterCSSRunestone */ = {
+		D730457D2EDE7B030059DD01 /* TreeSitterCSSRunestone */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = D73043682EDE77ED0059DD01 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */;
+			package = D730457C2EDE7B030059DD01 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */;
 			productName = TreeSitterCSSRunestone;
 		};
-		D73043742EDE7A080059DD01 /* TreeSitterHTMLRunestone */ = {
+		D730457F2EDE7B030059DD01 /* TreeSitterHTMLRunestone */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = D73043682EDE77ED0059DD01 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */;
+			package = D730457C2EDE7B030059DD01 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */;
 			productName = TreeSitterHTMLRunestone;
 		};
-		D73043762EDE7A080059DD01 /* TreeSitterJavaScriptRunestone */ = {
+		D73045812EDE7B030059DD01 /* TreeSitterJavaScriptRunestone */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = D73043682EDE77ED0059DD01 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */;
+			package = D730457C2EDE7B030059DD01 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */;
 			productName = TreeSitterJavaScriptRunestone;
 		};
 		D7BF49D32EDDAF9500218489 /* Supabase */ = {
