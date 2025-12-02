@@ -50,6 +50,7 @@ struct CreateView: View {
     
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
+        // Save & Visibility grouped together
         ToolbarItemGroup(placement: .topBarTrailing) {
             // Save indicator
             Button(action: handleSave) {
@@ -68,7 +69,7 @@ struct CreateView: View {
             }
             .disabled(workEditor.isSaving || !workEditor.isDirty)
             
-            // Publish status toggle
+            // Visibility toggle
             Button {
                 withAnimation(.spring(response: 0.3)) {
                     workEditor.isPublished.toggle()
@@ -78,10 +79,14 @@ struct CreateView: View {
                 Image(systemName: workEditor.isPublished ? "eye" : "eye.slash")
             }
             .tint(workEditor.isPublished ? .green : .orange)
-            
-            // Settings
+        }
+        
+        ToolbarSpacer(.fixed, placement: .topBarTrailing)
+        
+        // Work options (separate from save/visibility)
+        ToolbarItem(placement: .topBarTrailing) {
             Button { showSettings = true } label: {
-                Image(systemName: "gearshape")
+                Image(systemName: "slider.horizontal.3")
             }
         }
     }

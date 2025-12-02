@@ -42,7 +42,7 @@ struct WorkSettingsSheet: View {
             }
             .scrollContentBackground(.hidden)
             .background(Color.darkBackground)
-            .navigationTitle("Work Settings")
+            .navigationTitle("Work Options")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
