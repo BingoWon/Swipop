@@ -27,12 +27,6 @@ struct CreateView: View {
             .toolbar { toolbarContent }
             .toolbarBackground(.hidden, for: .navigationBar)
         }
-        .sheet(isPresented: $chatViewModel.showModelPicker) {
-            ModelPickerSheet(selectedModel: $chatViewModel.selectedModel)
-                .presentationDetents([.height(280)])
-                .presentationDragIndicator(.visible)
-                .presentationBackground(Color.darkSheet)
-        }
         .sheet(isPresented: $showSettings) {
             WorkSettingsSheet(workEditor: workEditor) {
                 // Delete work: reset editor and clear chat
@@ -148,21 +142,13 @@ struct CreateView: View {
     private var modelSelector: some View {
         Menu {
             ForEach(AIModel.allCases) { model in
-                Button {
+                Button(model.displayName) {
                     chatViewModel.selectedModel = model
-                } label: {
-                    Label(model.displayName, systemImage: model.icon)
                 }
             }
         } label: {
-            Label {
-                Text(chatViewModel.selectedModel.displayName)
-            } icon: {
-                HStack(spacing: 4) {
-                    Circle().fill(.green).frame(width: 6, height: 6)
-                    Image(systemName: chatViewModel.selectedModel.icon)
-                }
-            }
+            Text(chatViewModel.selectedModel.displayName)
+                .font(.system(size: 13, weight: .medium))
         }
     }
     

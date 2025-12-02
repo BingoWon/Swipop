@@ -25,12 +25,5 @@ enum AIModel: String, CaseIterable, Identifiable {
         case .deepseekV3Terminus: "Stable production model"
         }
     }
-    
-    var icon: String {
-        switch self {
-        case .deepseekV3Exp: "sparkles"
-        case .deepseekV3Terminus: "bolt.fill"
-        }
-    }
 }
 

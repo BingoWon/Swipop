@@ -19,7 +19,6 @@ final class ChatViewModel {
     var selectedModel: AIModel = .deepseekV3Exp {
         didSet { AIService.shared.currentModel = selectedModel }
     }
-    var showModelPicker = false
     
     private var history: [[String: Any]] = []
     
