@@ -115,16 +115,67 @@ final class ChatViewModel {
     func loadFromWorkEditor() {
         guard let editor = workEditor, !editor.chatMessages.isEmpty else { return }
         history = editor.chatMessages
-        // Reconstruct messages for UI (simplified - just show user/assistant messages)
-        messages = history.compactMap { msg in
-            guard let role = msg["role"] as? String,
-                  let content = msg["content"] as? String,
-                  role != "system" && role != "tool" else { return nil }
-            return ChatMessage(
-                role: role == "user" ? .user : .assistant,
-                content: content
-            )
+        
+        // Reconstruct messages for UI
+        messages = []
+        
+        for msg in history {
+            guard let role = msg["role"] as? String else { continue }
+            
+            switch role {
+            case "user":
+                if let content = msg["content"] as? String {
+                    messages.append(ChatMessage(role: .user, content: content))
+                }
+                
+            case "assistant":
+                // Check for tool_calls (assistant message with function call)
+                if let toolCalls = msg["tool_calls"] as? [[String: Any]],
+                   let firstCall = toolCalls.first,
+                   let function = firstCall["function"] as? [String: Any],
+                   let name = function["name"] as? String,
+                   let arguments = function["arguments"] as? String {
+                    // Find the corresponding tool response for the result
+                    let callId = firstCall["id"] as? String ?? ""
+                    let result = findToolResult(for: callId)
+                    
+                    var message = ChatMessage(role: .assistant, content: "")
+                    message.toolCall = ChatMessage.ToolCallInfo(name: name, arguments: arguments)
+                    message.toolCall?.result = result
+                    messages.append(message)
+                }
+                // Regular assistant message (may include reasoning)
+                else if let content = msg["content"] as? String {
+                    var message = ChatMessage(role: .assistant, content: content)
+                    // Restore reasoning if present
+                    if let reasoning = msg["reasoning_content"] as? String {
+                        message.reasoning = reasoning
+                    }
+                    messages.append(message)
+                }
+                
+            case "system", "tool":
+                // Skip system prompts and tool responses (tool responses are merged into tool_calls)
+                continue
+                
+            default:
+                continue
+            }
         }
+    }
+    
+    /// Find tool result from history for a given call ID
+    private func findToolResult(for callId: String) -> String? {
+        for msg in history {
+            if let role = msg["role"] as? String,
+               role == "tool",
+               let toolCallId = msg["tool_call_id"] as? String,
+               toolCallId == callId,
+               let content = msg["content"] as? String {
+                return content
+            }
+        }
+        return nil
     }
     
     /// Sync chat history to work editor for persistence
@@ -389,12 +440,24 @@ final class ChatViewModel {
     
     private func finalizeMessage(at index: Int) {
         messages[index].isStreaming = false
+        messages[index].isThinking = false
         isLoading = false
         
-        let content = messages[index].content
-        if !content.isEmpty {
-            history.append(["role": "assistant", "content": content])
-            syncToWorkEditor()
+        let message = messages[index]
+        let content = message.content
+        let reasoning = message.reasoning
+        
+        // Only save if there's content
+        guard !content.isEmpty || !reasoning.isEmpty else { return }
+        
+        var historyEntry: [String: Any] = ["role": "assistant", "content": content]
+        
+        // Include reasoning if present
+        if !reasoning.isEmpty {
+            historyEntry["reasoning_content"] = reasoning
         }
+        
+        history.append(historyEntry)
+        syncToWorkEditor()
     }
 }
