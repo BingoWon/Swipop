@@ -7,6 +7,12 @@ import SwiftUI
 
 struct WorkDetailSheet: View {
     
+    enum CodeType: String, CaseIterable {
+        case html = "HTML"
+        case css = "CSS"
+        case js = "JS"
+    }
+    
     let work: Work
     @Binding var showLogin: Bool
     
@@ -14,6 +20,7 @@ struct WorkDetailSheet: View {
     @State private var interaction: InteractionViewModel
     @State private var showComments = false
     @State private var showShareSheet = false
+    @State private var selectedCodeType: CodeType = .html
     
     init(work: Work, showLogin: Binding<Bool>) {
         self.work = work
@@ -32,6 +39,8 @@ struct WorkDetailSheet: View {
                     actionsSection
                     Divider().background(Color.white.opacity(0.2))
                     statsSection
+                    Divider().background(Color.white.opacity(0.2))
+                    sourceCodeSection
                 }
                 .padding(20)
             }
@@ -64,27 +73,25 @@ struct WorkDetailSheet: View {
     
     // MARK: - Sections
     
-    private var creator: Profile? { work.creator }
-    
     private var creatorSection: some View {
         HStack(spacing: 12) {
             Circle()
                 .fill(Color(hex: "a855f7"))
                 .frame(width: 56, height: 56)
                 .overlay(
-                    Text(creatorInitial)
+                    Text("C")
                         .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(.white)
+                        .foregroundColor(.white)
                 )
             
             VStack(alignment: .leading, spacing: 4) {
-                Text("@\(creator?.username ?? "unknown")")
+                Text("@creator")
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundColor(.white)
                 
-                Text(creator?.displayName ?? "Creator")
+                Text("Creative Developer")
                     .font(.system(size: 14))
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundColor(.white.opacity(0.6))
             }
             
             Spacer()
@@ -92,18 +99,13 @@ struct WorkDetailSheet: View {
             Button { requireLogin {} } label: {
                 Text("Follow")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundColor(.white)
                     .padding(.horizontal, 20)
                     .padding(.vertical, 8)
                     .background(Color(hex: "a855f7"))
-                    .clipShape(Capsule())
+                    .cornerRadius(20)
             }
         }
-    }
-    
-    private var creatorInitial: String {
-        let name = creator?.displayName ?? creator?.username ?? "?"
-        return String(name.prefix(1)).uppercased()
     }
     
     private var workSection: some View {
@@ -137,9 +139,8 @@ struct WorkDetailSheet: View {
     
     private var actionsSection: some View {
         HStack(spacing: 0) {
-            // Like (stateful: outline ↔ fill)
             ActionTile(
-                icon: interaction.isLiked ? "heart.fill" : "heart",
+                icon: "heart.fill",
                 label: "Like",
                 tint: interaction.isLiked ? .red : .white
             ) {
@@ -148,14 +149,12 @@ struct WorkDetailSheet: View {
                 }
             }
             
-            // Comment (action: always outline)
-            ActionTile(icon: "message", label: "Comment") {
+            ActionTile(icon: "bubble.right.fill", label: "Comment") {
                 showComments = true
             }
             
-            // Collect (stateful: outline ↔ fill)
             ActionTile(
-                icon: interaction.isCollected ? "bookmark.fill" : "bookmark",
+                icon: "bookmark.fill",
                 label: "Save",
                 tint: interaction.isCollected ? .yellow : .white
             ) {
@@ -164,8 +163,7 @@ struct WorkDetailSheet: View {
                 }
             }
             
-            // Share (action: always outline)
-            ActionTile(icon: "arrowshape.turn.up.right", label: "Share") {
+            ActionTile(icon: "arrowshape.turn.up.forward.fill", label: "Share") {
                 showShareSheet = true
             }
         }
@@ -177,6 +175,59 @@ struct WorkDetailSheet: View {
             StatItem(value: interaction.likeCount, label: "Likes")
             StatItem(value: work.commentCount, label: "Comments")
             StatItem(value: work.shareCount, label: "Shares")
+        }
+    }
+    
+    private var sourceCodeSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Header
+            HStack {
+                Image(systemName: "chevron.left.forwardslash.chevron.right")
+                    .foregroundStyle(Color(hex: "a855f7"))
+                Text("Source Code")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+            
+            // Segmented Picker
+            Picker("Code Type", selection: $selectedCodeType) {
+                ForEach(CodeType.allCases, id: \.self) { type in
+                    Text(type.rawValue).tag(type)
+                }
+            }
+            .pickerStyle(.segmented)
+            
+            // Code Content
+            ScrollView(.horizontal, showsIndicators: false) {
+                Text(currentCode)
+                    .font(.system(size: 13, design: .monospaced))
+                    .foregroundStyle(codeColor)
+                    .padding(16)
+                    .frame(minWidth: 300, alignment: .topLeading)
+            }
+            .frame(height: 200)
+            .background(Color(hex: "1a1a2e"))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+            )
+        }
+    }
+    
+    private var currentCode: String {
+        switch selectedCodeType {
+        case .html: work.htmlContent ?? "// No HTML content"
+        case .css: work.cssContent ?? "/* No CSS content */"
+        case .js: work.jsContent ?? "// No JavaScript content"
+        }
+    }
+    
+    private var codeColor: Color {
+        switch selectedCodeType {
+        case .html: Color(hex: "f97316")  // Orange
+        case .css: Color(hex: "3b82f6")   // Blue
+        case .js: Color(hex: "eab308")    // Yellow
         }
     }
     

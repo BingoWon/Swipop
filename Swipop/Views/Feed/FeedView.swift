@@ -60,7 +60,7 @@ struct FeedView: View {
     private var toolbarContent: some ToolbarContent {
         ToolbarItemGroup(placement: .topBarTrailing) {
             if let work = feed.currentWork {
-                // Like (stateful: outline ↔ fill)
+                // Like
                 Button(action: handleLike) {
                     Label(
                         "\(interaction?.likeCount ?? work.likeCount)",
@@ -69,12 +69,12 @@ struct FeedView: View {
                 }
                 .tint(interaction?.isLiked == true ? .red : .white)
                 
-                // Comment (action: always outline)
+                // Comment
                 Button { showComments = true } label: {
-                    Label("\(work.commentCount)", systemImage: "message")
+                    Label("\(work.commentCount)", systemImage: "bubble.right.fill")
                 }
                 
-                // Collect (stateful: outline ↔ fill)
+                // Collect
                 Button(action: handleCollect) {
                     Label(
                         "\(interaction?.collectCount ?? work.collectCount)",
@@ -83,9 +83,9 @@ struct FeedView: View {
                 }
                 .tint(interaction?.isCollected == true ? .yellow : .white)
                 
-                // Share (action: always outline)
+                // Share
                 Button { showShare = true } label: {
-                    Image(systemName: "arrowshape.turn.up.right")
+                    Image(systemName: "square.and.arrow.up")
                 }
             }
         }

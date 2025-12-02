@@ -29,8 +29,8 @@ enum ActivityType: String, Codable {
     var icon: String {
         switch self {
         case .like: "heart.fill"
-        case .comment: "message.fill"
-        case .follow: "person.badge.plus.fill"
+        case .comment: "bubble.right.fill"
+        case .follow: "person.badge.plus"
         case .collect: "bookmark.fill"
         }
     }
