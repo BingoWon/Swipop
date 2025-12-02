@@ -27,7 +27,6 @@ Podfile.lock
 ._*
 
 # Project-specific
-Docs/
 References/
 
 # Environment files (contains secrets)
