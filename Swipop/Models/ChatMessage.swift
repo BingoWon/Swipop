@@ -10,8 +10,10 @@ struct ChatMessage: Identifiable {
     let id = UUID()
     let role: Role
     var content: String
+    var reasoning: String = ""
     var toolCall: ToolCallInfo?
     var isStreaming = false
+    var isThinking = false
     let timestamp = Date()
     
     enum Role {
@@ -30,5 +32,8 @@ struct ChatMessage: Identifiable {
     static func error(_ message: String) -> ChatMessage {
         ChatMessage(role: .error, content: message)
     }
+    
+    /// Has thinking content to show
+    var hasReasoning: Bool { !reasoning.isEmpty }
 }
 

@@ -68,8 +68,13 @@ final class AIService {
                               let choice = choices.first,
                               let delta = choice["delta"] as? [String: Any] else { continue }
                         
+                        // Reasoning content (DeepSeek thinking)
+                        if let reasoning = delta["reasoning_content"] as? String, !reasoning.isEmpty {
+                            continuation.yield(.reasoning(reasoning))
+                        }
+                        
                         // Content delta
-                        if let content = delta["content"] as? String {
+                        if let content = delta["content"] as? String, !content.isEmpty {
                             continuation.yield(.delta(content))
                         }
                         
@@ -118,6 +123,7 @@ final class AIService {
     
     enum StreamEvent {
         case delta(String)
+        case reasoning(String)
         case toolCall(id: String, name: String, arguments: String)
     }
     

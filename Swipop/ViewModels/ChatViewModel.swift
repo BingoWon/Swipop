@@ -27,6 +27,7 @@ final class ChatViewModel {
     
     // Debouncing for streaming updates
     private var pendingContent: String = ""
+    private var pendingReasoning: String = ""
     private var debounceTask: Task<Void, Never>?
     private let debounceInterval: UInt64 = 50_000_000 // 50ms in nanoseconds
     
@@ -137,39 +138,41 @@ final class ChatViewModel {
     private func streamResponse() async {
         isLoading = true
         pendingContent = ""
+        pendingReasoning = ""
         
         let messageIndex = messages.count
-        messages.append(ChatMessage(role: .assistant, content: "", isStreaming: true))
+        messages.append(ChatMessage(role: .assistant, content: "", isStreaming: true, isThinking: true))
         
         do {
             for try await event in AIService.shared.streamChat(messages: history) {
-                // Check for cancellation
                 try Task.checkCancellation()
                 
                 switch event {
+                case .reasoning(let text):
+                    pendingReasoning += text
+                    scheduleUIUpdate(at: messageIndex)
+                    
                 case .delta(let text):
-                    // Accumulate content and debounce UI updates
+                    // First content delta means thinking is done
+                    if messages[messageIndex].isThinking {
+                        messages[messageIndex].isThinking = false
+                    }
                     pendingContent += text
                     scheduleUIUpdate(at: messageIndex)
                     
                 case .toolCall(let id, let name, let arguments):
-                    // Flush pending content before handling tool call
                     flushPendingContent(at: messageIndex)
                     await handleToolCall(id: id, name: name, arguments: arguments, at: messageIndex)
                     return
                 }
             }
             
-            // Flush any remaining content
             flushPendingContent(at: messageIndex)
             finalizeMessage(at: messageIndex)
         } catch is CancellationError {
-            // User stopped - flush pending content
             flushPendingContent(at: messageIndex)
         } catch {
-            // Remove the empty assistant message
             messages.remove(at: messageIndex)
-            // Add error message with friendly description
             messages.append(.error(friendlyErrorMessage(for: error)))
             isLoading = false
         }
@@ -193,9 +196,17 @@ final class ChatViewModel {
         debounceTask?.cancel()
         debounceTask = nil
         
-        guard !pendingContent.isEmpty, index < messages.count else { return }
-        messages[index].content += pendingContent
-        pendingContent = ""
+        guard index < messages.count else { return }
+        
+        if !pendingReasoning.isEmpty {
+            messages[index].reasoning += pendingReasoning
+            pendingReasoning = ""
+        }
+        
+        if !pendingContent.isEmpty {
+            messages[index].content += pendingContent
+            pendingContent = ""
+        }
     }
     
     private func friendlyErrorMessage(for error: Error) -> String {
@@ -338,16 +349,23 @@ final class ChatViewModel {
     
     private func continueAfterToolCall() async {
         pendingContent = ""
+        pendingReasoning = ""
         let messageIndex = messages.count
-        messages.append(ChatMessage(role: .assistant, content: "", isStreaming: true))
+        messages.append(ChatMessage(role: .assistant, content: "", isStreaming: true, isThinking: true))
         
         do {
             for try await event in AIService.shared.streamChat(messages: history) {
-                // Check for cancellation
                 try Task.checkCancellation()
                 
                 switch event {
+                case .reasoning(let text):
+                    pendingReasoning += text
+                    scheduleUIUpdate(at: messageIndex)
+                    
                 case .delta(let text):
+                    if messages[messageIndex].isThinking {
+                        messages[messageIndex].isThinking = false
+                    }
                     pendingContent += text
                     scheduleUIUpdate(at: messageIndex)
                     
