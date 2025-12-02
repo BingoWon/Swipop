@@ -11,6 +11,7 @@ struct MainTabView: View {
     @Binding var showLogin: Bool
     @State private var selectedTab = 0
     @State private var showWorkDetail = false
+    @State private var workEditor = WorkEditorViewModel()
     
     private let feed = FeedViewModel.shared
     
@@ -29,15 +30,19 @@ struct MainTabView: View {
             }
             
             Tab("Create", systemImage: "plus", value: 3, role: .search) {
-                CreateView(showLogin: $showLogin)
+                CreateView(showLogin: $showLogin, workEditor: workEditor)
             }
         }
-        .conditionalBottomAccessory(selectedTab != 3) {
-            BottomAccessory(
-                isOnFeed: selectedTab == 0,
-                showDetail: $showWorkDetail,
-                goToFeed: { selectedTab = 0 }
-            )
+        .tabViewBottomAccessory {
+            if selectedTab == 3 {
+                CreateSubTabBar(selectedTab: $workEditor.selectedTab)
+            } else {
+                BottomAccessory(
+                    isOnFeed: selectedTab == 0,
+                    showDetail: $showWorkDetail,
+                    goToFeed: { selectedTab = 0 }
+                )
+            }
         }
         .tint(.white)
         .sheet(isPresented: $showWorkDetail) {

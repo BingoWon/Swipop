@@ -7,7 +7,8 @@ import SwiftUI
 
 struct CreateView: View {
     @Binding var showLogin: Bool
-    @State private var viewModel = ChatViewModel()
+    @Bindable var workEditor: WorkEditorViewModel
+    @State private var chatViewModel = ChatViewModel()
     @FocusState private var isInputFocused: Bool
     
     var body: some View {
@@ -15,24 +16,46 @@ struct CreateView: View {
             LinearGradient.darkBackgroundGradient.ignoresSafeArea()
             
             if AuthService.shared.isAuthenticated {
-                chatInterface
+                content
             } else {
                 signInPrompt
             }
         }
-        .sheet(isPresented: $viewModel.showModelPicker) {
-            ModelPickerSheet(selectedModel: $viewModel.selectedModel)
+        .sheet(isPresented: $chatViewModel.showModelPicker) {
+            ModelPickerSheet(selectedModel: $chatViewModel.selectedModel)
                 .presentationDetents([.height(280)])
                 .presentationDragIndicator(.visible)
                 .presentationBackground(Color.darkSheet)
         }
         .alert("Error", isPresented: .init(
-            get: { viewModel.error != nil },
-            set: { if !$0 { viewModel.error = nil } }
+            get: { chatViewModel.error != nil },
+            set: { if !$0 { chatViewModel.error = nil } }
         )) {
-            Button("OK") { viewModel.error = nil }
+            Button("OK") { chatViewModel.error = nil }
         } message: {
-            Text(viewModel.error?.localizedDescription ?? "")
+            Text(chatViewModel.error?.localizedDescription ?? "")
+        }
+    }
+    
+    // MARK: - Content Switcher
+    
+    @ViewBuilder
+    private var content: some View {
+        switch workEditor.selectedTab {
+        case .chat:
+            chatInterface
+        case .preview:
+            WorkPreviewView(
+                html: workEditor.html,
+                css: workEditor.css,
+                javascript: workEditor.javascript
+            )
+        case .html:
+            CodeEditorView(language: .html, code: $workEditor.html)
+        case .css:
+            CodeEditorView(language: .css, code: $workEditor.css)
+        case .javascript:
+            CodeEditorView(language: .javascript, code: $workEditor.javascript)
         }
     }
     
@@ -58,7 +81,7 @@ struct CreateView: View {
             
             Spacer()
             
-            Button { viewModel.clear() } label: {
+            Button { chatViewModel.clear() } label: {
                 Image(systemName: "trash")
                     .font(.system(size: 16))
                     .foregroundStyle(.white.opacity(0.6))
@@ -73,13 +96,13 @@ struct CreateView: View {
     }
     
     private var modelSelector: some View {
-        Button { viewModel.showModelPicker = true } label: {
+        Button { chatViewModel.showModelPicker = true } label: {
             HStack(spacing: 6) {
                 Circle().fill(.green).frame(width: 8, height: 8)
-                Image(systemName: viewModel.selectedModel.icon)
+                Image(systemName: chatViewModel.selectedModel.icon)
                     .font(.system(size: 11))
                     .foregroundStyle(Color.brand)
-                Text(viewModel.selectedModel.displayName)
+                Text(chatViewModel.selectedModel.displayName)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.white.opacity(0.8))
                 Image(systemName: "chevron.down")
@@ -97,10 +120,10 @@ struct CreateView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 16) {
-                    if viewModel.messages.isEmpty {
+                    if chatViewModel.messages.isEmpty {
                         emptyState
                     } else {
-                        ForEach(viewModel.messages) { message in
+                        ForEach(chatViewModel.messages) { message in
                             MessageBubble(message: message)
                                 .id(message.id)
                         }
@@ -109,8 +132,8 @@ struct CreateView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 20)
             }
-            .onChange(of: viewModel.messages.count) { _, _ in
-                if let last = viewModel.messages.last {
+            .onChange(of: chatViewModel.messages.count) { _, _ in
+                if let last = chatViewModel.messages.last {
                     withAnimation(.easeOut(duration: 0.3)) {
                         proxy.scrollTo(last.id, anchor: .bottom)
                     }
@@ -158,8 +181,8 @@ struct CreateView: View {
     
     private func suggestionChip(_ text: String) -> some View {
         Button {
-            viewModel.inputText = String(text.dropFirst(2)).trimmingCharacters(in: .whitespaces)
-            viewModel.send()
+            chatViewModel.inputText = String(text.dropFirst(2)).trimmingCharacters(in: .whitespaces)
+            chatViewModel.send()
         } label: {
             Text(text)
                 .font(.system(size: 14))
@@ -174,7 +197,7 @@ struct CreateView: View {
     
     private var inputBar: some View {
         HStack(spacing: 12) {
-            TextField("Message...", text: $viewModel.inputText, axis: .vertical)
+            TextField("Message...", text: $chatViewModel.inputText, axis: .vertical)
                 .font(.system(size: 16))
                 .foregroundStyle(.white)
                 .lineLimit(1...5)
@@ -187,16 +210,16 @@ struct CreateView: View {
                 .overlay(RoundedRectangle(cornerRadius: 24).stroke(Color.white.opacity(0.15), lineWidth: 1))
             
             Button {
-                viewModel.send()
+                chatViewModel.send()
                 isInputFocused = false
             } label: {
                 Circle()
-                    .fill(viewModel.inputText.isEmpty
+                    .fill(chatViewModel.inputText.isEmpty
                           ? LinearGradient(colors: [.white.opacity(0.2)], startPoint: .top, endPoint: .bottom)
                           : .brandGradient)
                     .frame(width: 44, height: 44)
                     .overlay {
-                        if viewModel.isLoading {
+                        if chatViewModel.isLoading {
                             ProgressView().tint(.white)
                         } else {
                             Image(systemName: "arrow.up")
@@ -205,7 +228,7 @@ struct CreateView: View {
                         }
                     }
             }
-            .disabled(viewModel.inputText.isEmpty || viewModel.isLoading)
+            .disabled(chatViewModel.inputText.isEmpty || chatViewModel.isLoading)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -237,6 +260,6 @@ struct CreateView: View {
 }
 
 #Preview {
-    CreateView(showLogin: .constant(false))
+    CreateView(showLogin: .constant(false), workEditor: WorkEditorViewModel())
         .preferredColorScheme(.dark)
 }
