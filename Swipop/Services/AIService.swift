@@ -105,25 +105,10 @@ final class AIService {
         }
     }
     
-    // MARK: - Tool Execution (Client-side)
+    // MARK: - Tool Names
     
-    func executeToolCall(name: String, arguments: String) -> String {
-        switch name {
-        case "get_weather":
-            """
-            {"location":"Beijing","temperature":22,"condition":"Sunny","humidity":45}
-            """
-        case "generate_code":
-            """
-            {"html":"<button class='glow-btn'>Click Me</button>","css":".glow-btn{padding:12px 24px;background:linear-gradient(135deg,#a855f7,#6366f1);color:#fff;border:none;border-radius:8px;cursor:pointer}"}
-            """
-        case "search_works":
-            """
-            {"results":[{"id":"1","title":"Neon Pulse","likes":567},{"id":"2","title":"Particle Storm","likes":890}],"total":2}
-            """
-        default:
-            "{\"error\":\"Unknown tool\"}"
-        }
+    enum ToolName: String {
+        case updateMetadata = "update_metadata"
     }
     
     // MARK: - Types
@@ -149,49 +134,29 @@ final class AIService {
     
     // MARK: - Tools Definition
     
-    private static let tools: [[String: Any]] = [
+    static let tools: [[String: Any]] = [
         [
             "type": "function",
             "function": [
-                "name": "get_weather",
-                "description": "Get weather for a location",
+                "name": "update_metadata",
+                "description": "Update the work's metadata. Use this when the user wants to set or change the title, description, or tags of their creative work.",
                 "parameters": [
                     "type": "object",
                     "properties": [
-                        "location": ["type": "string", "description": "City name"],
-                        "unit": ["type": "string", "enum": ["celsius", "fahrenheit"]]
-                    ],
-                    "required": ["location"]
-                ]
-            ]
-        ],
-        [
-            "type": "function",
-            "function": [
-                "name": "generate_code",
-                "description": "Generate HTML/CSS/JS code",
-                "parameters": [
-                    "type": "object",
-                    "properties": [
-                        "description": ["type": "string", "description": "What to generate"],
-                        "type": ["type": "string", "enum": ["button", "card", "animation", "layout"]]
-                    ],
-                    "required": ["description", "type"]
-                ]
-            ]
-        ],
-        [
-            "type": "function",
-            "function": [
-                "name": "search_works",
-                "description": "Search creative works",
-                "parameters": [
-                    "type": "object",
-                    "properties": [
-                        "query": ["type": "string", "description": "Search query"],
-                        "limit": ["type": "integer", "description": "Max results"]
-                    ],
-                    "required": ["query"]
+                        "title": [
+                            "type": "string",
+                            "description": "The title of the work. Keep it concise and descriptive."
+                        ],
+                        "description": [
+                            "type": "string",
+                            "description": "A brief description of what the work does or shows."
+                        ],
+                        "tags": [
+                            "type": "array",
+                            "items": ["type": "string"],
+                            "description": "Relevant tags for discovery. Use lowercase, no # prefix. Examples: animation, button, 3d, particle"
+                        ]
+                    ]
                 ]
             ]
         ]

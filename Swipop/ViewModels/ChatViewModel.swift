@@ -20,6 +20,9 @@ final class ChatViewModel {
         didSet { AIService.shared.currentModel = selectedModel }
     }
     
+    /// Reference to the work editor for tool execution
+    weak var workEditor: WorkEditorViewModel?
+    
     private var history: [[String: Any]] = []
     
     // MARK: - System Prompt
@@ -27,12 +30,17 @@ final class ChatViewModel {
     private let systemPrompt = """
     You are a creative AI assistant in Swipop, a social app for sharing HTML/CSS/JS creative works.
     Help users create components, find inspiration, and answer web development questions.
+    
+    You have tools to:
+    - update_metadata: Set or change the work's title, description, and tags
+    
     Use tools when appropriate. Be creative, helpful, and concise.
     """
     
     // MARK: - Init
     
-    init() {
+    init(workEditor: WorkEditorViewModel? = nil) {
+        self.workEditor = workEditor
         history.append(["role": "system", "content": systemPrompt])
     }
     
@@ -89,7 +97,8 @@ final class ChatViewModel {
     private func handleToolCall(id: String, name: String, arguments: String, at index: Int) async {
         messages[index].toolCall = ChatMessage.ToolCallInfo(name: name, arguments: arguments)
         
-        let result = AIService.shared.executeToolCall(name: name, arguments: arguments)
+        // Execute tool and get result
+        let result = executeToolCall(name: name, arguments: arguments)
         messages[index].toolCall?.result = result
         
         // Add tool call to history
@@ -111,6 +120,62 @@ final class ChatViewModel {
         ])
         
         await continueAfterToolCall()
+    }
+    
+    // MARK: - Tool Execution
+    
+    private func executeToolCall(name: String, arguments: String) -> String {
+        guard let tool = AIService.ToolName(rawValue: name) else {
+            return #"{"error": "Unknown tool: \#(name)"}"#
+        }
+        
+        guard let data = arguments.data(using: .utf8),
+              let args = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return #"{"error": "Invalid arguments"}"#
+        }
+        
+        switch tool {
+        case .updateMetadata:
+            return executeUpdateMetadata(args)
+        }
+    }
+    
+    private func executeUpdateMetadata(_ args: [String: Any]) -> String {
+        guard let editor = workEditor else {
+            return #"{"error": "Work editor not available"}"#
+        }
+        
+        var updated: [String] = []
+        
+        if let title = args["title"] as? String {
+            editor.title = title
+            updated.append("title")
+        }
+        
+        if let description = args["description"] as? String {
+            editor.description = description
+            updated.append("description")
+        }
+        
+        if let tags = args["tags"] as? [String] {
+            editor.tags = tags
+            updated.append("tags")
+        }
+        
+        if updated.isEmpty {
+            return #"{"success": false, "message": "No fields to update"}"#
+        }
+        
+        editor.isDirty = true
+        
+        // Build response
+        let updatedJson = updated.map { #""\#($0)""# }.joined(separator: ", ")
+        return #"{"success": true, "updated": [\#(updatedJson)], "current": {"title": "\#(editor.title)", "description": "\#(editor.description)", "tags": \#(tagsToJson(editor.tags))}}"#
+    }
+    
+    private func tagsToJson(_ tags: [String]) -> String {
+        let escaped = tags.map { #""\#($0)""# }.joined(separator: ", ")
+        return "[\(escaped)]"
     }
     
     private func continueAfterToolCall() async {

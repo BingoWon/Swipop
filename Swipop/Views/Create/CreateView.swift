@@ -9,9 +9,16 @@ struct CreateView: View {
     @Binding var showLogin: Bool
     @Bindable var workEditor: WorkEditorViewModel
     @Binding var selectedSubTab: CreateSubTab
-    @State private var chatViewModel = ChatViewModel()
+    @State private var chatViewModel: ChatViewModel
     @State private var showSettings = false
     @FocusState private var isInputFocused: Bool
+    
+    init(showLogin: Binding<Bool>, workEditor: WorkEditorViewModel, selectedSubTab: Binding<CreateSubTab>) {
+        self._showLogin = showLogin
+        self.workEditor = workEditor
+        self._selectedSubTab = selectedSubTab
+        self._chatViewModel = State(initialValue: ChatViewModel(workEditor: workEditor))
+    }
     
     var body: some View {
         NavigationStack {
@@ -296,6 +303,7 @@ struct CreateView: View {
 }
 
 #Preview {
-    CreateView(showLogin: .constant(false), workEditor: WorkEditorViewModel(), selectedSubTab: .constant(.chat))
+    @Previewable @State var workEditor = WorkEditorViewModel()
+    CreateView(showLogin: .constant(false), workEditor: workEditor, selectedSubTab: .constant(.chat))
         .preferredColorScheme(.dark)
 }
