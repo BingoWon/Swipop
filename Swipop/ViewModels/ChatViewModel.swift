@@ -192,7 +192,9 @@ final class ChatViewModel {
         pendingReasoning = ""
         
         let messageIndex = messages.count
-        messages.append(ChatMessage(role: .assistant, content: "", isStreaming: true, isThinking: true))
+        var newMessage = ChatMessage(role: .assistant, content: "", isStreaming: true, isThinking: true)
+        newMessage.thinkingStartTime = Date()
+        messages.append(newMessage)
         
         do {
             for try await event in AIService.shared.streamChat(messages: history) {
@@ -207,6 +209,7 @@ final class ChatViewModel {
                     // First content delta means thinking is done
                     if messages[messageIndex].isThinking {
                         messages[messageIndex].isThinking = false
+                        messages[messageIndex].thinkingEndTime = Date()
                     }
                     pendingContent += text
                     scheduleUIUpdate(at: messageIndex)
@@ -402,7 +405,9 @@ final class ChatViewModel {
         pendingContent = ""
         pendingReasoning = ""
         let messageIndex = messages.count
-        messages.append(ChatMessage(role: .assistant, content: "", isStreaming: true, isThinking: true))
+        var newMessage = ChatMessage(role: .assistant, content: "", isStreaming: true, isThinking: true)
+        newMessage.thinkingStartTime = Date()
+        messages.append(newMessage)
         
         do {
             for try await event in AIService.shared.streamChat(messages: history) {
@@ -416,6 +421,7 @@ final class ChatViewModel {
                 case .delta(let text):
                     if messages[messageIndex].isThinking {
                         messages[messageIndex].isThinking = false
+                        messages[messageIndex].thinkingEndTime = Date()
                     }
                     pendingContent += text
                     scheduleUIUpdate(at: messageIndex)

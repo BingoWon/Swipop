@@ -16,6 +16,11 @@ struct ChatMessage: Identifiable {
     var isThinking = false
     let timestamp = Date()
     
+    /// When thinking started (for duration display)
+    var thinkingStartTime: Date?
+    /// When thinking ended
+    var thinkingEndTime: Date?
+    
     enum Role {
         case user
         case assistant
@@ -35,5 +40,12 @@ struct ChatMessage: Identifiable {
     
     /// Has thinking content to show
     var hasReasoning: Bool { !reasoning.isEmpty }
+    
+    /// Thinking duration in seconds
+    var thinkingDuration: Int? {
+        guard let start = thinkingStartTime else { return nil }
+        let end = thinkingEndTime ?? Date()
+        return Int(end.timeIntervalSince(start))
+    }
 }
 
