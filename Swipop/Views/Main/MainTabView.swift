@@ -10,6 +10,7 @@ import SwiftUI
 struct MainTabView: View {
     @Binding var showLogin: Bool
     @State private var selectedTab = 0
+    @State private var previousTab = 0
     @State private var showWorkDetail = false
     @State private var workEditor = WorkEditorViewModel()
     @State private var createSubTab: CreateSubTab = .chat
@@ -47,6 +48,16 @@ struct MainTabView: View {
             if let work = feed.currentWork {
                 WorkDetailSheet(work: work, showLogin: $showLogin)
             }
+        }
+        .onChange(of: selectedTab) { oldValue, newValue in
+            // When navigating TO Create tab, save current work and start fresh
+            if newValue == 3 && oldValue != 3 {
+                Task {
+                    await workEditor.saveAndReset()
+                    createSubTab = .chat
+                }
+            }
+            previousTab = oldValue
         }
     }
 }

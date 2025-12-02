@@ -62,31 +62,104 @@ actor WorkService {
         return works
     }
     
-    // MARK: - Create / Update
-    
-    func createWork(_ work: Work) async throws -> Work {
-        let created: Work = try await supabase
+    /// Fetch current user's works (including drafts)
+    func fetchMyWorks() async throws -> [Work] {
+        guard let userId = try? await supabase.auth.session.user.id else {
+            throw WorkError.notAuthenticated
+        }
+        
+        let works: [Work] = try await supabase
             .from("works")
-            .insert(work)
-            .select()
-            .single()
+            .select("*")
+            .eq("user_id", value: userId)
+            .order("updated_at", ascending: false)
             .execute()
             .value
         
-        return created
+        return works
     }
     
-    func updateWork(_ work: Work) async throws -> Work {
-        let updated: Work = try await supabase
+    // MARK: - Create / Update (for WorkEditorViewModel)
+    
+    /// Create a new work and return its ID
+    func createWork(
+        title: String,
+        description: String,
+        tags: [String],
+        html: String,
+        css: String,
+        javascript: String,
+        chatMessages: [[String: Any]],
+        isPublished: Bool
+    ) async throws -> UUID {
+        guard let userId = try? await supabase.auth.session.user.id else {
+            throw WorkError.notAuthenticated
+        }
+        
+        // Serialize chat messages to JSON
+        let chatData = try? JSONSerialization.data(withJSONObject: chatMessages)
+        let chatString = chatData.flatMap { String(data: $0, encoding: .utf8) }
+        
+        let payload: [String: AnyJSON] = [
+            "user_id": .string(userId.uuidString),
+            "title": .string(title),
+            "description": .string(description),
+            "tags": .array(tags.map { .string($0) }),
+            "html_content": .string(html),
+            "css_content": .string(css),
+            "js_content": .string(javascript),
+            "chat_messages": chatString.map { .string($0) } ?? .null,
+            "is_published": .bool(isPublished)
+        ]
+        
+        struct InsertResult: Decodable {
+            let id: UUID
+        }
+        
+        let result: InsertResult = try await supabase
             .from("works")
-            .update(work)
-            .eq("id", value: work.id)
-            .select()
+            .insert(payload)
+            .select("id")
             .single()
             .execute()
             .value
         
-        return updated
+        return result.id
+    }
+    
+    /// Update an existing work
+    func updateWork(
+        id: UUID,
+        title: String,
+        description: String,
+        tags: [String],
+        html: String,
+        css: String,
+        javascript: String,
+        chatMessages: [[String: Any]],
+        isPublished: Bool
+    ) async throws {
+        // Serialize chat messages to JSON
+        let chatData = try? JSONSerialization.data(withJSONObject: chatMessages)
+        let chatString = chatData.flatMap { String(data: $0, encoding: .utf8) }
+        
+        let payload: [String: AnyJSON] = [
+            "title": .string(title),
+            "description": .string(description),
+            "tags": .array(tags.map { .string($0) }),
+            "html_content": .string(html),
+            "css_content": .string(css),
+            "js_content": .string(javascript),
+            "chat_messages": chatString.map { .string($0) } ?? .null,
+            "is_published": .bool(isPublished),
+            "updated_at": .string(ISO8601DateFormatter().string(from: Date()))
+        ]
+        
+        try await supabase
+            .from("works")
+            .update(payload)
+            .eq("id", value: id)
+            .execute()
     }
     
     func deleteWork(id: UUID) async throws {
@@ -95,6 +168,18 @@ actor WorkService {
             .delete()
             .eq("id", value: id)
             .execute()
+    }
+    
+    // MARK: - Errors
+    
+    enum WorkError: LocalizedError {
+        case notAuthenticated
+        
+        var errorDescription: String? {
+            switch self {
+            case .notAuthenticated: "Please sign in to save works"
+            }
+        }
     }
 }
 

@@ -64,6 +64,7 @@ final class ChatViewModel {
         inputText = ""
         messages.append(ChatMessage(role: .user, content: text))
         history.append(["role": "user", "content": text])
+        syncToWorkEditor()
         
         Task { await streamResponse() }
     }
@@ -73,6 +74,29 @@ final class ChatViewModel {
         history.removeAll()
         error = nil
         history.append(["role": "system", "content": systemPrompt])
+        syncToWorkEditor()
+    }
+    
+    /// Load chat history from work editor (when editing existing work)
+    func loadFromWorkEditor() {
+        guard let editor = workEditor, !editor.chatMessages.isEmpty else { return }
+        history = editor.chatMessages
+        // Reconstruct messages for UI (simplified - just show user/assistant messages)
+        messages = history.compactMap { msg in
+            guard let role = msg["role"] as? String,
+                  let content = msg["content"] as? String,
+                  role != "system" && role != "tool" else { return nil }
+            return ChatMessage(
+                role: role == "user" ? .user : .assistant,
+                content: content
+            )
+        }
+    }
+    
+    /// Sync chat history to work editor for persistence
+    private func syncToWorkEditor() {
+        workEditor?.chatMessages = history
+        workEditor?.markDirty()
     }
     
     // MARK: - Streaming
@@ -130,6 +154,7 @@ final class ChatViewModel {
             "content": result
         ])
         
+        syncToWorkEditor()
         await continueAfterToolCall()
     }
     
@@ -258,6 +283,7 @@ final class ChatViewModel {
         let content = messages[index].content
         if !content.isEmpty {
             history.append(["role": "assistant", "content": content])
+            syncToWorkEditor()
         }
     }
 }
