@@ -146,23 +146,23 @@ struct CreateView: View {
     }
     
     private var modelSelector: some View {
-        Button { chatViewModel.showModelPicker = true } label: {
-            HStack(spacing: 6) {
-                Circle().fill(.green).frame(width: 8, height: 8)
-                Image(systemName: chatViewModel.selectedModel.icon)
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color.brand)
-                Text(chatViewModel.selectedModel.displayName)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.8))
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.5))
+        Menu {
+            ForEach(AIModel.allCases) { model in
+                Button {
+                    chatViewModel.selectedModel = model
+                } label: {
+                    Label(model.displayName, systemImage: model.icon)
+                }
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(Color.white.opacity(0.08))
-            .clipShape(Capsule())
+        } label: {
+            Label {
+                Text(chatViewModel.selectedModel.displayName)
+            } icon: {
+                HStack(spacing: 4) {
+                    Circle().fill(.green).frame(width: 6, height: 6)
+                    Image(systemName: chatViewModel.selectedModel.icon)
+                }
+            }
         }
     }
     
