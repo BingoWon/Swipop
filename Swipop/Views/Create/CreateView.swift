@@ -150,20 +150,17 @@ struct CreateView: View {
             HStack(spacing: 6) {
                 Circle().fill(.green).frame(width: 8, height: 8)
                 Image(systemName: chatViewModel.selectedModel.icon)
-                    .font(.system(size: 11))
+                    .font(.system(size: 12))
                     .foregroundStyle(Color.brand)
                 Text(chatViewModel.selectedModel.displayName)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.8))
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.white)
                 Image(systemName: "chevron.down")
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.5))
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(Color.white.opacity(0.08))
-            .clipShape(Capsule())
         }
+        .buttonStyle(.plain)
     }
     
     private var messageList: some View {
