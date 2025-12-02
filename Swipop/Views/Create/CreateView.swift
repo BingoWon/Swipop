@@ -159,6 +159,9 @@ struct CreateView: View {
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.5))
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(Color.white.opacity(0.1), in: Capsule())
         }
         .buttonStyle(.plain)
     }
