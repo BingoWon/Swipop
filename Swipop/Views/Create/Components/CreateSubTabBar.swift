@@ -46,13 +46,7 @@ private struct TabButton: View {
             .foregroundStyle(isSelected ? tab.color : .white.opacity(0.5))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 6)
-            .background {
-                if isSelected {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(tab.color.opacity(0.15))
-                        .padding(.horizontal, 8)
-                }
-            }
+            .background(isSelected ? tab.color.opacity(0.15) : .clear)
             .animation(.easeInOut(duration: 0.15), value: isSelected)
         }
         .buttonStyle(.plain)
