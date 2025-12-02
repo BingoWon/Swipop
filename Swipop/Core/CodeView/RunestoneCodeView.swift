@@ -33,14 +33,6 @@ enum CodeLanguage: String, CaseIterable {
         case .javascript: .yellow
         }
     }
-    
-    var icon: String {
-        switch self {
-        case .html: "doc.text"
-        case .css: "paintbrush"
-        case .javascript: "bolt"
-        }
-    }
 }
 
 // MARK: - Runestone Code View
@@ -64,30 +56,8 @@ struct RunestoneCodeView: View {
     }
     
     var body: some View {
-        ZStack {
-            if code.isEmpty && isEditable {
-                emptyState
-            } else {
-                CodeTextView(code: $code, language: language, isEditable: isEditable)
-            }
-        }
-        .background(Color(hex: "0d1117"))
-    }
-    
-    private var emptyState: some View {
-        VStack(spacing: 16) {
-            Image(systemName: language.icon)
-                .font(.system(size: 48))
-                .foregroundStyle(language.color.opacity(0.5))
-            
-            Text("No \(language.rawValue) code yet")
-                .font(.system(size: 17, weight: .medium))
-                .foregroundStyle(.white.opacity(0.5))
-            
-            Text("Chat with AI to generate code")
-                .font(.system(size: 14))
-                .foregroundStyle(.white.opacity(0.3))
-        }
+        CodeTextView(code: $code, language: language, isEditable: isEditable)
+            .background(Color(hex: "0d1117"))
     }
 }
 

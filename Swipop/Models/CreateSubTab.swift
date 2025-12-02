@@ -17,7 +17,7 @@ enum CreateSubTab: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .chat: "bubble.left.fill"
-        case .preview: "eye.fill"
+        case .preview: "play.fill"
         case .html: "chevron.left.forwardslash.chevron.right"
         case .css: "paintbrush.fill"
         case .javascript: "bolt.fill"

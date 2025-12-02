@@ -39,21 +39,22 @@ struct WorkPreviewView: View {
         """
     }
     
+    private var isEmpty: Bool {
+        html.isEmpty && css.isEmpty && javascript.isEmpty
+    }
+    
     var body: some View {
-        ZStack {
-            if html.isEmpty && css.isEmpty && javascript.isEmpty {
-                emptyState
-            } else {
-                WebViewRepresentable(html: fullHTML)
-                    .ignoresSafeArea(edges: .bottom)
-            }
+        if isEmpty {
+            emptyState
+        } else {
+            WebViewRepresentable(html: fullHTML)
+                .ignoresSafeArea(edges: .bottom)
         }
-        .background(Color.darkBackground)
     }
     
     private var emptyState: some View {
         VStack(spacing: 16) {
-            Image(systemName: "eye.slash")
+            Image(systemName: "play.slash")
                 .font(.system(size: 48))
                 .foregroundStyle(.white.opacity(0.3))
             
