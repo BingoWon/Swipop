@@ -18,9 +18,9 @@ final class WorkEditorViewModel {
     
     // MARK: - Content
     
-    var html = ""
-    var css = ""
-    var javascript = ""
+    var html = "" { didSet { if html != oldValue { isDirty = true } } }
+    var css = "" { didSet { if css != oldValue { isDirty = true } } }
+    var javascript = "" { didSet { if javascript != oldValue { isDirty = true } } }
     
     // MARK: - Chat
     
@@ -29,10 +29,10 @@ final class WorkEditorViewModel {
     
     // MARK: - Metadata
     
-    var title = ""
-    var description = ""
-    var tags: [String] = []
-    var isPublished = false
+    var title = "" { didSet { if title != oldValue { isDirty = true } } }
+    var description = "" { didSet { if description != oldValue { isDirty = true } } }
+    var tags: [String] = [] { didSet { if tags != oldValue { isDirty = true } } }
+    var isPublished = false { didSet { if isPublished != oldValue { isDirty = true } } }
     
     // MARK: - State
     

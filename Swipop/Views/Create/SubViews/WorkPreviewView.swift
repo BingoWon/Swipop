@@ -48,7 +48,7 @@ struct WorkPreviewView: View {
             emptyState
         } else {
             WebViewRepresentable(html: fullHTML)
-                .ignoresSafeArea(edges: .bottom)
+                .ignoresSafeArea()
         }
     }
     
