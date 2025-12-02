@@ -8,7 +8,6 @@
 import SwiftUI
 
 struct MainTabView: View {
-    
     @Binding var showLogin: Bool
     @State private var selectedTab = 0
     @State private var showWorkDetail = false
@@ -33,7 +32,7 @@ struct MainTabView: View {
                 CreateView(showLogin: $showLogin)
             }
         }
-        .tabViewBottomAccessory {
+        .conditionalBottomAccessory(selectedTab != 3) {
             BottomAccessory(
                 isOnFeed: selectedTab == 0,
                 showDetail: $showWorkDetail,
@@ -52,7 +51,6 @@ struct MainTabView: View {
 // MARK: - Bottom Accessory
 
 private struct BottomAccessory: View {
-    
     let isOnFeed: Bool
     @Binding var showDetail: Bool
     let goToFeed: () -> Void
@@ -70,8 +68,6 @@ private struct BottomAccessory: View {
         }
     }
     
-    // MARK: - Feed Mode
-    
     private var feedModeContent: some View {
         HStack(spacing: 0) {
             Button { showDetail = true } label: {
@@ -79,10 +75,7 @@ private struct BottomAccessory: View {
             }
             .frame(maxWidth: .infinity)
             
-            Divider()
-                .frame(height: 28)
-                .overlay(Color.white.opacity(0.2))
-            
+            Divider().frame(height: 28).overlay(Color.white.opacity(0.2))
             navigationButtons
         }
         .foregroundStyle(.white)
@@ -101,9 +94,7 @@ private struct BottomAccessory: View {
             }
             .opacity(feed.currentIndex == 0 ? 0.3 : 1)
             
-            Divider()
-                .frame(height: 18)
-                .overlay(Color.white.opacity(0.15))
+            Divider().frame(height: 18).overlay(Color.white.opacity(0.15))
             
             Button {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
@@ -117,23 +108,16 @@ private struct BottomAccessory: View {
         }
     }
     
-    // MARK: - Return Mode
-    
     private var returnModeContent: some View {
         Button(action: goToFeed) {
             HStack(spacing: 0) {
-                workInfoLabel
-                    .frame(maxWidth: .infinity)
+                workInfoLabel.frame(maxWidth: .infinity)
                 
-                Divider()
-                    .frame(height: 28)
-                    .overlay(Color.white.opacity(0.2))
+                Divider().frame(height: 28).overlay(Color.white.opacity(0.2))
                 
                 HStack(spacing: 6) {
-                    Image(systemName: "play.fill")
-                        .font(.system(size: 12))
-                    Text("Continue")
-                        .font(.system(size: 13, weight: .medium))
+                    Image(systemName: "play.fill").font(.system(size: 12))
+                    Text("Continue").font(.system(size: 13, weight: .medium))
                 }
                 .frame(width: 100)
             }
@@ -141,21 +125,17 @@ private struct BottomAccessory: View {
         }
     }
     
-    // MARK: - Work Info
-    
     private var workInfoLabel: some View {
         HStack(spacing: 10) {
-            // Avatar
             Circle()
-                .fill(Color(hex: "a855f7"))
+                .fill(Color.brand)
                 .frame(width: 28, height: 28)
-                .overlay(
+                .overlay {
                     Text(creatorInitial)
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(.white)
-                )
+                }
             
-            // Info
             VStack(alignment: .leading, spacing: 2) {
                 Text(currentWork?.title ?? "Swipop")
                     .font(.system(size: 14, weight: .semibold))
@@ -178,8 +158,7 @@ private struct BottomAccessory: View {
     }
     
     private var creatorInitial: String {
-        let name = creator?.displayName ?? creator?.username ?? "S"
-        return String(name.prefix(1)).uppercased()
+        String((creator?.displayName ?? creator?.username ?? "S").prefix(1)).uppercased()
     }
 }
 
