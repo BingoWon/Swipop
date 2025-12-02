@@ -115,11 +115,11 @@ struct CreateView: View {
                 javascript: workEditor.javascript
             )
         case .html:
-            CodeEditorView(language: .html, code: $workEditor.html)
+            RunestoneCodeView(language: .html, code: $workEditor.html, isEditable: true)
         case .css:
-            CodeEditorView(language: .css, code: $workEditor.css)
+            RunestoneCodeView(language: .css, code: $workEditor.css, isEditable: true)
         case .javascript:
-            CodeEditorView(language: .javascript, code: $workEditor.javascript)
+            RunestoneCodeView(language: .javascript, code: $workEditor.javascript, isEditable: true)
         }
     }
     

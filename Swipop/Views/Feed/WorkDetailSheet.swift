@@ -192,7 +192,7 @@ struct WorkDetailSheet: View {
             .pickerStyle(.segmented)
             
             // Runestone Code View
-            RunestoneCodeView(code: currentCode, language: selectedLanguage)
+            RunestoneCodeView(language: selectedLanguage, code: currentCode)
                 .frame(height: 240)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(
