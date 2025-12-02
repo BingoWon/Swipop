@@ -9,8 +9,10 @@ import SwiftUI
 
 struct WorkSettingsSheet: View {
     @Bindable var workEditor: WorkEditorViewModel
+    var onDelete: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
     @State private var tagInput = ""
+    @State private var showDeleteConfirmation = false
     
     var body: some View {
         NavigationStack {
@@ -34,6 +36,18 @@ struct WorkSettingsSheet: View {
                 } header: {
                     Label("Tags", systemImage: "tag")
                 }
+                
+                // Danger Zone
+                Section {
+                    Button(role: .destructive) {
+                        showDeleteConfirmation = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "trash")
+                            Text("Delete Work")
+                        }
+                    }
+                }
             }
             .scrollContentBackground(.hidden)
             .background(Color.darkBackground)
@@ -44,6 +58,19 @@ struct WorkSettingsSheet: View {
                     Button("Done") { dismiss() }
                         .fontWeight(.semibold)
                 }
+            }
+            .confirmationDialog(
+                "Delete this work?",
+                isPresented: $showDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Delete", role: .destructive) {
+                    dismiss()
+                    onDelete?()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This will permanently delete your work, including all code and chat history. This action cannot be undone.")
             }
         }
         .presentationDetents([.medium, .large])
@@ -185,6 +212,8 @@ private struct TagChip: View {
 }
 
 #Preview {
-    WorkSettingsSheet(workEditor: WorkEditorViewModel())
-        .preferredColorScheme(.dark)
+    WorkSettingsSheet(workEditor: WorkEditorViewModel()) {
+        print("Delete tapped")
+    }
+    .preferredColorScheme(.dark)
 }

@@ -34,7 +34,11 @@ struct CreateView: View {
                 .presentationBackground(Color.darkSheet)
         }
         .sheet(isPresented: $showSettings) {
-            WorkSettingsSheet(workEditor: workEditor)
+            WorkSettingsSheet(workEditor: workEditor) {
+                // Delete work: reset editor and clear chat
+                workEditor.reset()
+                chatViewModel.clear()
+            }
         }
         .alert("Error", isPresented: .init(
             get: { chatViewModel.error != nil },
@@ -134,26 +138,14 @@ struct CreateView: View {
     }
     
     private var header: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Create with AI")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(.white)
-                
-                modelSelector
-            }
+        VStack(alignment: .leading, spacing: 2) {
+            Text("Create with AI")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(.white)
             
-            Spacer()
-            
-            Button { chatViewModel.clear() } label: {
-                Image(systemName: "trash")
-                    .font(.system(size: 16))
-                    .foregroundStyle(.white.opacity(0.6))
-                    .frame(width: 40, height: 40)
-                    .background(Color.white.opacity(0.1))
-                    .clipShape(Circle())
-            }
+            modelSelector
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
         .background(Color.black.opacity(0.3))
