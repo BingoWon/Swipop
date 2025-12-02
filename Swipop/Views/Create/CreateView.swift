@@ -54,13 +54,6 @@ struct CreateView: View {
     
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        // Leading: Model selector (Chat only)
-        if selectedSubTab == .chat {
-            ToolbarItem(placement: .topBarLeading) {
-                modelSelector
-            }
-        }
-        
         // Trailing: Save (non-chat pages only), Visibility, Options
         ToolbarItemGroup(placement: .topBarTrailing) {
             // Save indicator (only for non-chat pages)
@@ -140,9 +133,19 @@ struct CreateView: View {
     
     private var chatInterface: some View {
         VStack(spacing: 0) {
+            chatHeader
             messageList
             inputBar
         }
+    }
+    
+    private var chatHeader: some View {
+        HStack {
+            modelSelector
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
     }
     
     private var modelSelector: some View {
