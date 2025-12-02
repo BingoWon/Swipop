@@ -64,7 +64,7 @@ struct Work: Identifiable, Equatable {
         case shareCount = "share_count"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
-        case creator = "profiles"
+        case creator = "users"
     }
 }
 

@@ -13,7 +13,7 @@ actor WorkService {
     static let shared = WorkService()
     
     private let supabase = SupabaseService.shared.client
-    private let selectWithCreator = "*, profiles(*)"
+    private let selectWithCreator = "*, users(*)"
     
     private init() {}
     

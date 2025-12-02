@@ -18,7 +18,7 @@ actor UserService {
     
     func fetchProfile(userId: UUID) async throws -> Profile {
         let profile: Profile = try await supabase
-            .from("profiles")
+            .from("users")
             .select()
             .eq("id", value: userId)
             .single()
@@ -30,7 +30,7 @@ actor UserService {
     
     func updateProfile(_ profile: Profile) async throws -> Profile {
         let updated: Profile = try await supabase
-            .from("profiles")
+            .from("users")
             .update(profile)
             .eq("id", value: profile.id)
             .select()
