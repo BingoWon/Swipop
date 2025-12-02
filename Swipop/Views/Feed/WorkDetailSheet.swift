@@ -7,12 +7,6 @@ import SwiftUI
 
 struct WorkDetailSheet: View {
     
-    enum CodeType: String, CaseIterable {
-        case html = "HTML"
-        case css = "CSS"
-        case js = "JS"
-    }
-    
     let work: Work
     @Binding var showLogin: Bool
     
@@ -20,7 +14,7 @@ struct WorkDetailSheet: View {
     @State private var interaction: InteractionViewModel
     @State private var showComments = false
     @State private var showShareSheet = false
-    @State private var selectedCodeType: CodeType = .html
+    @State private var selectedLanguage: CodeLanguage = .html
     
     init(work: Work, showLogin: Binding<Bool>) {
         self.work = work
@@ -190,44 +184,29 @@ struct WorkDetailSheet: View {
             }
             
             // Segmented Picker
-            Picker("Code Type", selection: $selectedCodeType) {
-                ForEach(CodeType.allCases, id: \.self) { type in
-                    Text(type.rawValue).tag(type)
+            Picker("Language", selection: $selectedLanguage) {
+                ForEach(CodeLanguage.allCases, id: \.self) { lang in
+                    Text(lang.rawValue).tag(lang)
                 }
             }
             .pickerStyle(.segmented)
             
-            // Code Content
-            ScrollView(.horizontal, showsIndicators: false) {
-                Text(currentCode)
-                    .font(.system(size: 13, design: .monospaced))
-                    .foregroundStyle(codeColor)
-                    .padding(16)
-                    .frame(minWidth: 300, alignment: .topLeading)
-            }
-            .frame(height: 200)
-            .background(Color(hex: "1a1a2e"))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
-            )
+            // Runestone Code View
+            RunestoneCodeView(code: currentCode, language: selectedLanguage)
+                .frame(height: 240)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                )
         }
     }
     
     private var currentCode: String {
-        switch selectedCodeType {
-        case .html: work.htmlContent ?? "// No HTML content"
+        switch selectedLanguage {
+        case .html: work.htmlContent ?? "<!-- No HTML content -->"
         case .css: work.cssContent ?? "/* No CSS content */"
-        case .js: work.jsContent ?? "// No JavaScript content"
-        }
-    }
-    
-    private var codeColor: Color {
-        switch selectedCodeType {
-        case .html: Color(hex: "f97316")  // Orange
-        case .css: Color(hex: "3b82f6")   // Blue
-        case .js: Color(hex: "eab308")    // Yellow
+        case .javascript: work.jsContent ?? "// No JavaScript content"
         }
     }
     
