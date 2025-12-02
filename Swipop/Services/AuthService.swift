@@ -42,9 +42,20 @@ final class AuthService {
         do {
             let session = try await supabase.auth.session
             currentUser = session.user
+            
+            // Preload profile if authenticated
+            if currentUser != nil {
+                await preloadUserData()
+            }
         } catch {
             currentUser = nil
         }
+    }
+    
+    /// Preload user data after authentication
+    @MainActor
+    private func preloadUserData() async {
+        await CurrentUserProfile.shared.preload()
     }
     
     // MARK: - Apple Sign In
@@ -66,6 +77,9 @@ final class AuthService {
         )
         
         currentUser = session.user
+        
+        // Preload profile after sign in
+        await preloadUserData()
     }
     
     // MARK: - Google Sign In
@@ -99,10 +113,14 @@ final class AuthService {
         )
         
         currentUser = session.user
+        
+        // Preload profile after sign in
+        await preloadUserData()
     }
     
     // MARK: - Sign Out
     
+    @MainActor
     func signOut() async throws {
         isLoading = true
         defer { isLoading = false }
@@ -110,6 +128,9 @@ final class AuthService {
         GIDSignIn.sharedInstance.signOut()
         try await supabase.auth.signOut()
         currentUser = nil
+        
+        // Reset cached profile data
+        CurrentUserProfile.shared.reset()
     }
 }
 

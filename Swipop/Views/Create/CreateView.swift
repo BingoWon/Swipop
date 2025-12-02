@@ -27,6 +27,7 @@ struct CreateView: View {
             .toolbar { toolbarContent }
             .toolbarBackground(.hidden, for: .navigationBar)
         }
+        .tint(.white)  // Override TabView tint for content
         .sheet(isPresented: $showSettings) {
             WorkSettingsSheet(workEditor: workEditor) {
                 workEditor.reset()

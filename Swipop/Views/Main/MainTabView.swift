@@ -10,7 +10,6 @@ import SwiftUI
 struct MainTabView: View {
     @Binding var showLogin: Bool
     @State private var selectedTab = 0
-    @State private var previousTab = 0
     @State private var showWorkDetail = false
     @State private var workEditor: WorkEditorViewModel
     @State private var chatViewModel: ChatViewModel
@@ -36,10 +35,10 @@ struct MainTabView: View {
             }
             
             Tab("Profile", systemImage: "person.fill", value: 2) {
-                ProfileView(showLogin: $showLogin)
+                ProfileView(showLogin: $showLogin, editWork: editWork)
             }
             
-            Tab("Create", systemImage: "plus", value: 3, role: .search) {
+            Tab("Create", systemImage: "wand.and.stars", value: 3, role: .search) {
                 CreateView(showLogin: $showLogin, workEditor: workEditor, chatViewModel: chatViewModel, selectedSubTab: $createSubTab)
             }
         }
@@ -51,7 +50,8 @@ struct MainTabView: View {
                 goToFeed: { selectedTab = 0 }
             )
         }
-        .tint(.white)
+        .tint(selectedTab == 3 ? .brand : .white)
+        .animation(.easeInOut(duration: 0.25), value: selectedTab)
         .sheet(isPresented: $showWorkDetail) {
             if let work = feed.currentWork {
                 WorkDetailSheet(work: work, showLogin: $showLogin)
@@ -66,8 +66,20 @@ struct MainTabView: View {
                     createSubTab = .chat
                 }
             }
-            previousTab = oldValue
         }
+    }
+    
+    // MARK: - Edit Work Action
+    
+    /// Navigate to Create tab with a work loaded for editing
+    private func editWork(_ work: Work) {
+        // Load work into editor
+        workEditor.load(work: work)
+        chatViewModel.loadFromWorkEditor()
+        
+        // Switch to Create tab
+        createSubTab = .chat
+        selectedTab = 3
     }
 }
 

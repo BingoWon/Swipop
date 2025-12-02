@@ -6,16 +6,114 @@
 import Foundation
 import Auth
 
+// MARK: - Current User Profile (Singleton with preloading)
+
+@MainActor
 @Observable
-final class ProfileViewModel {
+final class CurrentUserProfile {
     
-    let userId: UUID
-    let isCurrentUser: Bool
+    static let shared = CurrentUserProfile()
     
     private(set) var profile: Profile?
     private(set) var works: [Work] = []
     private(set) var likedWorks: [Work] = []
     private(set) var collectedWorks: [Work] = []
+    
+    private(set) var followerCount = 0
+    private(set) var followingCount = 0
+    private(set) var workCount = 0
+    
+    /// True during initial load (no data yet)
+    private(set) var isLoading = false
+    /// True during background refresh (has data, updating)
+    private(set) var isRefreshing = false
+    /// True if data has been loaded at least once
+    private(set) var hasLoaded = false
+    
+    private let userService = UserService.shared
+    private let workService = WorkService.shared
+    private let interactionService = InteractionService.shared
+    
+    private init() {}
+    
+    /// Preload after login - call from AuthService
+    func preload() async {
+        guard let userId = AuthService.shared.currentUser?.id else { return }
+        
+        isLoading = true
+        defer { isLoading = false }
+        
+        await fetchData(userId: userId)
+        hasLoaded = true
+    }
+    
+    /// Refresh when entering Profile tab
+    func refresh() async {
+        guard let userId = AuthService.shared.currentUser?.id else { return }
+        
+        // If never loaded, do initial load
+        guard hasLoaded else {
+            await preload()
+            return
+        }
+        
+        // Background refresh with indicator
+        isRefreshing = true
+        defer { isRefreshing = false }
+        
+        await fetchData(userId: userId)
+    }
+    
+    /// Reset on logout
+    func reset() {
+        profile = nil
+        works = []
+        likedWorks = []
+        collectedWorks = []
+        followerCount = 0
+        followingCount = 0
+        workCount = 0
+        hasLoaded = false
+    }
+    
+    private func fetchData(userId: UUID) async {
+        async let profileTask = userService.fetchProfile(userId: userId)
+        async let followerTask = userService.fetchFollowerCount(userId: userId)
+        async let followingTask = userService.fetchFollowingCount(userId: userId)
+        async let workCountTask = userService.fetchWorkCount(userId: userId)
+        async let worksTask = workService.fetchMyWorks()
+        async let likedTask = interactionService.fetchLikedWorks(userId: userId)
+        async let collectedTask = interactionService.fetchCollectedWorks(userId: userId)
+        
+        do {
+            let (p, fc, fgc, wc, w, l, c) = try await (
+                profileTask, followerTask, followingTask, workCountTask,
+                worksTask, likedTask, collectedTask
+            )
+            
+            profile = p
+            followerCount = fc
+            followingCount = fgc
+            workCount = wc
+            works = w
+            likedWorks = l
+            collectedWorks = c
+        } catch {
+            print("Failed to load profile: \(error)")
+        }
+    }
+}
+
+// MARK: - Other User Profile (for viewing others)
+
+@MainActor
+@Observable
+final class OtherUserProfileViewModel {
+    
+    let userId: UUID
+    
+    private(set) var profile: Profile?
+    private(set) var works: [Work] = []
     
     private(set) var followerCount = 0
     private(set) var followingCount = 0
@@ -26,74 +124,40 @@ final class ProfileViewModel {
     
     private let userService = UserService.shared
     private let workService = WorkService.shared
-    private let interactionService = InteractionService.shared
     
     init(userId: UUID) {
         self.userId = userId
-        self.isCurrentUser = AuthService.shared.currentUser?.id == userId
     }
     
-    // MARK: - Load Data
-    
-    @MainActor
     func load() async {
         isLoading = true
+        defer { isLoading = false }
         
         async let profileTask = userService.fetchProfile(userId: userId)
         async let followerTask = userService.fetchFollowerCount(userId: userId)
         async let followingTask = userService.fetchFollowingCount(userId: userId)
         async let workCountTask = userService.fetchWorkCount(userId: userId)
+        async let worksTask = workService.fetchUserWorks(userId: userId)
         
         do {
-            let (p, fc, fgc, wc) = try await (profileTask, followerTask, followingTask, workCountTask)
+            let (p, fc, fgc, wc, w) = try await (
+                profileTask, followerTask, followingTask, workCountTask, worksTask
+            )
             
             profile = p
             followerCount = fc
             followingCount = fgc
             workCount = wc
+            works = w
             
-            // Load works
-            if isCurrentUser {
-                // Current user sees all works including drafts
-                works = try await workService.fetchMyWorks()
-                
-                // Also load liked/collected
-                async let liked = interactionService.fetchLikedWorks(userId: userId)
-                async let collected = interactionService.fetchCollectedWorks(userId: userId)
-                
-                let (l, c) = try await (liked, collected)
-                likedWorks = l
-                collectedWorks = c
-            } else {
-                // Other users only see published works
-                works = try await workService.fetchUserWorks(userId: userId)
-                
-                if let currentUserId = AuthService.shared.currentUser?.id {
-                    // Check if following this user
-                    isFollowing = try await userService.isFollowing(followerId: currentUserId, followingId: userId)
-                }
+            if let currentUserId = AuthService.shared.currentUser?.id {
+                isFollowing = try await userService.isFollowing(followerId: currentUserId, followingId: userId)
             }
         } catch {
             print("Failed to load profile: \(error)")
         }
-        
-        isLoading = false
     }
     
-    /// Refresh works list (called after editing)
-    @MainActor
-    func refreshWorks() async {
-        guard isCurrentUser else { return }
-        do {
-            works = try await workService.fetchMyWorks()
-        } catch {
-            print("Failed to refresh works: \(error)")
-        }
-    }
-    
-    // MARK: - Follow
-    
-    @MainActor
     func toggleFollow() async {
         guard let currentUserId = AuthService.shared.currentUser?.id else { return }
         
