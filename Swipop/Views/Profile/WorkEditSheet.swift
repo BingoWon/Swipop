@@ -1,52 +1,56 @@
 //
-//  CreateView.swift
+//  WorkEditSheet.swift
 //  Swipop
+//
+//  Sheet for editing an existing work
 //
 
 import SwiftUI
 
-struct CreateView: View {
-    @Binding var showLogin: Bool
-    @Bindable var workEditor: WorkEditorViewModel
-    @Binding var selectedSubTab: CreateSubTab
+struct WorkEditSheet: View {
+    let work: Work
+    let onDismiss: () -> Void
+    
+    @Environment(\.dismiss) private var dismiss
+    @State private var workEditor: WorkEditorViewModel
     @State private var chatViewModel: ChatViewModel
+    @State private var selectedSubTab: CreateSubTab = .chat
     @State private var showSettings = false
     @FocusState private var isInputFocused: Bool
     
-    init(showLogin: Binding<Bool>, workEditor: WorkEditorViewModel, selectedSubTab: Binding<CreateSubTab>) {
-        self._showLogin = showLogin
-        self.workEditor = workEditor
-        self._selectedSubTab = selectedSubTab
-        self._chatViewModel = State(initialValue: ChatViewModel(workEditor: workEditor))
+    init(work: Work, onDismiss: @escaping () -> Void) {
+        self.work = work
+        self.onDismiss = onDismiss
+        
+        let editor = WorkEditorViewModel()
+        editor.load(work: work)
+        self._workEditor = State(initialValue: editor)
+        self._chatViewModel = State(initialValue: ChatViewModel(workEditor: editor))
     }
     
     var body: some View {
         NavigationStack {
             ZStack {
                 LinearGradient.darkBackgroundGradient.ignoresSafeArea()
-                
-                if AuthService.shared.isAuthenticated {
-                    content
-                } else {
-                    signInPrompt
-                }
+                content
             }
             .toolbar { toolbarContent }
             .toolbarBackground(.hidden, for: .navigationBar)
+            .onAppear { chatViewModel.loadFromWorkEditor() }
         }
         .sheet(isPresented: $showSettings) {
             WorkSettingsSheet(workEditor: workEditor) {
-                workEditor.reset()
-                chatViewModel.clear()
+                Task {
+                    try? await WorkService.shared.deleteWork(id: work.id)
+                    dismiss()
+                    onDismiss()
+                }
             }
         }
-        .alert("Error", isPresented: .init(
-            get: { chatViewModel.error != nil },
-            set: { if !$0 { chatViewModel.error = nil } }
-        )) {
-            Button("OK") { chatViewModel.error = nil }
-        } message: {
-            Text(chatViewModel.error?.localizedDescription ?? "")
+        .presentationDragIndicator(.visible)
+        .safeAreaInset(edge: .bottom) {
+            CreateSubTabBar(selectedTab: $selectedSubTab)
+                .background(.ultraThinMaterial)
         }
     }
     
@@ -54,16 +58,15 @@ struct CreateView: View {
     
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        if selectedSubTab == .chat {
-            ToolbarItem(placement: .topBarLeading) {
-                modelSelector
+        ToolbarItem(placement: .topBarLeading) {
+            Button("Cancel") {
+                dismiss()
+                onDismiss()
             }
         }
         
         ToolbarItemGroup(placement: .topBarTrailing) {
-            if selectedSubTab != .chat {
-                saveButton
-            }
+            saveButton
             visibilityButton
         }
         
@@ -73,19 +76,6 @@ struct CreateView: View {
             Button { showSettings = true } label: {
                 Image(systemName: "slider.horizontal.3")
             }
-        }
-    }
-    
-    private var modelSelector: some View {
-        Menu {
-            ForEach(AIModel.allCases) { model in
-                Button(model.displayName) {
-                    chatViewModel.selectedModel = model
-                }
-            }
-        } label: {
-            Text(chatViewModel.selectedModel.displayName)
-                .font(.system(size: 13, weight: .medium))
         }
     }
     
@@ -124,7 +114,7 @@ struct CreateView: View {
     private var content: some View {
         switch selectedSubTab {
         case .chat:
-            ChatEditorView(chatViewModel: chatViewModel, showSuggestions: true, isInputFocused: $isInputFocused)
+            ChatEditorView(chatViewModel: chatViewModel, showSuggestions: false, isInputFocused: $isInputFocused)
         case .preview:
             WorkPreviewView(html: workEditor.html, css: workEditor.css, javascript: workEditor.javascript)
         case .html:
@@ -135,33 +125,10 @@ struct CreateView: View {
             RunestoneCodeView(language: .javascript, code: $workEditor.javascript, isEditable: true)
         }
     }
-    
-    // MARK: - Sign In Prompt
-    
-    private var signInPrompt: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "plus.square.dashed")
-                .font(.system(size: 64))
-                .foregroundColor(.white.opacity(0.5))
-            
-            Text("Sign in to create")
-                .font(.title2)
-                .foregroundColor(.white)
-            
-            Button { showLogin = true } label: {
-                Text("Sign In")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.black)
-                    .frame(width: 200, height: 50)
-                    .background(Color.white)
-                    .cornerRadius(25)
-            }
-        }
-    }
 }
 
 #Preview {
-    @Previewable @State var workEditor = WorkEditorViewModel()
-    CreateView(showLogin: .constant(false), workEditor: workEditor, selectedSubTab: .constant(.chat))
+    WorkEditSheet(work: .sample) {}
         .preferredColorScheme(.dark)
 }
+

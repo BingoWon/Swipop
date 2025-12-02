@@ -104,8 +104,7 @@ struct ProfileContentView: View {
             EditProfileView(profile: viewModel.profile)
         }
         .sheet(item: $selectedWorkForEdit) { work in
-            WorkEditorSheet(work: work) {
-                // Refresh works after editing
+            WorkEditSheet(work: work) {
                 Task { await viewModel.refreshWorks() }
             }
         }
