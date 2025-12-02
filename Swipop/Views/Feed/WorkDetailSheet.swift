@@ -32,8 +32,6 @@ struct WorkDetailSheet: View {
                     Divider().background(Color.white.opacity(0.2))
                     actionsSection
                     Divider().background(Color.white.opacity(0.2))
-                    statsSection
-                    Divider().background(Color.white.opacity(0.2))
                     sourceCodeSection
                 }
                 .padding(20)
@@ -133,9 +131,17 @@ struct WorkDetailSheet: View {
     
     private var actionsSection: some View {
         HStack(spacing: 0) {
-            ActionTile(
-                icon: "heart.fill",
-                label: "Like",
+            // Views (display only)
+            StatActionTile(
+                icon: "eye",
+                count: work.viewCount,
+                tint: .white
+            )
+            
+            // Like
+            StatActionTile(
+                icon: interaction.isLiked ? "heart.fill" : "heart",
+                count: interaction.likeCount,
                 tint: interaction.isLiked ? .red : .white
             ) {
                 requireLogin {
@@ -143,13 +149,19 @@ struct WorkDetailSheet: View {
                 }
             }
             
-            ActionTile(icon: "bubble.right.fill", label: "Comment") {
+            // Comment
+            StatActionTile(
+                icon: "bubble.right",
+                count: work.commentCount,
+                tint: .white
+            ) {
                 showComments = true
             }
             
-            ActionTile(
-                icon: "bookmark.fill",
-                label: "Save",
+            // Collect
+            StatActionTile(
+                icon: interaction.isCollected ? "bookmark.fill" : "bookmark",
+                count: interaction.collectCount,
                 tint: interaction.isCollected ? .yellow : .white
             ) {
                 requireLogin {
@@ -157,18 +169,14 @@ struct WorkDetailSheet: View {
                 }
             }
             
-            ActionTile(icon: "arrowshape.turn.up.forward.fill", label: "Share") {
+            // Share
+            StatActionTile(
+                icon: "square.and.arrow.up",
+                count: work.shareCount,
+                tint: .white
+            ) {
                 showShareSheet = true
             }
-        }
-    }
-    
-    private var statsSection: some View {
-        HStack(spacing: 32) {
-            StatItem(value: work.viewCount, label: "Views")
-            StatItem(value: interaction.likeCount, label: "Likes")
-            StatItem(value: work.commentCount, label: "Comments")
-            StatItem(value: work.shareCount, label: "Shares")
         }
     }
     
@@ -226,39 +234,31 @@ struct WorkDetailSheet: View {
 
 // MARK: - Supporting Views
 
-private struct ActionTile: View {
+private struct StatActionTile: View {
     let icon: String
-    let label: String
+    let count: Int
     var tint: Color = .white
-    let action: () -> Void
+    var action: (() -> Void)?
     
     var body: some View {
-        Button(action: action) {
-            VStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 24))
-                    .foregroundColor(tint)
-                Text(label)
-                    .font(.system(size: 12))
-                    .foregroundColor(.white.opacity(0.6))
+        Group {
+            if let action {
+                Button(action: action) { content }
+            } else {
+                content
             }
-            .frame(maxWidth: .infinity)
         }
+        .frame(maxWidth: .infinity)
     }
-}
-
-private struct StatItem: View {
-    let value: Int
-    let label: String
     
-    var body: some View {
+    private var content: some View {
         VStack(spacing: 4) {
-            Text(value.formatted)
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundColor(.white)
-            Text(label)
-                .font(.system(size: 12))
-                .foregroundColor(.white.opacity(0.5))
+            Image(systemName: icon)
+                .font(.system(size: 22))
+                .foregroundStyle(tint)
+            Text(count.formatted)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.white.opacity(0.7))
         }
     }
 }

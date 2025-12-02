@@ -71,7 +71,7 @@ struct FeedView: View {
                 
                 // Comment
                 Button { showComments = true } label: {
-                    Label("\(work.commentCount)", systemImage: "bubble.right.fill")
+                    Label("\(work.commentCount)", systemImage: "bubble.right")
                 }
                 
                 // Collect
