@@ -192,26 +192,17 @@ struct WorkSettingsSheet: View {
                 .fill(Color.white.opacity(0.05))
             
             if let image = workEditor.thumbnailImage {
+                // Local image (not yet uploaded)
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
                     .clipShape(RoundedRectangle(cornerRadius: 12))
             } else if let url = workEditor.smallThumbnailURL {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                    case .failure:
-                        thumbnailPlaceholder
-                    case .empty:
-                        ProgressView()
-                    @unknown default:
-                        thumbnailPlaceholder
-                    }
+                // Remote cached image
+                CachedThumbnail(url: url) {
+                    thumbnailPlaceholder
                 }
+                .clipShape(RoundedRectangle(cornerRadius: 12))
             } else {
                 thumbnailPlaceholder
             }

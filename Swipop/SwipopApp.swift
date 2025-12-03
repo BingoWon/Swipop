@@ -14,6 +14,9 @@ struct SwipopApp: App {
         GIDSignIn.sharedInstance.configuration = GIDConfiguration(
             clientID: Secrets.googleIOSClientID
         )
+        
+        // Configure thumbnail cache
+        ThumbnailCache.configure()
     }
     
     var body: some Scene {

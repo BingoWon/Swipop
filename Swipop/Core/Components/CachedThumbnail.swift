@@ -1,0 +1,108 @@
+//
+//  CachedThumbnail.swift
+//  Swipop
+//
+//  Cached thumbnail image using Kingfisher
+//
+
+import SwiftUI
+import Kingfisher
+
+/// Cached thumbnail with Kingfisher (memory + disk cache)
+struct CachedThumbnail: View {
+    let url: URL?
+    let placeholder: AnyView
+    
+    init(url: URL?, @ViewBuilder placeholder: () -> some View) {
+        self.url = url
+        self.placeholder = AnyView(placeholder())
+    }
+    
+    var body: some View {
+        if let url {
+            KFImage(url)
+                .placeholder { placeholder }
+                .fade(duration: 0.2)
+                .resizable()
+                .scaledToFill()
+        } else {
+            placeholder
+        }
+    }
+}
+
+// MARK: - Convenience initializers
+
+extension CachedThumbnail {
+    /// Work thumbnail with gradient placeholder
+    init(work: Work, size: ThumbnailTransform) {
+        let url: URL? = switch size {
+        case .small: work.smallThumbnailURL
+        case .medium: work.mediumThumbnailURL
+        }
+        
+        self.init(url: url) {
+            WorkThumbnailPlaceholder(title: work.title)
+        }
+    }
+}
+
+// MARK: - Placeholder
+
+struct WorkThumbnailPlaceholder: View {
+    let title: String
+    
+    private var displayText: String {
+        if !title.isEmpty { return String(title.prefix(2)).uppercased() }
+        return "?"
+    }
+    
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [Color.brand.opacity(0.3), Color.brand.opacity(0.1)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            
+            Text(displayText)
+                .font(.system(size: 24, weight: .bold))
+                .foregroundStyle(.white.opacity(0.3))
+        }
+    }
+}
+
+// MARK: - Cache Configuration
+
+enum ThumbnailCache {
+    /// Configure Kingfisher cache on app launch
+    static func configure() {
+        let cache = ImageCache.default
+        
+        // Memory: 100 MB
+        cache.memoryStorage.config.totalCostLimit = 100 * 1024 * 1024
+        
+        // Disk: 500 MB, 7 days expiration
+        cache.diskStorage.config.sizeLimit = 500 * 1024 * 1024
+        cache.diskStorage.config.expiration = .days(7)
+    }
+    
+    /// Clear all cache
+    static func clearAll() {
+        ImageCache.default.clearMemoryCache()
+        ImageCache.default.clearDiskCache()
+    }
+    
+    /// Get cache size
+    static func diskCacheSize() async -> UInt {
+        await withCheckedContinuation { continuation in
+            ImageCache.default.calculateDiskStorageSize { result in
+                switch result {
+                case .success(let size): continuation.resume(returning: size)
+                case .failure: continuation.resume(returning: 0)
+                }
+            }
+        }
+    }
+}
+

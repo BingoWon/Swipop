@@ -12,6 +12,7 @@
 		D73045802EDE7B030059DD01 /* TreeSitterHTMLRunestone in Frameworks */ = {isa = PBXBuildFile; productRef = D730457F2EDE7B030059DD01 /* TreeSitterHTMLRunestone */; };
 		D73045822EDE7B030059DD01 /* TreeSitterJavaScriptRunestone in Frameworks */ = {isa = PBXBuildFile; productRef = D73045812EDE7B030059DD01 /* TreeSitterJavaScriptRunestone */; };
 		D73047E92EDE7D230059DD01 /* OpenAI in Frameworks */ = {isa = PBXBuildFile; productRef = D73047E82EDE7D230059DD01 /* OpenAI */; };
+		D73048A02EE04B4C0059DD01 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = D730489F2EE04B4C0059DD01 /* Kingfisher */; };
 		D7BF49FE2EDDB66700218489 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = D7BF49D32EDDAF9500218489 /* Supabase */; };
 		D7BF4AE12EDDC16000218489 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = D7BF4AA52EDDC0B500218489 /* GoogleSignIn */; };
 		D7BF4AE22EDDC16000218489 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = D7BF4AA62EDDC0B500218489 /* GoogleSignInSwift */; };
@@ -66,6 +67,7 @@
 				D73043832EDE7C000059DD01 /* Runestone in Frameworks */,
 				D73045822EDE7B030059DD01 /* TreeSitterJavaScriptRunestone in Frameworks */,
 				D73047E92EDE7D230059DD01 /* OpenAI in Frameworks */,
+				D73048A02EE04B4C0059DD01 /* Kingfisher in Frameworks */,
 				D73045802EDE7B030059DD01 /* TreeSitterHTMLRunestone in Frameworks */,
 				D7BF4AE22EDDC16000218489 /* GoogleSignInSwift in Frameworks */,
 				D730457E2EDE7B030059DD01 /* TreeSitterCSSRunestone in Frameworks */,
@@ -139,6 +141,7 @@
 				D730457F2EDE7B030059DD01 /* TreeSitterHTMLRunestone */,
 				D73045812EDE7B030059DD01 /* TreeSitterJavaScriptRunestone */,
 				D73047E82EDE7D230059DD01 /* OpenAI */,
+				D730489F2EE04B4C0059DD01 /* Kingfisher */,
 			);
 			productName = Swipop;
 			productReference = D7BF49A82EDDAA1200218489 /* Swipop.app */;
@@ -228,6 +231,7 @@
 				D73043672EDE77540059DD01 /* XCRemoteSwiftPackageReference "Runestone" */,
 				D730457C2EDE7B030059DD01 /* XCRemoteSwiftPackageReference "TreeSitterLanguages" */,
 				D73047E72EDE7D230059DD01 /* XCRemoteSwiftPackageReference "OpenAI" */,
+				D730489E2EE04B4C0059DD01 /* XCRemoteSwiftPackageReference "Kingfisher" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D7BF49A92EDDAA1200218489 /* Products */;
@@ -642,6 +646,14 @@
 				minimumVersion = 0.4.7;
 			};
 		};
+		D730489E2EE04B4C0059DD01 /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/onevcat/Kingfisher.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.6.2;
+			};
+		};
 		D7BF49D22EDDAF9500218489 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/supabase/supabase-swift.git";
@@ -685,6 +697,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = D73047E72EDE7D230059DD01 /* XCRemoteSwiftPackageReference "OpenAI" */;
 			productName = OpenAI;
+		};
+		D730489F2EE04B4C0059DD01 /* Kingfisher */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D730489E2EE04B4C0059DD01 /* XCRemoteSwiftPackageReference "Kingfisher" */;
+			productName = Kingfisher;
 		};
 		D7BF49D32EDDAF9500218489 /* Supabase */ = {
 			isa = XCSwiftPackageProductDependency;

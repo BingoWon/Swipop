@@ -210,40 +210,8 @@ struct ProfileWorkCell: View {
         }
     }
     
-    @ViewBuilder
     private var coverImage: some View {
-        if let url = work.smallThumbnailURL {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image.resizable().scaledToFill()
-                case .failure, .empty:
-                    placeholderImage
-                @unknown default:
-                    placeholderImage
-                }
-            }
-        } else {
-            placeholderImage
-        }
-    }
-    
-    private var placeholderImage: some View {
-        ZStack {
-            Color(hex: "1a1a2e")
-            
-            Text(displayText)
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(.white.opacity(0.3))
-        }
-    }
-    
-    private var displayText: String {
-        if !work.title.isEmpty { return String(work.title.prefix(2)).uppercased() }
-        if work.htmlContent?.isEmpty == false { return "H" }
-        if work.cssContent?.isEmpty == false { return "C" }
-        if work.jsContent?.isEmpty == false { return "J" }
-        return "?"
+        CachedThumbnail(work: work, size: .small)
     }
 }
 
