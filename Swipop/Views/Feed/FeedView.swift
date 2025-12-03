@@ -2,7 +2,7 @@
 //  FeedView.swift
 //  Swipop
 //
-//  Xiaohongshu-style grid discover page
+//  Xiaohongshu-style masonry grid discover page
 //
 
 import SwiftUI
@@ -17,20 +17,26 @@ struct FeedView: View {
     
     private let feed = FeedViewModel.shared
     
-    private let columns = [
-        GridItem(.flexible(), spacing: 4),
-        GridItem(.flexible(), spacing: 4)
-    ]
-    
     var body: some View {
         NavigationStack {
-            ScrollView {
-                if feed.isLoading && feed.works.isEmpty {
-                    loadingState
-                } else if feed.isEmpty {
-                    emptyState
-                } else {
-                    gridContent
+            GeometryReader { geometry in
+                let columnWidth = (geometry.size.width - 12) / 2 // 4px spacing * 3
+                
+                ScrollView {
+                    if feed.isLoading && feed.works.isEmpty {
+                        loadingState
+                    } else if feed.isEmpty {
+                        emptyState
+                    } else {
+                        MasonryGrid(works: feed.works, columnWidth: columnWidth, spacing: 4) { work in
+                            WorkGridCell(work: work, columnWidth: columnWidth)
+                                .onTapGesture {
+                                    feed.setCurrentWork(work)
+                                    selectedWork = work
+                                }
+                        }
+                        .padding(.top, 4)
+                    }
                 }
             }
             .background(Color.black)
@@ -52,22 +58,6 @@ struct FeedView: View {
         .onChange(of: selectedWork) { _, newValue in
             isViewingWork = newValue != nil
         }
-    }
-    
-    // MARK: - Grid Content
-    
-    private var gridContent: some View {
-        LazyVGrid(columns: columns, spacing: 4) {
-            ForEach(feed.works) { work in
-                WorkGridCell(work: work)
-                    .onTapGesture {
-                        feed.setCurrentWork(work)
-                        selectedWork = work
-                    }
-            }
-        }
-        .padding(.horizontal, 4)
-        .padding(.top, 4)
     }
     
     // MARK: - Toolbar
@@ -122,18 +112,27 @@ struct FeedView: View {
     }
 }
 
-// MARK: - Grid Cell (Xiaohongshu style)
+// MARK: - Grid Cell (Xiaohongshu style with dynamic height)
 
-private struct WorkGridCell: View {
+struct WorkGridCell: View {
     let work: Work
+    let columnWidth: CGFloat
+    
+    /// Image height based on aspect ratio
+    private var imageHeight: CGFloat {
+        let aspectRatio = work.coverAspectRatio ?? 1.0
+        return columnWidth / aspectRatio
+    }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Cover image or placeholder
+        VStack(alignment: .leading, spacing: 0) {
+            // Cover image
             coverImage
+                .frame(width: columnWidth, height: imageHeight)
+                .clipped()
             
             // Work info
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(work.title.isEmpty ? "Untitled" : work.title)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(.white)
@@ -153,6 +152,7 @@ private struct WorkGridCell: View {
                     Text(work.creator?.username ?? "user")
                         .font(.system(size: 11))
                         .foregroundStyle(.white.opacity(0.6))
+                        .lineLimit(1)
                     
                     Spacer()
                     
@@ -166,9 +166,10 @@ private struct WorkGridCell: View {
                     .foregroundStyle(.white.opacity(0.5))
                 }
             }
-            .padding(.horizontal, 8)
-            .padding(.bottom, 10)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 10)
         }
+        .frame(width: columnWidth)
         .background(Color(hex: "1a1a2e"))
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
@@ -188,11 +189,8 @@ private struct WorkGridCell: View {
                     placeholderImage
                 }
             }
-            .frame(height: 180)
-            .clipped()
         } else {
             placeholderImage
-                .frame(height: 180)
         }
     }
     
