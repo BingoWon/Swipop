@@ -115,10 +115,13 @@ struct CreateView: View {
             WorkPreviewView(workEditor: workEditor)
         case .html:
             RunestoneCodeView(language: .html, code: $workEditor.html, isEditable: true)
+                .ignoresSafeArea(edges: .bottom)
         case .css:
             RunestoneCodeView(language: .css, code: $workEditor.css, isEditable: true)
+                .ignoresSafeArea(edges: .bottom)
         case .javascript:
             RunestoneCodeView(language: .javascript, code: $workEditor.javascript, isEditable: true)
+                .ignoresSafeArea(edges: .bottom)
         }
     }
     
