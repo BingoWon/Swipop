@@ -22,8 +22,8 @@ struct MessageBubble: View {
     // MARK: - User Message
     
     private var userBubble: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Spacer(minLength: 60)
+        HStack {
+            Spacer(minLength: 40)
             
             Text(message.userContent)
                 .font(.system(size: 15))
@@ -35,20 +35,15 @@ struct MessageBubble: View {
         }
     }
     
-    // MARK: - Assistant Message
+    // MARK: - Assistant Message (no avatar, full width)
     
     private var assistantBubble: some View {
-        HStack(alignment: .top, spacing: 12) {
-            aiAvatar
-            
-            VStack(alignment: .leading, spacing: 8) {
-                ForEach(Array(message.segments.enumerated()), id: \.offset) { index, segment in
-                    segmentView(segment, at: index)
-                }
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(Array(message.segments.enumerated()), id: \.offset) { index, segment in
+                segmentView(segment, at: index)
             }
-            
-            Spacer(minLength: 60)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
     
     @ViewBuilder
@@ -72,25 +67,6 @@ struct MessageBubble: View {
         }
     }
     
-    private var aiAvatar: some View {
-        ZStack {
-            Circle()
-                .fill(.brandGradient)
-                .frame(width: 32, height: 32)
-            
-            if message.isActivelyThinking || message.hasStreamingToolCall {
-                Image(systemName: "brain")
-                    .font(.system(size: 14))
-                    .foregroundStyle(.white)
-                    .symbolEffect(.bounce, options: .repeating.speed(0.5), isActive: true)
-            } else {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 14))
-                    .foregroundStyle(.white)
-            }
-        }
-    }
-    
     private func contentBubble(_ text: String) -> some View {
         RichMessageContent(content: text)
             .padding(.horizontal, 14)
@@ -102,41 +78,35 @@ struct MessageBubble: View {
     // MARK: - Error Message
     
     private var errorBubble: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Circle()
-                .fill(Color.red.opacity(0.2))
-                .frame(width: 32, height: 32)
-                .overlay {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 14))
-                        .foregroundStyle(.red)
-                }
-            
-            VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(.red)
+                
                 Text(message.errorContent)
                     .font(.system(size: 14))
                     .foregroundStyle(.white.opacity(0.9))
-                
-                if let onRetry {
-                    Button(action: onRetry) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 12, weight: .medium))
-                            Text("Retry")
-                                .font(.system(size: 13, weight: .medium))
-                        }
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Color.white.opacity(0.15))
-                        .clipShape(Capsule())
-                    }
-                }
             }
             
-            Spacer(minLength: 40)
+            if let onRetry {
+                Button(action: onRetry) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 12, weight: .medium))
+                        Text("Retry")
+                            .font(.system(size: 13, weight: .medium))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.white.opacity(0.15))
+                    .clipShape(Capsule())
+                }
+            }
         }
         .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.red.opacity(0.15))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
@@ -157,19 +127,17 @@ struct ThinkingSegmentView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header - always tappable
             headerView
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    // Only toggle when not actively streaming
-                    guard !info.isActive else { return }
+                    guard !info.text.isEmpty else { return }
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                         isExpanded.toggle()
                     }
                 }
             
-            // Auto-expand when active (streaming) OR manually expanded
-            if (info.isActive || isExpanded) && !info.text.isEmpty {
+            // Only show content when manually expanded
+            if isExpanded && !info.text.isEmpty {
                 Divider()
                     .background(Color.white.opacity(0.1))
                 
@@ -225,8 +193,8 @@ struct ThinkingSegmentView: View {
             
             Spacer()
             
-            // Show chevron only when not streaming and has content
-            if !info.isActive && !info.text.isEmpty {
+            // Show chevron if there's content
+            if !info.text.isEmpty {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.white.opacity(0.4))

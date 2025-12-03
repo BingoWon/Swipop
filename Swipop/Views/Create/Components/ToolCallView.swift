@@ -12,20 +12,19 @@ struct ToolCallView: View {
         VStack(alignment: .leading, spacing: 0) {
             header
             
-            // Auto-expand when streaming OR manually expanded
-            if (toolCall.isStreaming || isExpanded) && !toolCall.arguments.isEmpty {
+            // Only expand when manually toggled
+            if isExpanded && !toolCall.arguments.isEmpty {
                 Divider()
                     .background(Color.white.opacity(0.1))
                 
-                streamingContent
-            }
-            
-            // Show result when completed and expanded
-            if !toolCall.isStreaming && isExpanded, let result = toolCall.result {
-                Divider()
-                    .background(Color.white.opacity(0.1))
+                argumentsContent
                 
-                resultContent(result)
+                if let result = toolCall.result {
+                    Divider()
+                        .background(Color.white.opacity(0.1))
+                    
+                    resultContent(result)
+                }
             }
         }
         .background(Color.darkSheet)
@@ -67,8 +66,8 @@ struct ToolCallView: View {
             
             Spacer()
             
-            // Expand chevron (only when not streaming and has content)
-            if !toolCall.isStreaming && !toolCall.arguments.isEmpty {
+            // Show chevron if there's content
+            if !toolCall.arguments.isEmpty {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.white.opacity(0.4))
@@ -79,14 +78,14 @@ struct ToolCallView: View {
         .padding(.vertical, 10)
         .contentShape(Rectangle())
         .onTapGesture {
-            guard !toolCall.isStreaming && !toolCall.arguments.isEmpty else { return }
+            guard !toolCall.arguments.isEmpty else { return }
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                 isExpanded.toggle()
             }
         }
     }
     
-    private var streamingContent: some View {
+    private var argumentsContent: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(toolCall.isStreaming ? "Arguments (streaming...)" : "Arguments")
                 .font(.system(size: 11, weight: .medium))

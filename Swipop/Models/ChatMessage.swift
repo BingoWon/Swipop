@@ -93,23 +93,4 @@ struct ChatMessage: Identifiable {
         }
         return ""
     }
-    
-    var hasThinking: Bool {
-        segments.contains { if case .thinking = $0 { return true }; return false }
-    }
-    
-    var isActivelyThinking: Bool {
-        for segment in segments {
-            if case .thinking(let info) = segment, info.isActive { return true }
-        }
-        return false
-    }
-    
-    /// Check if any tool call is currently streaming
-    var hasStreamingToolCall: Bool {
-        for segment in segments {
-            if case .toolCall(let info) = segment, info.isStreaming { return true }
-        }
-        return false
-    }
 }
