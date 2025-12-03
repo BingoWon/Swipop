@@ -74,7 +74,8 @@ actor WorkService {
         css: String,
         javascript: String,
         chatMessages: [[String: Any]],
-        isPublished: Bool
+        isPublished: Bool,
+        coverUrl: String? = nil
     ) async throws -> UUID {
         guard let userId = try? await supabase.auth.session.user.id else {
             throw WorkError.notAuthenticated
@@ -88,7 +89,8 @@ actor WorkService {
             css: css,
             javascript: javascript,
             chatMessages: chatMessages,
-            isPublished: isPublished
+            isPublished: isPublished,
+            coverUrl: coverUrl
         )
         payload["user_id"] = .string(userId.uuidString)
         
@@ -114,7 +116,8 @@ actor WorkService {
         css: String,
         javascript: String,
         chatMessages: [[String: Any]],
-        isPublished: Bool
+        isPublished: Bool,
+        coverUrl: String? = nil
     ) async throws {
         var payload = buildPayload(
             title: title,
@@ -124,7 +127,8 @@ actor WorkService {
             css: css,
             javascript: javascript,
             chatMessages: chatMessages,
-            isPublished: isPublished
+            isPublished: isPublished,
+            coverUrl: coverUrl
         )
         payload["updated_at"] = .string(ISO8601DateFormatter().string(from: Date()))
         
@@ -136,6 +140,9 @@ actor WorkService {
     }
     
     func deleteWork(id: UUID) async throws {
+        // Delete cover from storage first
+        try? await CoverService.shared.delete(workId: id)
+        
         try await supabase
             .from("works")
             .delete()
@@ -153,12 +160,13 @@ actor WorkService {
         css: String,
         javascript: String,
         chatMessages: [[String: Any]],
-        isPublished: Bool
+        isPublished: Bool,
+        coverUrl: String?
     ) -> [String: AnyJSON] {
         let chatJson = (try? JSONSerialization.data(withJSONObject: chatMessages))
             .flatMap { String(data: $0, encoding: .utf8) }
         
-        return [
+        var payload: [String: AnyJSON] = [
             "title": .string(title),
             "description": .string(description),
             "tags": .array(tags.map { .string($0) }),
@@ -168,6 +176,13 @@ actor WorkService {
             "chat_messages": chatJson.map { .string($0) } ?? .null,
             "is_published": .bool(isPublished)
         ]
+        
+        // Only include cover URL if provided
+        if let coverUrl {
+            payload["thumbnail_url"] = .string(coverUrl)
+        }
+        
+        return payload
     }
     
     // MARK: - Errors

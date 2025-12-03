@@ -16,8 +16,13 @@ final class SupabaseService {
     private init() {
         client = SupabaseClient(
             supabaseURL: Secrets.supabaseURL,
-            supabaseKey: Secrets.supabaseAnonKey
+            supabaseKey: Secrets.supabaseAnonKey,
+            options: SupabaseClientOptions(
+                auth: SupabaseClientOptions.AuthOptions(
+                    flowType: .pkce,
+                    emitLocalSessionAsInitialSession: true
+                )
+            )
         )
     }
 }
-

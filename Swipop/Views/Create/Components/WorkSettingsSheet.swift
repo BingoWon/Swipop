@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import PhotosUI
 
 struct WorkSettingsSheet: View {
     @Bindable var workEditor: WorkEditorViewModel
@@ -14,10 +15,18 @@ struct WorkSettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var tagInput = ""
     @State private var showDeleteConfirmation = false
+    @State private var selectedPhoto: PhotosPickerItem?
     
     var body: some View {
         NavigationStack {
             Form {
+                // Cover
+                Section {
+                    coverEditor
+                } header: {
+                    Label("Cover", systemImage: "photo")
+                }
+                
                 // Details
                 Section {
                     TextField("Title", text: $workEditor.title)
@@ -88,10 +97,138 @@ struct WorkSettingsSheet: View {
             } message: {
                 Text("This will permanently delete your work, including all code and chat history. This action cannot be undone.")
             }
+            .onChange(of: selectedPhoto) { _, newItem in
+                Task {
+                    await loadSelectedPhoto(newItem)
+                }
+            }
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
         .presentationBackground(Color.darkSheet)
+    }
+    
+    // MARK: - Cover Editor
+    
+    private var coverEditor: some View {
+        VStack(spacing: 12) {
+            // Preview
+            coverPreview
+            
+            // Actions
+            HStack(spacing: 12) {
+                // Capture from preview
+                Button {
+                    Task {
+                        await workEditor.captureCover()
+                    }
+                } label: {
+                    Label("Capture", systemImage: "camera.viewfinder")
+                        .font(.system(size: 14, weight: .medium))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(Color.brand.opacity(0.2))
+                        .foregroundStyle(Color.brand)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+                .disabled(workEditor.previewWebView == nil || workEditor.isCapturingCover)
+                
+                // Upload from photos
+                PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                    Label("Upload", systemImage: "photo.on.rectangle")
+                        .font(.system(size: 14, weight: .medium))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(Color.white.opacity(0.1))
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+            }
+            
+            // Remove button (if has cover)
+            if workEditor.hasCover {
+                Button(role: .destructive) {
+                    workEditor.removeCover()
+                } label: {
+                    Text("Remove Cover")
+                        .font(.system(size: 13))
+                }
+            }
+        }
+        .listRowBackground(Color.white.opacity(0.05))
+    }
+    
+    @ViewBuilder
+    private var coverPreview: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.white.opacity(0.05))
+            
+            if let image = workEditor.coverImage {
+                // Local image (not yet uploaded)
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            } else if let urlString = workEditor.coverUrl,
+                      let url = URL(string: urlString) {
+                // Remote image
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    case .failure:
+                        coverPlaceholder
+                    case .empty:
+                        ProgressView()
+                    @unknown default:
+                        coverPlaceholder
+                    }
+                }
+            } else {
+                coverPlaceholder
+            }
+            
+            // Capturing indicator
+            if workEditor.isCapturingCover {
+                Color.black.opacity(0.5)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                ProgressView()
+                    .tint(.white)
+            }
+        }
+        .aspectRatio(1, contentMode: .fit)
+        .frame(maxWidth: 200)
+        .frame(maxWidth: .infinity)
+    }
+    
+    private var coverPlaceholder: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "photo")
+                .font(.system(size: 32))
+                .foregroundStyle(.white.opacity(0.3))
+            Text("No cover")
+                .font(.system(size: 13))
+                .foregroundStyle(.white.opacity(0.4))
+        }
+    }
+    
+    private func loadSelectedPhoto(_ item: PhotosPickerItem?) async {
+        guard let item else { return }
+        
+        do {
+            if let data = try await item.loadTransferable(type: Data.self),
+               let image = UIImage(data: data) {
+                workEditor.setCover(image: image)
+            }
+        } catch {
+            print("Failed to load photo: \(error)")
+        }
+        
+        selectedPhoto = nil
     }
     
     // MARK: - Context Window

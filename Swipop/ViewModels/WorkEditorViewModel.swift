@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import WebKit
 
 @MainActor
 @Observable
@@ -33,6 +34,15 @@ final class WorkEditorViewModel {
     var description = "" { didSet { if description != oldValue { isDirty = true } } }
     var tags: [String] = [] { didSet { if tags != oldValue { isDirty = true } } }
     var isPublished = false { didSet { if isPublished != oldValue { isDirty = true } } }
+    
+    // MARK: - Cover
+    
+    var coverUrl: String?
+    var coverImage: UIImage?  // Local image before upload
+    var isCapturingCover = false
+    
+    /// Reference to preview WebView for screenshot capture
+    weak var previewWebView: WKWebView?
     
     // MARK: - State
     
@@ -67,9 +77,59 @@ final class WorkEditorViewModel {
     /// Whether this is a new work (not yet saved to database)
     var isNew: Bool { workId == nil }
     
+    /// Has cover (either URL or local image)
+    var hasCover: Bool {
+        coverUrl != nil || coverImage != nil
+    }
+    
+    // MARK: - Cover Actions
+    
+    /// Capture cover from preview WebView
+    func captureCover() async {
+        guard let webView = previewWebView else { return }
+        
+        isCapturingCover = true
+        defer { isCapturingCover = false }
+        
+        do {
+            // Capture and store locally first
+            let config = WKSnapshotConfiguration()
+            config.rect = webView.bounds
+            
+            coverImage = try await withCheckedThrowingContinuation { continuation in
+                webView.takeSnapshot(with: config) { image, error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else if let image {
+                        continuation.resume(returning: image)
+                    } else {
+                        continuation.resume(throwing: CoverService.CoverError.noImage)
+                    }
+                }
+            }
+            
+            isDirty = true
+        } catch {
+            print("Cover capture failed: \(error)")
+        }
+    }
+    
+    /// Set cover from photo picker
+    func setCover(image: UIImage) {
+        coverImage = image
+        isDirty = true
+    }
+    
+    /// Remove cover
+    func removeCover() {
+        coverImage = nil
+        coverUrl = nil
+        isDirty = true
+    }
+    
     // MARK: - Actions
     
-    /// Save work to database
+    /// Save work to database (with cover upload if needed)
     func save() async {
         guard hasContent else { return }
         
@@ -78,22 +138,14 @@ final class WorkEditorViewModel {
         defer { isSaving = false }
         
         do {
+            // Ensure we have a work ID for cover upload
+            let effectiveWorkId: UUID
+            
             if let existingId = workId {
-                // Update existing work
-                try await WorkService.shared.updateWork(
-                    id: existingId,
-                    title: title,
-                    description: description,
-                    tags: tags,
-                    html: html,
-                    css: css,
-                    javascript: javascript,
-                    chatMessages: chatMessages,
-                    isPublished: isPublished
-                )
+                effectiveWorkId = existingId
             } else {
-                // Create new work
-                let newId = try await WorkService.shared.createWork(
+                // Create work first to get ID
+                effectiveWorkId = try await WorkService.shared.createWork(
                     title: title,
                     description: description,
                     tags: tags,
@@ -101,10 +153,36 @@ final class WorkEditorViewModel {
                     css: css,
                     javascript: javascript,
                     chatMessages: chatMessages,
-                    isPublished: isPublished
+                    isPublished: isPublished,
+                    coverUrl: nil
                 )
-                workId = newId
+                workId = effectiveWorkId
             }
+            
+            // Upload cover if we have a local image
+            var finalCoverUrl = coverUrl
+            if let image = coverImage {
+                finalCoverUrl = try await CoverService.shared.processAndUpload(
+                    image: image,
+                    workId: effectiveWorkId
+                )
+                coverUrl = finalCoverUrl
+                coverImage = nil  // Clear local image after upload
+            }
+            
+            // Update work with all data including cover URL
+            try await WorkService.shared.updateWork(
+                id: effectiveWorkId,
+                title: title,
+                description: description,
+                tags: tags,
+                html: html,
+                css: css,
+                javascript: javascript,
+                chatMessages: chatMessages,
+                isPublished: isPublished,
+                coverUrl: finalCoverUrl
+            )
             
             isDirty = false
             lastSaved = Date()
@@ -132,9 +210,12 @@ final class WorkEditorViewModel {
         description = ""
         tags = []
         isPublished = false
+        coverUrl = nil
+        coverImage = nil
         isDirty = false
         lastSaved = nil
         saveError = nil
+        previewWebView = nil
     }
     
     /// Load work from database
@@ -148,6 +229,8 @@ final class WorkEditorViewModel {
         javascript = work.jsContent ?? ""
         chatMessages = work.chatMessages ?? []
         isPublished = work.isPublished
+        coverUrl = work.thumbnailUrl
+        coverImage = nil
         isDirty = false
         lastSaved = work.updatedAt
     }

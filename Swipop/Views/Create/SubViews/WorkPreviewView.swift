@@ -31,7 +31,10 @@ struct WorkPreviewView: View {
             PreviewWebView(
                 html: workEditor.html,
                 css: workEditor.css,
-                javascript: workEditor.javascript
+                javascript: workEditor.javascript,
+                onWebViewReady: { webView in
+                    workEditor.previewWebView = webView
+                }
             )
             .id(contentHash)
             .ignoresSafeArea()
@@ -61,6 +64,7 @@ private struct PreviewWebView: UIViewRepresentable {
     let html: String
     let css: String
     let javascript: String
+    let onWebViewReady: (WKWebView) -> Void
     
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
@@ -78,6 +82,11 @@ private struct PreviewWebView: UIViewRepresentable {
         
         let renderedHTML = WorkRenderer.render(html: html, css: css, javascript: javascript)
         webView.loadHTMLString(renderedHTML, baseURL: nil)
+        
+        // Notify parent after a short delay to ensure rendering is complete
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            onWebViewReady(webView)
+        }
         
         return webView
     }

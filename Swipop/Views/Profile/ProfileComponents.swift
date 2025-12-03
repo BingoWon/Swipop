@@ -35,33 +35,60 @@ struct WorkThumbnail: View {
         Rectangle()
             .fill(Color(hex: "1a1a2e"))
             .aspectRatio(1, contentMode: .fill)
-            .overlay {
-                VStack(spacing: 4) {
-                    Text(displayText)
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(.white.opacity(0.3))
-                    
-                    if !work.title.isEmpty {
-                        Text(work.title)
-                            .font(.system(size: 10))
-                            .foregroundColor(.white.opacity(0.5))
-                            .lineLimit(1)
-                            .padding(.horizontal, 4)
-                    }
+            .overlay { thumbnailContent }
+            .overlay(alignment: .topTrailing) { draftBadge }
+            .clipped()
+    }
+    
+    @ViewBuilder
+    private var thumbnailContent: some View {
+        if let urlString = work.thumbnailUrl, let url = URL(string: urlString) {
+            // Cover image
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                case .failure, .empty:
+                    placeholderContent
+                @unknown default:
+                    placeholderContent
                 }
             }
-            .overlay(alignment: .topTrailing) {
-                if showDraftBadge {
-                    Text("Draft")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundColor(.black)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.orange)
-                        .cornerRadius(4)
-                        .padding(4)
-                }
+        } else {
+            placeholderContent
+        }
+    }
+    
+    private var placeholderContent: some View {
+        VStack(spacing: 4) {
+            Text(displayText)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(.white.opacity(0.3))
+            
+            if !work.title.isEmpty {
+                Text(work.title)
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.5))
+                    .lineLimit(1)
+                    .padding(.horizontal, 4)
             }
+        }
+    }
+    
+    @ViewBuilder
+    private var draftBadge: some View {
+        if showDraftBadge {
+            Text("Draft")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundColor(.black)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(Color.orange)
+                .cornerRadius(4)
+                .padding(4)
+        }
     }
     
     private var displayText: String {
@@ -158,4 +185,3 @@ struct ProfileStatsRow: View {
         .redacted(reason: isLoading ? .placeholder : [])
     }
 }
-
