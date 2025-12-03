@@ -11,32 +11,6 @@ import WebKit
 struct WorkPreviewView: View {
     @Bindable var workEditor: WorkEditorViewModel
     
-    private var fullHTML: String {
-        """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-            <style>
-                * { margin: 0; padding: 0; box-sizing: border-box; }
-                body { 
-                    min-height: 100vh;
-                    background: #0a0a0f;
-                    color: white;
-                    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-                }
-                \(workEditor.css)
-            </style>
-        </head>
-        <body>
-            \(workEditor.html)
-            <script>\(workEditor.javascript)</script>
-        </body>
-        </html>
-        """
-    }
-    
     private var isEmpty: Bool {
         workEditor.html.isEmpty && workEditor.css.isEmpty && workEditor.javascript.isEmpty
     }
@@ -54,9 +28,13 @@ struct WorkPreviewView: View {
         if isEmpty {
             emptyState
         } else {
-            WebViewRepresentable(html: fullHTML)
-                .id(contentHash)  // Force recreation on content change
-                .ignoresSafeArea()
+            PreviewWebView(
+                html: workEditor.html,
+                css: workEditor.css,
+                javascript: workEditor.javascript
+            )
+            .id(contentHash)
+            .ignoresSafeArea()
         }
     }
     
@@ -77,29 +55,38 @@ struct WorkPreviewView: View {
     }
 }
 
-// MARK: - WebView Wrapper
+// MARK: - WebView (uses shared WorkRenderer)
 
-private struct WebViewRepresentable: UIViewRepresentable {
+private struct PreviewWebView: UIViewRepresentable {
     let html: String
+    let css: String
+    let javascript: String
     
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         config.allowsInlineMediaPlayback = true
+        config.mediaTypesRequiringUserActionForPlayback = []
         
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.isOpaque = false
-        webView.backgroundColor = .clear
-        webView.scrollView.backgroundColor = .clear
-        webView.loadHTMLString(html, baseURL: nil)
+        webView.backgroundColor = .black
+        webView.scrollView.backgroundColor = .black
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
+        webView.scrollView.bounces = false
+        webView.scrollView.alwaysBounceVertical = false
+        webView.scrollView.alwaysBounceHorizontal = false
+        
+        let renderedHTML = WorkRenderer.render(html: html, css: css, javascript: javascript)
+        webView.loadHTMLString(renderedHTML, baseURL: nil)
+        
         return webView
     }
     
     func updateUIView(_ webView: WKWebView, context: Context) {
-        // Handled by .id() modifier - view is recreated on change
+        // Handled by .id() modifier - view is recreated on content change
     }
 }
 
 #Preview {
     WorkPreviewView(workEditor: WorkEditorViewModel())
 }
-

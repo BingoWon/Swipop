@@ -7,14 +7,25 @@ import Foundation
 
 enum WorkRenderer {
     
+    /// Render from Work model (for Feed)
     static func render(_ work: Work) -> String {
+        render(
+            title: work.title,
+            html: work.htmlContent ?? "",
+            css: work.cssContent ?? "",
+            javascript: work.jsContent ?? ""
+        )
+    }
+    
+    /// Render from raw content (for Preview)
+    static func render(title: String = "", html: String, css: String, javascript: String) -> String {
         """
         <!DOCTYPE html>
         <html lang="en">
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-            <title>\(escapeHTML(work.title))</title>
+            <title>\(escapeHTML(title))</title>
             <style>
                 * { margin: 0; padding: 0; box-sizing: border-box; }
                 html, body { 
@@ -25,12 +36,12 @@ enum WorkRenderer {
                     color: #fff;
                     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                 }
-                \(work.cssContent ?? "")
+                \(css)
             </style>
         </head>
         <body>
-            \(work.htmlContent ?? "")
-            <script>\(work.jsContent ?? "")</script>
+            \(html)
+            <script>\(javascript)</script>
         </body>
         </html>
         """
