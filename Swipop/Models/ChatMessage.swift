@@ -19,7 +19,6 @@ struct ChatMessage: Identifiable {
     }
     
     /// A segment of an assistant message - can be thinking, tool call, or content
-    /// Segments appear in order and can repeat in any pattern
     enum Segment: Identifiable {
         case thinking(ThinkingSegment)
         case toolCall(ToolCallSegment)
@@ -29,7 +28,7 @@ struct ChatMessage: Identifiable {
             switch self {
             case .thinking(let info): info.id
             case .toolCall(let info): info.id
-            case .content: UUID() // Content doesn't need stable ID
+            case .content: UUID()
             }
         }
     }
@@ -52,34 +51,33 @@ struct ChatMessage: Identifiable {
         let id: UUID
         let callId: String
         let name: String
-        let arguments: String
+        var arguments: String
         var result: String?
+        var isStreaming: Bool
         
-        init(callId: String, name: String, arguments: String) {
+        init(callId: String, name: String, arguments: String = "", isStreaming: Bool = false) {
             self.id = UUID()
             self.callId = callId
             self.name = name
             self.arguments = arguments
+            self.isStreaming = isStreaming
         }
     }
     
     // MARK: - Convenience
     
-    /// Create a user message
     static func user(_ content: String) -> ChatMessage {
         var msg = ChatMessage(role: .user)
         msg.segments = [.content(content)]
         return msg
     }
     
-    /// Create an error message
     static func error(_ content: String) -> ChatMessage {
         var msg = ChatMessage(role: .error)
         msg.segments = [.content(content)]
         return msg
     }
     
-    /// Get user message content (for display)
     var userContent: String {
         guard role == .user else { return "" }
         for segment in segments {
@@ -88,7 +86,6 @@ struct ChatMessage: Identifiable {
         return ""
     }
     
-    /// Get error content
     var errorContent: String {
         guard role == .error else { return "" }
         for segment in segments {
@@ -97,15 +94,21 @@ struct ChatMessage: Identifiable {
         return ""
     }
     
-    /// Check if there's any thinking segment
     var hasThinking: Bool {
         segments.contains { if case .thinking = $0 { return true }; return false }
     }
     
-    /// Check if currently in active thinking state
     var isActivelyThinking: Bool {
         for segment in segments {
             if case .thinking(let info) = segment, info.isActive { return true }
+        }
+        return false
+    }
+    
+    /// Check if any tool call is currently streaming
+    var hasStreamingToolCall: Bool {
+        for segment in segments {
+            if case .toolCall(let info) = segment, info.isStreaming { return true }
         }
         return false
     }

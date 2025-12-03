@@ -38,7 +38,6 @@ final class AIService {
                         "tools": Self.tools
                     ]
                     
-                    // Enable thinking for reasoner model
                     if currentModel.supportsThinking {
                         body["thinking"] = ["type": "enabled"]
                     }
@@ -55,9 +54,9 @@ final class AIService {
                         throw AIError.serverError(httpResponse.statusCode)
                     }
                     
-                    // Parse SSE stream
-                    // Track multiple tool calls by index
-                    var pendingToolCalls: [Int: (id: String, name: String, arguments: String)] = [:]
+                    // Track tool calls - only store arguments, yield start immediately
+                    var toolCallArguments: [Int: String] = [:]
+                    var toolCallStarted: Set<Int> = []
                     
                     for try await line in bytes.lines {
                         guard line.hasPrefix("data: "), line != "data: [DONE]" else { continue }
@@ -79,23 +78,32 @@ final class AIService {
                             continuation.yield(.content(content))
                         }
                         
-                        // Tool calls (may have multiple, distinguished by index)
+                        // Tool calls - yield start immediately when we get id+name
                         if let toolCalls = delta["tool_calls"] as? [[String: Any]] {
                             for tc in toolCalls {
                                 let index = tc["index"] as? Int ?? 0
                                 
-                                if let id = tc["id"] as? String {
-                                    // New tool call starting
-                                    pendingToolCalls[index] = (id: id, name: "", arguments: "")
+                                // Initialize arguments storage
+                                if toolCallArguments[index] == nil {
+                                    toolCallArguments[index] = ""
                                 }
                                 
-                                if let function = tc["function"] as? [String: Any] {
-                                    if let name = function["name"] as? String {
-                                        pendingToolCalls[index]?.name = name
-                                    }
-                                    if let args = function["arguments"] as? String {
-                                        pendingToolCalls[index]?.arguments += args
-                                    }
+                                // Check for tool call start (id and name)
+                                if let id = tc["id"] as? String,
+                                   let function = tc["function"] as? [String: Any],
+                                   let name = function["name"] as? String,
+                                   !toolCallStarted.contains(index) {
+                                    // Yield start immediately
+                                    toolCallStarted.insert(index)
+                                    continuation.yield(.toolCallStart(index: index, id: id, name: name))
+                                }
+                                
+                                // Accumulate arguments
+                                if let function = tc["function"] as? [String: Any],
+                                   let args = function["arguments"] as? String {
+                                    toolCallArguments[index]! += args
+                                    // Yield argument delta for UI updates
+                                    continuation.yield(.toolCallArguments(index: index, delta: args))
                                 }
                             }
                         }
@@ -103,13 +111,13 @@ final class AIService {
                         // Check finish reason
                         if let finishReason = choice["finish_reason"] as? String {
                             if finishReason == "tool_calls" {
-                                // Yield all pending tool calls in order
-                                for index in pendingToolCalls.keys.sorted() {
-                                    if let call = pendingToolCalls[index], !call.name.isEmpty {
-                                        continuation.yield(.toolCall(id: call.id, name: call.name, arguments: call.arguments))
-                                    }
+                                // Yield complete with full arguments
+                                for index in toolCallArguments.keys.sorted() {
+                                    let args = toolCallArguments[index] ?? ""
+                                    continuation.yield(.toolCallComplete(index: index, arguments: args))
                                 }
-                                pendingToolCalls.removeAll()
+                                toolCallArguments.removeAll()
+                                toolCallStarted.removeAll()
                             }
                         }
                     }
@@ -127,7 +135,9 @@ final class AIService {
     enum StreamEvent {
         case reasoning(String)
         case content(String)
-        case toolCall(id: String, name: String, arguments: String)
+        case toolCallStart(index: Int, id: String, name: String)
+        case toolCallArguments(index: Int, delta: String)
+        case toolCallComplete(index: Int, arguments: String)
     }
     
     enum ToolName: String {

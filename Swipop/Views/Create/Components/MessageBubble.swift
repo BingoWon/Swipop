@@ -35,7 +35,7 @@ struct MessageBubble: View {
         }
     }
     
-    // MARK: - Assistant Message (single avatar, multiple segments)
+    // MARK: - Assistant Message
     
     private var assistantBubble: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -62,7 +62,6 @@ struct MessageBubble: View {
             if !text.isEmpty {
                 contentBubble(text)
             } else if message.isStreaming && index == message.segments.count - 1 {
-                // Show placeholder only for last segment while streaming
                 Text("...")
                     .foregroundStyle(.white.opacity(0.5))
                     .padding(.horizontal, 14)
@@ -79,7 +78,7 @@ struct MessageBubble: View {
                 .fill(.brandGradient)
                 .frame(width: 32, height: 32)
             
-            if message.isActivelyThinking {
+            if message.isActivelyThinking || message.hasStreamingToolCall {
                 Image(systemName: "brain")
                     .font(.system(size: 14))
                     .foregroundStyle(.white)
@@ -157,75 +156,18 @@ struct ThinkingSegmentView: View {
     @State private var timer: Timer?
     
     var body: some View {
-        if info.isActive {
-            activeThinkingView
-                .onAppear { startTimer() }
-                .onDisappear { stopTimer() }
-        } else if !info.text.isEmpty {
-            completedThinkingView
-        }
-    }
-    
-    // MARK: - Active Thinking
-    
-    private var activeThinkingView: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "brain")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(Color.brand)
-                .symbolEffect(.pulse, options: .repeating, isActive: true)
-            
-            Text("Thinking")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.white.opacity(0.8))
-            
-            Text("\(elapsedSeconds)s")
-                .font(.system(size: 12, weight: .medium, design: .monospaced))
-                .foregroundStyle(Color.brand)
-                .contentTransition(.numericText())
-            
-            ShimmerBar()
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(Color.brand.opacity(0.12))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.brand.opacity(0.3), lineWidth: 1)
-        )
-    }
-    
-    // MARK: - Completed Thinking
-    
-    private var completedThinkingView: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 8) {
-                Image(systemName: "brain")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Color.brand.opacity(0.8))
-                
-                Text("Thought for \(info.duration ?? 0)s")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.6))
-                
-                Spacer()
-                
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.4))
-                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .contentShape(Rectangle())
-            .onTapGesture {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                    isExpanded.toggle()
+            // Header - always tappable
+            headerView
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        isExpanded.toggle()
+                    }
                 }
-            }
             
-            if isExpanded {
+            // Expandable content
+            if isExpanded && !info.text.isEmpty {
                 Divider()
                     .background(Color.white.opacity(0.1))
                 
@@ -241,15 +183,57 @@ struct ThinkingSegmentView: View {
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .background(Color.white.opacity(0.05))
+        .background(info.isActive ? Color.brand.opacity(0.12) : Color.white.opacity(0.05))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                .stroke(info.isActive ? Color.brand.opacity(0.3) : Color.white.opacity(0.08), lineWidth: 1)
         )
+        .onAppear { if info.isActive { startTimer() } }
+        .onDisappear { stopTimer() }
+        .onChange(of: info.isActive) { _, isActive in
+            if !isActive { stopTimer() }
+        }
     }
     
-    // MARK: - Timer
+    @ViewBuilder
+    private var headerView: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "brain")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(info.isActive ? Color.brand : Color.brand.opacity(0.8))
+                .symbolEffect(.pulse, options: .repeating, isActive: info.isActive)
+            
+            if info.isActive {
+                Text("Thinking")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.8))
+                
+                Text("\(elapsedSeconds)s")
+                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                    .foregroundStyle(Color.brand)
+                    .contentTransition(.numericText())
+                
+                ShimmerBar()
+            } else {
+                Text("Thought for \(info.duration ?? 0)s")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.6))
+            }
+            
+            Spacer()
+            
+            // Show chevron if there's content to expand
+            if !info.text.isEmpty {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.4))
+                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+    }
     
     private func startTimer() {
         if let start = info.startTime {

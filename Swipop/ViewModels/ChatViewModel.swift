@@ -27,7 +27,9 @@ final class ChatViewModel {
     private var currentMessageIndex: Int = 0
     private var currentThinkingIndex: Int? = nil
     private var accumulatedReasoning: String = ""
-    private var pendingToolCalls: [(id: String, name: String, arguments: String)] = []
+    
+    // Track streaming tool calls by index
+    private var streamingToolCalls: [Int: (id: String, name: String, segmentIndex: Int)] = [:]
     
     // Debouncing
     private var pendingContent: String = ""
@@ -74,7 +76,6 @@ final class ChatViewModel {
         inputText = ""
         messages.append(.user(text))
         
-        // Clear reasoning_content from previous turns before new question
         clearReasoningFromHistory()
         history.append(["role": "user", "content": text])
         syncToWorkEditor()
@@ -108,12 +109,11 @@ final class ChatViewModel {
         pendingContent = ""
         pendingReasoning = ""
         accumulatedReasoning = ""
-        pendingToolCalls = []
+        streamingToolCalls = [:]
         currentThinkingIndex = nil
         syncToWorkEditor()
     }
     
-    /// Clear reasoning_content from history (required by DeepSeek before new user question)
     private func clearReasoningFromHistory() {
         for i in history.indices {
             if history[i]["reasoning_content"] != nil {
@@ -210,14 +210,13 @@ final class ChatViewModel {
         pendingContent = ""
         pendingReasoning = ""
         accumulatedReasoning = ""
-        pendingToolCalls = []
+        streamingToolCalls = [:]
         currentThinkingIndex = nil
         
         currentMessageIndex = messages.count
         var newMessage = ChatMessage(role: .assistant)
         newMessage.isStreaming = true
         
-        // Start with thinking segment if using reasoner model
         if selectedModel.supportsThinking {
             var thinking = ChatMessage.ThinkingSegment()
             thinking.startTime = Date()
@@ -247,18 +246,42 @@ final class ChatViewModel {
                     pendingContent += text
                     scheduleUIUpdate()
                     
-                case .toolCall(let id, let name, let arguments):
-                    // Collect all tool calls (may receive multiple)
-                    pendingToolCalls.append((id: id, name: name, arguments: arguments))
+                case .toolCallStart(let index, let id, let name):
+                    // Finalize thinking before tool call
+                    flushPendingContent()
+                    finalizeCurrentThinking()
+                    
+                    // Create streaming tool call segment immediately
+                    let segment = ChatMessage.ToolCallSegment(callId: id, name: name, arguments: "", isStreaming: true)
+                    let segmentIndex = messages[currentMessageIndex].segments.count
+                    messages[currentMessageIndex].segments.append(.toolCall(segment))
+                    streamingToolCalls[index] = (id: id, name: name, segmentIndex: segmentIndex)
+                    
+                case .toolCallArguments(let index, let delta):
+                    // Update arguments in the segment (optional: could show progress)
+                    if let info = streamingToolCalls[index],
+                       info.segmentIndex < messages[currentMessageIndex].segments.count,
+                       case .toolCall(var segment) = messages[currentMessageIndex].segments[info.segmentIndex] {
+                        segment.arguments += delta
+                        messages[currentMessageIndex].segments[info.segmentIndex] = .toolCall(segment)
+                    }
+                    
+                case .toolCallComplete(let index, let arguments):
+                    // Mark tool call as complete and execute
+                    if let info = streamingToolCalls[index],
+                       info.segmentIndex < messages[currentMessageIndex].segments.count,
+                       case .toolCall(var segment) = messages[currentMessageIndex].segments[info.segmentIndex] {
+                        segment.arguments = arguments
+                        segment.isStreaming = false
+                        segment.result = executeToolCall(name: info.name, arguments: arguments)
+                        messages[currentMessageIndex].segments[info.segmentIndex] = .toolCall(segment)
+                    }
                 }
             }
             
-            // After stream ends, process any pending tool calls
-            if !pendingToolCalls.isEmpty {
-                flushPendingContent()
-                finalizeCurrentThinking()
-                await handleToolCalls(pendingToolCalls)
-                pendingToolCalls = []
+            // After stream ends, check if we had tool calls
+            if !streamingToolCalls.isEmpty {
+                await finalizeToolCallsAndContinue()
             } else {
                 flushPendingContent()
                 finalizeCurrentMessage()
@@ -334,6 +357,13 @@ final class ChatViewModel {
             
             if info.text.isEmpty {
                 messages[currentMessageIndex].segments.remove(at: thinkingIdx)
+                // Adjust streaming tool call indices
+                for (index, var callInfo) in streamingToolCalls {
+                    if callInfo.segmentIndex > thinkingIdx {
+                        callInfo.segmentIndex -= 1
+                        streamingToolCalls[index] = callInfo
+                    }
+                }
                 currentThinkingIndex = nil
             } else {
                 messages[currentMessageIndex].segments[thinkingIdx] = .thinking(info)
@@ -360,49 +390,50 @@ final class ChatViewModel {
     
     // MARK: - Tool Handling
     
-    private func handleToolCalls(_ calls: [(id: String, name: String, arguments: String)]) async {
-        // Build assistant message with reasoning_content and tool_calls for history
-        // This is required by DeepSeek to continue thinking
+    private func finalizeToolCallsAndContinue() async {
+        // Build assistant message for history
         var assistantEntry: [String: Any] = ["role": "assistant"]
         
         if !accumulatedReasoning.isEmpty {
             assistantEntry["reasoning_content"] = accumulatedReasoning
         }
         
-        // Null content when there are tool calls
         assistantEntry["content"] = NSNull()
         
-        // Add all tool calls
+        // Build tool_calls array from segments
         var toolCallsArray: [[String: Any]] = []
-        for call in calls {
-            toolCallsArray.append([
-                "id": call.id,
-                "type": "function",
-                "function": ["name": call.name, "arguments": call.arguments]
-            ])
-            
-            // Add UI segment
-            var toolSegment = ChatMessage.ToolCallSegment(callId: call.id, name: call.name, arguments: call.arguments)
-            let result = executeToolCall(name: call.name, arguments: call.arguments)
-            toolSegment.result = result
-            messages[currentMessageIndex].segments.append(.toolCall(toolSegment))
+        for index in streamingToolCalls.keys.sorted() {
+            if let info = streamingToolCalls[index],
+               info.segmentIndex < messages[currentMessageIndex].segments.count,
+               case .toolCall(let segment) = messages[currentMessageIndex].segments[info.segmentIndex] {
+                toolCallsArray.append([
+                    "id": segment.callId,
+                    "type": "function",
+                    "function": ["name": segment.name, "arguments": segment.arguments]
+                ])
+            }
         }
         assistantEntry["tool_calls"] = toolCallsArray
         history.append(assistantEntry)
         
         // Add tool results to history
-        for call in calls {
-            let result = executeToolCall(name: call.name, arguments: call.arguments)
-            history.append([
-                "role": "tool",
-                "tool_call_id": call.id,
-                "content": result
-            ])
+        for index in streamingToolCalls.keys.sorted() {
+            if let info = streamingToolCalls[index],
+               info.segmentIndex < messages[currentMessageIndex].segments.count,
+               case .toolCall(let segment) = messages[currentMessageIndex].segments[info.segmentIndex],
+               let result = segment.result {
+                history.append([
+                    "role": "tool",
+                    "tool_call_id": segment.callId,
+                    "content": result
+                ])
+            }
         }
         
         syncToWorkEditor()
         
-        // Continue streaming for more thinking/content
+        // Reset and continue
+        streamingToolCalls = [:]
         await continueAfterToolCalls()
     }
     
@@ -410,9 +441,7 @@ final class ChatViewModel {
         pendingContent = ""
         pendingReasoning = ""
         accumulatedReasoning = ""
-        pendingToolCalls = []
         
-        // Start new thinking segment
         if selectedModel.supportsThinking {
             var thinking = ChatMessage.ThinkingSegment()
             thinking.startTime = Date()
@@ -514,7 +543,6 @@ final class ChatViewModel {
         finalizeCurrentThinking()
         isLoading = false
         
-        // Build final history entry
         var allReasoning = ""
         var finalContent = ""
         
@@ -527,7 +555,7 @@ final class ChatViewModel {
             case .content(let text):
                 finalContent += text
             case .toolCall:
-                break // Already added
+                break
             }
         }
         
