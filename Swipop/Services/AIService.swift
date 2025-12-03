@@ -1,7 +1,6 @@
 //
 //  AIService.swift
 //  Swipop
-//
 
 import Foundation
 import Supabase
@@ -10,9 +9,8 @@ import Supabase
 final class AIService {
     static let shared = AIService()
     
-    var currentModel: AIModel = .deepseekV3Exp
+    var currentModel: AIModel = .reasoner
     
-    private let supabase = SupabaseService.shared.client
     private let edgeFunctionURL: URL
     
     private init() {
@@ -25,26 +23,28 @@ final class AIService {
         AsyncThrowingStream { continuation in
             Task {
                 do {
-                    // Get auth token
-                    guard let session = try? await supabase.auth.session else {
+                    guard let session = try? await SupabaseService.shared.client.auth.session else {
                         throw AIError.unauthorized
                     }
-                    let token = session.accessToken
                     
-                    // Build request
                     var request = URLRequest(url: edgeFunctionURL)
                     request.httpMethod = "POST"
-                    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                    request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
                     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
                     
-                    let body: [String: Any] = [
+                    var body: [String: Any] = [
                         "model": currentModel.rawValue,
                         "messages": messages,
                         "tools": Self.tools
                     ]
+                    
+                    // Enable thinking for reasoner model
+                    if currentModel.supportsThinking {
+                        body["thinking"] = ["type": "enabled"]
+                    }
+                    
                     request.httpBody = try JSONSerialization.data(withJSONObject: body)
                     
-                    // Stream SSE
                     let (bytes, response) = try await URLSession.shared.bytes(for: request)
                     
                     guard let httpResponse = response as? HTTPURLResponse else {
@@ -56,7 +56,8 @@ final class AIService {
                     }
                     
                     // Parse SSE stream
-                    var pendingToolCall: (id: String, name: String, arguments: String)?
+                    // Track multiple tool calls by index
+                    var pendingToolCalls: [Int: (id: String, name: String, arguments: String)] = [:]
                     
                     for try await line in bytes.lines {
                         guard line.hasPrefix("data: "), line != "data: [DONE]" else { continue }
@@ -68,37 +69,48 @@ final class AIService {
                               let choice = choices.first,
                               let delta = choice["delta"] as? [String: Any] else { continue }
                         
-                        // Reasoning content (DeepSeek thinking)
+                        // Reasoning content (thinking)
                         if let reasoning = delta["reasoning_content"] as? String, !reasoning.isEmpty {
                             continuation.yield(.reasoning(reasoning))
                         }
                         
                         // Content delta
                         if let content = delta["content"] as? String, !content.isEmpty {
-                            continuation.yield(.delta(content))
+                            continuation.yield(.content(content))
                         }
                         
-                        // Tool calls
+                        // Tool calls (may have multiple, distinguished by index)
                         if let toolCalls = delta["tool_calls"] as? [[String: Any]] {
                             for tc in toolCalls {
+                                let index = tc["index"] as? Int ?? 0
+                                
+                                if let id = tc["id"] as? String {
+                                    // New tool call starting
+                                    pendingToolCalls[index] = (id: id, name: "", arguments: "")
+                                }
+                                
                                 if let function = tc["function"] as? [String: Any] {
                                     if let name = function["name"] as? String {
-                                        pendingToolCall = (tc["id"] as? String ?? "", name, "")
+                                        pendingToolCalls[index]?.name = name
                                     }
-                                    if let args = function["arguments"] as? String, var pending = pendingToolCall {
-                                        pending.arguments += args
-                                        pendingToolCall = pending
+                                    if let args = function["arguments"] as? String {
+                                        pendingToolCalls[index]?.arguments += args
                                     }
                                 }
                             }
                         }
                         
-                        // Finish reason
-                        if let finishReason = choice["finish_reason"] as? String,
-                           finishReason == "tool_calls",
-                           let call = pendingToolCall {
-                            continuation.yield(.toolCall(id: call.id, name: call.name, arguments: call.arguments))
-                            pendingToolCall = nil
+                        // Check finish reason
+                        if let finishReason = choice["finish_reason"] as? String {
+                            if finishReason == "tool_calls" {
+                                // Yield all pending tool calls in order
+                                for index in pendingToolCalls.keys.sorted() {
+                                    if let call = pendingToolCalls[index], !call.name.isEmpty {
+                                        continuation.yield(.toolCall(id: call.id, name: call.name, arguments: call.arguments))
+                                    }
+                                }
+                                pendingToolCalls.removeAll()
+                            }
                         }
                     }
                     
@@ -110,21 +122,19 @@ final class AIService {
         }
     }
     
-    // MARK: - Tool Names
+    // MARK: - Types
+    
+    enum StreamEvent {
+        case reasoning(String)
+        case content(String)
+        case toolCall(id: String, name: String, arguments: String)
+    }
     
     enum ToolName: String {
         case updateMetadata = "update_metadata"
         case editHtml = "edit_html"
         case editCss = "edit_css"
         case editJavascript = "edit_javascript"
-    }
-    
-    // MARK: - Types
-    
-    enum StreamEvent {
-        case delta(String)
-        case reasoning(String)
-        case toolCall(id: String, name: String, arguments: String)
     }
     
     enum AIError: LocalizedError {
@@ -144,7 +154,6 @@ final class AIService {
     // MARK: - Tools Definition
     
     static let tools: [[String: Any]] = [
-        // Metadata tool
         [
             "type": "function",
             "function": [
@@ -160,46 +169,43 @@ final class AIService {
                 ]
             ]
         ],
-        // HTML editor
         [
             "type": "function",
             "function": [
                 "name": "edit_html",
-                "description": "Replace the entire HTML content of the work. Use for creating or modifying the structure and content. Include semantic HTML elements. Do NOT include <html>, <head>, or <body> tags - only the content that goes inside body.",
+                "description": "Replace the entire HTML content. Use for structure and content. Do NOT include <html>, <head>, or <body> tags.",
                 "parameters": [
                     "type": "object",
                     "properties": [
-                        "content": ["type": "string", "description": "The complete HTML content to set"]
+                        "content": ["type": "string", "description": "The complete HTML content"]
                     ],
                     "required": ["content"]
                 ]
             ]
         ],
-        // CSS editor
         [
             "type": "function",
             "function": [
                 "name": "edit_css",
-                "description": "Replace the entire CSS content of the work. Use for styling, animations, and visual effects. Include responsive design when appropriate. Write clean, modern CSS.",
+                "description": "Replace the entire CSS content. Use for styling, animations, and visual effects.",
                 "parameters": [
                     "type": "object",
                     "properties": [
-                        "content": ["type": "string", "description": "The complete CSS content to set"]
+                        "content": ["type": "string", "description": "The complete CSS content"]
                     ],
                     "required": ["content"]
                 ]
             ]
         ],
-        // JavaScript editor
         [
             "type": "function",
             "function": [
                 "name": "edit_javascript",
-                "description": "Replace the entire JavaScript content of the work. Use for interactivity, animations, and dynamic behavior. Write clean ES6+ code. Avoid external dependencies unless via CDN.",
+                "description": "Replace the entire JavaScript content. Use for interactivity and dynamic behavior.",
                 "parameters": [
                     "type": "object",
                     "properties": [
-                        "content": ["type": "string", "description": "The complete JavaScript content to set"]
+                        "content": ["type": "string", "description": "The complete JavaScript content"]
                     ],
                     "required": ["content"]
                 ]

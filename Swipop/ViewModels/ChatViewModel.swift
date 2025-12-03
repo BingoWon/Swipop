@@ -14,11 +14,10 @@ final class ChatViewModel {
     var messages: [ChatMessage] = []
     var inputText = ""
     var isLoading = false
-    var selectedModel: AIModel = .deepseekV3Exp {
+    var selectedModel: AIModel = .reasoner {
         didSet { AIService.shared.currentModel = selectedModel }
     }
     
-    /// Reference to the work editor for tool execution
     weak var workEditor: WorkEditorViewModel?
     
     private var history: [[String: Any]] = []
@@ -27,8 +26,10 @@ final class ChatViewModel {
     // Current streaming state
     private var currentMessageIndex: Int = 0
     private var currentThinkingIndex: Int? = nil
+    private var accumulatedReasoning: String = ""
+    private var pendingToolCalls: [(id: String, name: String, arguments: String)] = []
     
-    // Debouncing for streaming updates
+    // Debouncing
     private var pendingContent: String = ""
     private var pendingReasoning: String = ""
     private var debounceTask: Task<Void, Never>?
@@ -50,8 +51,8 @@ final class ChatViewModel {
     1. Use modern CSS (flexbox, grid, custom properties, animations)
     2. Write clean, semantic HTML
     3. Use ES6+ JavaScript
-    4. Make it visually impressive - users share these as creative works
-    5. Add smooth animations and transitions
+    4. Make it visually impressive
+    5. Add smooth animations
     6. Consider mobile responsiveness
     
     Be creative and make things that look amazing!
@@ -72,13 +73,15 @@ final class ChatViewModel {
         
         inputText = ""
         messages.append(.user(text))
+        
+        // Clear reasoning_content from previous turns before new question
+        clearReasoningFromHistory()
         history.append(["role": "user", "content": text])
         syncToWorkEditor()
         
         streamTask = Task { await streamResponse() }
     }
     
-    /// Retry the last failed request
     func retry() {
         if let lastIndex = messages.indices.last, messages[lastIndex].role == .error {
             messages.removeLast()
@@ -86,7 +89,6 @@ final class ChatViewModel {
         streamTask = Task { await streamResponse() }
     }
     
-    /// Stop the current streaming response
     func stop() {
         streamTask?.cancel()
         streamTask = nil
@@ -105,11 +107,23 @@ final class ChatViewModel {
         history.append(["role": "system", "content": systemPrompt])
         pendingContent = ""
         pendingReasoning = ""
+        accumulatedReasoning = ""
+        pendingToolCalls = []
         currentThinkingIndex = nil
         syncToWorkEditor()
     }
     
-    /// Load chat history from work editor (when editing existing work)
+    /// Clear reasoning_content from history (required by DeepSeek before new user question)
+    private func clearReasoningFromHistory() {
+        for i in history.indices {
+            if history[i]["reasoning_content"] != nil {
+                history[i].removeValue(forKey: "reasoning_content")
+            }
+        }
+    }
+    
+    // MARK: - Load from Work Editor
+    
     func loadFromWorkEditor() {
         guard let editor = workEditor, !editor.chatMessages.isEmpty else { return }
         history = editor.chatMessages
@@ -122,8 +136,7 @@ final class ChatViewModel {
             
             switch role {
             case "user":
-                // Flush any pending assistant message
-                if var assistantMsg = currentAssistantMsg {
+                if let assistantMsg = currentAssistantMsg, !assistantMsg.segments.isEmpty {
                     messages.append(assistantMsg)
                     currentAssistantMsg = nil
                 }
@@ -133,12 +146,10 @@ final class ChatViewModel {
                 }
                 
             case "assistant":
-                // Start or continue assistant message
                 if currentAssistantMsg == nil {
                     currentAssistantMsg = ChatMessage(role: .assistant)
                 }
                 
-                // Add reasoning as thinking segment
                 if let reasoning = msg["reasoning_content"] as? String, !reasoning.isEmpty {
                     var thinking = ChatMessage.ThinkingSegment()
                     thinking.text = reasoning
@@ -146,7 +157,6 @@ final class ChatViewModel {
                     currentAssistantMsg?.segments.append(.thinking(thinking))
                 }
                 
-                // Add tool calls
                 if let toolCalls = msg["tool_calls"] as? [[String: Any]] {
                     for call in toolCalls {
                         if let function = call["function"] as? [String: Any],
@@ -160,26 +170,20 @@ final class ChatViewModel {
                     }
                 }
                 
-                // Add content
                 if let content = msg["content"] as? String, !content.isEmpty {
                     currentAssistantMsg?.segments.append(.content(content))
                 }
-                
-            case "system", "tool":
-                continue
                 
             default:
                 continue
             }
         }
         
-        // Flush final assistant message
         if let assistantMsg = currentAssistantMsg, !assistantMsg.segments.isEmpty {
             messages.append(assistantMsg)
         }
     }
     
-    /// Find tool result from history for a given call ID
     private func findToolResult(for callId: String, startingFrom index: Int) -> String? {
         for i in index..<history.count {
             let msg = history[i]
@@ -205,19 +209,22 @@ final class ChatViewModel {
         isLoading = true
         pendingContent = ""
         pendingReasoning = ""
+        accumulatedReasoning = ""
+        pendingToolCalls = []
         currentThinkingIndex = nil
         
-        // Create a new assistant message
         currentMessageIndex = messages.count
         var newMessage = ChatMessage(role: .assistant)
         newMessage.isStreaming = true
         
-        // Start with an active thinking segment
-        var thinking = ChatMessage.ThinkingSegment()
-        thinking.startTime = Date()
-        thinking.isActive = true
-        newMessage.segments.append(.thinking(thinking))
-        currentThinkingIndex = 0
+        // Start with thinking segment if using reasoner model
+        if selectedModel.supportsThinking {
+            var thinking = ChatMessage.ThinkingSegment()
+            thinking.startTime = Date()
+            thinking.isActive = true
+            newMessage.segments.append(.thinking(thinking))
+            currentThinkingIndex = 0
+        }
         
         messages.append(newMessage)
         
@@ -232,38 +239,48 @@ final class ChatViewModel {
                 switch event {
                 case .reasoning(let text):
                     pendingReasoning += text
+                    accumulatedReasoning += text
                     scheduleUIUpdate()
                     
-                case .delta(let text):
-                    // First content delta means thinking is done
+                case .content(let text):
                     finalizeCurrentThinking()
                     pendingContent += text
                     scheduleUIUpdate()
                     
                 case .toolCall(let id, let name, let arguments):
-                    flushPendingContent()
-                    finalizeCurrentThinking()
-                    await handleToolCall(id: id, name: name, arguments: arguments)
-                    return // Will continue in handleToolCall
+                    // Collect all tool calls (may receive multiple)
+                    pendingToolCalls.append((id: id, name: name, arguments: arguments))
                 }
             }
             
-            flushPendingContent()
-            finalizeCurrentMessage()
+            // After stream ends, process any pending tool calls
+            if !pendingToolCalls.isEmpty {
+                flushPendingContent()
+                finalizeCurrentThinking()
+                await handleToolCalls(pendingToolCalls)
+                pendingToolCalls = []
+            } else {
+                flushPendingContent()
+                finalizeCurrentMessage()
+            }
         } catch is CancellationError {
             flushPendingContent()
         } catch {
-            messages[currentMessageIndex].isStreaming = false
-            messages[currentMessageIndex].segments.removeAll { segment in
-                if case .thinking(let info) = segment { return info.text.isEmpty }
-                return false
-            }
-            if messages[currentMessageIndex].segments.isEmpty {
-                messages.remove(at: currentMessageIndex)
-            }
-            messages.append(.error(friendlyErrorMessage(for: error)))
-            isLoading = false
+            handleStreamError(error)
         }
+    }
+    
+    private func handleStreamError(_ error: Error) {
+        messages[currentMessageIndex].isStreaming = false
+        messages[currentMessageIndex].segments.removeAll { segment in
+            if case .thinking(let info) = segment { return info.text.isEmpty }
+            return false
+        }
+        if messages[currentMessageIndex].segments.isEmpty {
+            messages.remove(at: currentMessageIndex)
+        }
+        messages.append(.error(friendlyErrorMessage(for: error)))
+        isLoading = false
     }
     
     private func scheduleUIUpdate() {
@@ -272,9 +289,7 @@ final class ChatViewModel {
             do {
                 try await Task.sleep(nanoseconds: debounceInterval)
                 flushPendingContent()
-            } catch {
-                // Cancelled
-            }
+            } catch {}
         }
     }
     
@@ -284,7 +299,6 @@ final class ChatViewModel {
         
         guard currentMessageIndex < messages.count else { return }
         
-        // Update thinking segment with pending reasoning
         if !pendingReasoning.isEmpty {
             if let thinkingIdx = currentThinkingIndex,
                thinkingIdx < messages[currentMessageIndex].segments.count,
@@ -295,9 +309,7 @@ final class ChatViewModel {
             pendingReasoning = ""
         }
         
-        // Update content
         if !pendingContent.isEmpty {
-            // Find or create content segment at end
             if let lastIdx = messages[currentMessageIndex].segments.indices.last,
                case .content(let existing) = messages[currentMessageIndex].segments[lastIdx] {
                 messages[currentMessageIndex].segments[lastIdx] = .content(existing + pendingContent)
@@ -320,7 +332,6 @@ final class ChatViewModel {
             info.isActive = false
             info.endTime = Date()
             
-            // Remove if empty
             if info.text.isEmpty {
                 messages[currentMessageIndex].segments.remove(at: thinkingIdx)
                 currentThinkingIndex = nil
@@ -335,13 +346,13 @@ final class ChatViewModel {
         let description = error.localizedDescription.lowercased()
         
         if description.contains("timed out") || description.contains("timeout") {
-            return "The request timed out. Please check your connection and try again."
+            return "Request timed out. Please check your connection."
         } else if description.contains("network") || description.contains("internet") {
-            return "Network error. Please check your internet connection."
+            return "Network error. Please check your connection."
         } else if description.contains("unauthorized") || description.contains("401") {
-            return "Authentication failed. Please sign in again."
+            return "Please sign in again."
         } else if description.contains("server") || description.contains("500") {
-            return "Server error. Please try again later."
+            return "Server error. Please try again."
         } else {
             return "Something went wrong. Please try again."
         }
@@ -349,47 +360,67 @@ final class ChatViewModel {
     
     // MARK: - Tool Handling
     
-    private func handleToolCall(id: String, name: String, arguments: String) async {
-        // Add tool call segment to current message
-        var toolSegment = ChatMessage.ToolCallSegment(callId: id, name: name, arguments: arguments)
-        let result = executeToolCall(name: name, arguments: arguments)
-        toolSegment.result = result
-        messages[currentMessageIndex].segments.append(.toolCall(toolSegment))
+    private func handleToolCalls(_ calls: [(id: String, name: String, arguments: String)]) async {
+        // Build assistant message with reasoning_content and tool_calls for history
+        // This is required by DeepSeek to continue thinking
+        var assistantEntry: [String: Any] = ["role": "assistant"]
         
-        // Add to history
-        history.append([
-            "role": "assistant",
-            "content": NSNull(),
-            "tool_calls": [[
-                "id": id,
+        if !accumulatedReasoning.isEmpty {
+            assistantEntry["reasoning_content"] = accumulatedReasoning
+        }
+        
+        // Null content when there are tool calls
+        assistantEntry["content"] = NSNull()
+        
+        // Add all tool calls
+        var toolCallsArray: [[String: Any]] = []
+        for call in calls {
+            toolCallsArray.append([
+                "id": call.id,
                 "type": "function",
-                "function": ["name": name, "arguments": arguments]
-            ]]
-        ])
+                "function": ["name": call.name, "arguments": call.arguments]
+            ])
+            
+            // Add UI segment
+            var toolSegment = ChatMessage.ToolCallSegment(callId: call.id, name: call.name, arguments: call.arguments)
+            let result = executeToolCall(name: call.name, arguments: call.arguments)
+            toolSegment.result = result
+            messages[currentMessageIndex].segments.append(.toolCall(toolSegment))
+        }
+        assistantEntry["tool_calls"] = toolCallsArray
+        history.append(assistantEntry)
         
-        history.append([
-            "role": "tool",
-            "tool_call_id": id,
-            "content": result
-        ])
+        // Add tool results to history
+        for call in calls {
+            let result = executeToolCall(name: call.name, arguments: call.arguments)
+            history.append([
+                "role": "tool",
+                "tool_call_id": call.id,
+                "content": result
+            ])
+        }
         
         syncToWorkEditor()
         
-        // Continue streaming - may get more thinking, tool calls, or content
-        await continueAfterToolCall()
+        // Continue streaming for more thinking/content
+        await continueAfterToolCalls()
     }
     
-    private func continueAfterToolCall() async {
+    private func continueAfterToolCalls() async {
         pendingContent = ""
         pendingReasoning = ""
+        accumulatedReasoning = ""
+        pendingToolCalls = []
         
-        // Start new thinking segment (may be filled or may be empty)
-        var thinking = ChatMessage.ThinkingSegment()
-        thinking.startTime = Date()
-        thinking.isActive = true
-        let newThinkingIdx = messages[currentMessageIndex].segments.count
-        messages[currentMessageIndex].segments.append(.thinking(thinking))
-        currentThinkingIndex = newThinkingIdx
+        // Start new thinking segment
+        if selectedModel.supportsThinking {
+            var thinking = ChatMessage.ThinkingSegment()
+            thinking.startTime = Date()
+            thinking.isActive = true
+            let newThinkingIdx = messages[currentMessageIndex].segments.count
+            messages[currentMessageIndex].segments.append(.thinking(thinking))
+            currentThinkingIndex = newThinkingIdx
+        }
         
         await processStream()
     }
@@ -426,7 +457,7 @@ final class ChatViewModel {
         }
         
         guard let content = args["content"] as? String else {
-            return #"{"error": "Missing content parameter"}"#
+            return #"{"error": "Missing content"}"#
         }
         
         let typeName: String
@@ -443,10 +474,7 @@ final class ChatViewModel {
         }
         
         editor.isDirty = true
-        
-        let charCount = content.count
-        let lineCount = content.components(separatedBy: .newlines).count
-        return #"{"success": true, "type": "\#(typeName)", "stats": {"characters": \#(charCount), "lines": \#(lineCount)}}"#
+        return #"{"success": true, "type": "\#(typeName)", "lines": \#(content.components(separatedBy: .newlines).count)}"#
     }
     
     private func executeUpdateMetadata(_ args: [String: Any]) -> String {
@@ -472,18 +500,11 @@ final class ChatViewModel {
         }
         
         if updated.isEmpty {
-            return #"{"success": false, "message": "No fields to update"}"#
+            return #"{"success": false}"#
         }
         
         editor.isDirty = true
-        
-        let updatedJson = updated.map { #""\#($0)""# }.joined(separator: ", ")
-        return #"{"success": true, "updated": [\#(updatedJson)], "current": {"title": "\#(editor.title)", "description": "\#(editor.description)", "tags": \#(tagsToJson(editor.tags))}}"#
-    }
-    
-    private func tagsToJson(_ tags: [String]) -> String {
-        let escaped = tags.map { #""\#($0)""# }.joined(separator: ", ")
-        return "[\(escaped)]"
+        return #"{"success": true, "updated": [\#(updated.map { #""\#($0)""# }.joined(separator: ","))]}"#
     }
     
     private func finalizeCurrentMessage() {
@@ -493,8 +514,7 @@ final class ChatViewModel {
         finalizeCurrentThinking()
         isLoading = false
         
-        // Build history entries for assistant content and reasoning
-        var hasContent = false
+        // Build final history entry
         var allReasoning = ""
         var finalContent = ""
         
@@ -505,18 +525,13 @@ final class ChatViewModel {
                     allReasoning += info.text
                 }
             case .content(let text):
-                if !text.isEmpty {
-                    finalContent += text
-                    hasContent = true
-                }
+                finalContent += text
             case .toolCall:
-                // Already added to history
-                break
+                break // Already added
             }
         }
         
-        // Only add final content to history (tool calls already added)
-        if hasContent || !allReasoning.isEmpty {
+        if !finalContent.isEmpty || !allReasoning.isEmpty {
             var entry: [String: Any] = ["role": "assistant", "content": finalContent]
             if !allReasoning.isEmpty {
                 entry["reasoning_content"] = allReasoning
