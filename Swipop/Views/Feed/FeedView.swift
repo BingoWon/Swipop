@@ -117,13 +117,9 @@ struct FeedView: View {
                         isViewingWork = false
                     }
                 } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 16, weight: .semibold))
-                        Text("Discover")
-                            .font(.system(size: 16))
-                    }
-                    .foregroundStyle(.white)
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(.white)
                 }
             }
         }

@@ -171,20 +171,15 @@ private struct WorkModeAccessory: View {
                 }
             
             VStack(alignment: .leading, spacing: 2) {
-                Text(currentWork?.title ?? "Swipop")
+                Text(currentWork?.title.isEmpty == false ? currentWork!.title : "Untitled")
                     .font(.system(size: 14, weight: .semibold))
                     .lineLimit(1)
                 
-                Text("@\(creator?.username ?? "swipop")")
+                Text("@\(creator?.username ?? "unknown")")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
-            
-            Spacer()
-            
-            Image(systemName: "info.circle")
-                .font(.system(size: 16))
-                .foregroundStyle(.secondary)
         }
         .padding(.horizontal, 12)
     }
@@ -217,7 +212,7 @@ private struct WorkModeAccessory: View {
     }
     
     private var creatorInitial: String {
-        String((creator?.displayName ?? creator?.username ?? "S").prefix(1)).uppercased()
+        String((creator?.displayName ?? creator?.username ?? "?").prefix(1)).uppercased()
     }
 }
 
@@ -264,22 +259,21 @@ private struct ContinueAccessory: View {
                 }
             
             VStack(alignment: .leading, spacing: 2) {
-                Text(currentWork?.title ?? "Swipop")
+                Text(currentWork?.title.isEmpty == false ? currentWork!.title : "Untitled")
                     .font(.system(size: 14, weight: .semibold))
                     .lineLimit(1)
                 
-                Text("@\(creator?.username ?? "swipop")")
+                Text("@\(creator?.username ?? "unknown")")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
-            
-            Spacer()
         }
         .padding(.horizontal, 12)
     }
     
     private var creatorInitial: String {
-        String((creator?.displayName ?? creator?.username ?? "S").prefix(1)).uppercased()
+        String((creator?.displayName ?? creator?.username ?? "?").prefix(1)).uppercased()
     }
 }
 
