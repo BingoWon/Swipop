@@ -13,7 +13,6 @@ struct FeedView: View {
     @State private var showComments = false
     @State private var showShare = false
     @State private var showSearch = false
-    @State private var showLikeAnimation = false
     
     private let feed = FeedViewModel.shared
     
@@ -23,20 +22,18 @@ struct FeedView: View {
                 Color.black
                 
                 if let work = feed.currentWork {
-                    WorkCardView(work: work, showLikeAnimation: showLikeAnimation)
+                    WorkCardView(work: work)
                         .id(feed.currentIndex)
                         .transition(.asymmetric(
                             insertion: .move(edge: .bottom),
                             removal: .move(edge: .top)
                         ))
-                        .onTapGesture(count: 2, perform: doubleTapLike)
                 }
             }
             .ignoresSafeArea()
             .toolbar { toolbarContent }
             .toolbarBackground(.hidden, for: .navigationBar)
         }
-        .gesture(swipeGesture)
         .onChange(of: feed.currentWork?.id) { _, _ in loadInteraction() }
         .task { loadInteraction() }
         .sheet(isPresented: $showComments) {
@@ -99,21 +96,6 @@ struct FeedView: View {
         }
     }
     
-    // MARK: - Gestures
-    
-    private var swipeGesture: some Gesture {
-        DragGesture(minimumDistance: 50)
-            .onEnded { value in
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                    if value.translation.height < -50 {
-                        feed.goToNext()
-                    } else if value.translation.height > 50 {
-                        feed.goToPrevious()
-                    }
-                }
-            }
-    }
-    
     // MARK: - Actions
     
     private func loadInteraction() {
@@ -136,26 +118,6 @@ struct FeedView: View {
             return
         }
         Task { await interaction?.toggleCollect() }
-    }
-    
-    private func doubleTapLike() {
-        guard AuthService.shared.isAuthenticated else {
-            showLogin = true
-            return
-        }
-        
-        if interaction?.isLiked != true {
-            Task { await interaction?.toggleLike() }
-        }
-        
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-            showLikeAnimation = true
-        }
-        
-        Task {
-            try? await Task.sleep(for: .milliseconds(800))
-            withAnimation { showLikeAnimation = false }
-        }
     }
 }
 
