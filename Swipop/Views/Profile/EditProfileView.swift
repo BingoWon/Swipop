@@ -33,20 +33,20 @@ struct EditProfileView: View {
                         Spacer()
                         ZStack {
                             Circle()
-                                .fill(Color(hex: "a855f7"))
+                                .fill(Color.brand)
                                 .frame(width: 80, height: 80)
                                 .overlay(
                                     Text(displayName.prefix(1).uppercased())
                                         .font(.system(size: 32, weight: .bold))
-                                        .foregroundColor(.white)
+                                        .foregroundStyle(.white)
                                 )
                             
                             Circle()
-                                .fill(Color.black.opacity(0.5))
+                                .fill(Color.appBackground.opacity(0.5))
                                 .frame(width: 80, height: 80)
                                 .overlay(
                                     Image(systemName: "camera.fill")
-                                        .foregroundColor(.white)
+                                        .foregroundStyle(.white)
                                 )
                         }
                         Spacer()
@@ -66,7 +66,7 @@ struct EditProfileView: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .background(Color.black)
+            .background(Color.appBackground)
             .navigationTitle("Edit Profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -111,6 +111,4 @@ struct EditProfileView: View {
 
 #Preview {
     EditProfileView(profile: .sample)
-        .preferredColorScheme(.dark)
 }
-

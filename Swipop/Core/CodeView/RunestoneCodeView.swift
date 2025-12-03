@@ -41,6 +41,7 @@ struct RunestoneCodeView: View {
     let language: CodeLanguage
     @Binding var code: String
     let isEditable: Bool
+    @Environment(\.colorScheme) private var colorScheme
     
     init(language: CodeLanguage, code: Binding<String>, isEditable: Bool = false) {
         self.language = language
@@ -56,8 +57,8 @@ struct RunestoneCodeView: View {
     }
     
     var body: some View {
-        CodeTextView(code: $code, language: language, isEditable: isEditable)
-            .background(Color(hex: "0d1117"))
+        CodeTextView(code: $code, language: language, isEditable: isEditable, colorScheme: colorScheme)
+            .background(colorScheme == .dark ? Color(hex: "0d1117") : Color(hex: "f6f8fa"))
     }
 }
 
@@ -67,6 +68,7 @@ private struct CodeTextView: UIViewRepresentable {
     @Binding var code: String
     let language: CodeLanguage
     let isEditable: Bool
+    let colorScheme: ColorScheme
     
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -74,7 +76,7 @@ private struct CodeTextView: UIViewRepresentable {
     
     func makeUIView(context: Context) -> TextView {
         let textView = TextView()
-        textView.backgroundColor = UIColor(Color(hex: "0d1117"))
+        textView.backgroundColor = colorScheme == .dark ? UIColor(Color(hex: "0d1117")) : UIColor(Color(hex: "f6f8fa"))
         textView.isEditable = isEditable
         textView.isSelectable = true
         textView.showLineNumbers = true
@@ -84,7 +86,7 @@ private struct CodeTextView: UIViewRepresentable {
         textView.gutterLeadingPadding = 12
         textView.gutterTrailingPadding = 8
         textView.textContainerInset = UIEdgeInsets(top: 8, left: 4, bottom: 8, right: 12)
-        textView.theme = CodeTheme()
+        textView.theme = CodeTheme(colorScheme: colorScheme)
         
         // Use automatic adjustment like WebView - scrolls under safe areas
         textView.contentInsetAdjustmentBehavior = .scrollableAxes
@@ -97,14 +99,20 @@ private struct CodeTextView: UIViewRepresentable {
     }
     
     func updateUIView(_ textView: TextView, context: Context) {
-        guard textView.text != code else { return }
+        // Update theme if color scheme changed
+        let newTheme = CodeTheme(colorScheme: colorScheme)
+        textView.backgroundColor = colorScheme == .dark ? UIColor(Color(hex: "0d1117")) : UIColor(Color(hex: "f6f8fa"))
         
-        let state = TextViewState(
-            text: code,
-            theme: CodeTheme(),
-            language: language.treeSitterLanguage
-        )
-        textView.setState(state)
+        if textView.text != code {
+            let state = TextViewState(
+                text: code,
+                theme: newTheme,
+                language: language.treeSitterLanguage
+            )
+            textView.setState(state)
+        } else {
+            textView.theme = newTheme
+        }
     }
     
     class Coordinator: NSObject, TextViewDelegate {

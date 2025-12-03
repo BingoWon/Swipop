@@ -15,7 +15,7 @@ struct ProfileView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.black.ignoresSafeArea()
+                Color.appBackground.ignoresSafeArea()
                 
                 if auth.isAuthenticated {
                     ProfileContentView(showLogin: $showLogin, editWork: editWork)
@@ -30,20 +30,20 @@ struct ProfileView: View {
         VStack(spacing: 24) {
             Image(systemName: "person.circle")
                 .font(.system(size: 64))
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundStyle(.secondary)
             
             Text("Sign in to see your profile")
                 .font(.title3)
-                .foregroundColor(.white)
+                .foregroundStyle(.primary)
             
             Button {
                 showLogin = true
             } label: {
                 Text("Sign In")
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.black)
+                    .foregroundStyle(.white)
                     .frame(width: 200, height: 50)
-                    .background(Color.white)
+                    .background(Color.brand)
                     .cornerRadius(25)
             }
         }
@@ -80,7 +80,7 @@ struct ProfileContentView: View {
                 }
             }
         }
-        .background(Color.black)
+        .background(Color.appBackground)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbarContent }
         .task {
@@ -102,13 +102,13 @@ struct ProfileContentView: View {
             if userProfile.isRefreshing {
                 ProgressView()
                     .scaleEffect(0.8)
-                    .tint(.white)
+                    .tint(.primary)
             } else {
                 Button {
                     Task { await userProfile.refresh() }
                 } label: {
                     Image(systemName: "arrow.clockwise")
-                        .foregroundColor(.white)
+                        .foregroundStyle(.primary)
                 }
             }
         }
@@ -118,7 +118,7 @@ struct ProfileContentView: View {
         ToolbarItem(placement: .topBarTrailing) {
             Button { showSettings = true } label: {
                 Image(systemName: "gearshape")
-                    .foregroundColor(.white)
+                    .foregroundStyle(.primary)
             }
         }
     }
@@ -130,10 +130,10 @@ struct ProfileContentView: View {
             Button { showEditProfile = true } label: {
                 Text("Edit Profile")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundStyle(.primary)
                     .frame(maxWidth: .infinity)
                     .frame(height: 36)
-                    .background(Color.white.opacity(0.15))
+                    .background(Color.secondaryBackground)
                     .cornerRadius(8)
             }
         }
@@ -217,5 +217,4 @@ struct ProfileWorkCell: View {
 
 #Preview {
     ProfileView(showLogin: .constant(false), editWork: { _ in })
-        .preferredColorScheme(.dark)
 }

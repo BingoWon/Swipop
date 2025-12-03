@@ -20,7 +20,7 @@ struct CreateSubTabBar: View {
                 if tab != CreateSubTab.allCases.last {
                     Divider()
                         .frame(height: 20)
-                        .overlay(Color.white.opacity(0.1))
+                        .overlay(Color.border)
                 }
             }
         }
@@ -43,7 +43,7 @@ private struct TabButton: View {
                 Text(tab.title)
                     .font(.system(size: 10, weight: .medium))
             }
-            .foregroundStyle(isSelected ? tab.color : .white.opacity(0.5))
+            .foregroundStyle(isSelected ? tab.color : .secondary)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 6)
             .background(isSelected ? tab.color.opacity(0.15) : .clear)
@@ -55,7 +55,7 @@ private struct TabButton: View {
 
 #Preview {
     ZStack {
-        Color.black.ignoresSafeArea()
+        Color.appBackground.ignoresSafeArea()
         
         VStack {
             Spacer()

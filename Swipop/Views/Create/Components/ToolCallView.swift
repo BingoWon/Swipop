@@ -17,19 +17,19 @@ struct ToolCallView: View {
             
             if isExpanded && !toolCall.arguments.isEmpty {
                 Divider()
-                    .background(Color.white.opacity(0.1))
+                    .background(Color.border)
                 
                 argumentsContent
                 
                 if let result = toolCall.result {
                     Divider()
-                        .background(Color.white.opacity(0.1))
+                        .background(Color.border)
                     
                     resultContent(result)
                 }
             }
         }
-        .background(Color.darkSheet)
+        .background(Color.secondaryBackground)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
@@ -49,7 +49,7 @@ struct ToolCallView: View {
             // Status text - consistent layout for both states
             Text(toolCall.isStreaming ? "Calling \(displayName)..." : "Called \(displayName)")
                 .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.white.opacity(0.9))
+                .foregroundStyle(.primary.opacity(0.9))
             
             // Always reserve space for ProgressView to maintain consistent height
             ProgressView()
@@ -60,7 +60,7 @@ struct ToolCallView: View {
             if !toolCall.arguments.isEmpty {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.4))
+                    .foregroundStyle(.tertiary)
                     .rotationEffect(.degrees(isExpanded ? 90 : 0))
             }
         }
@@ -79,12 +79,12 @@ struct ToolCallView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(toolCall.isStreaming ? "Arguments (streaming...)" : "Arguments")
                 .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(.secondary)
             
             ScrollView {
                 Text(toolCall.arguments)
                     .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.8))
+                    .foregroundStyle(.primary.opacity(0.8))
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .frame(maxHeight: 200)
@@ -97,7 +97,7 @@ struct ToolCallView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Result")
                 .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(.secondary)
             
             Text(result)
                 .font(.system(size: 12, design: .monospaced))

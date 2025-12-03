@@ -79,11 +79,11 @@ struct ChatEditorView: View {
             VStack(spacing: 8) {
                 Text("What would you like to create?")
                     .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                 
                 Text("Describe your idea and I'll generate the code!")
                     .font(.system(size: 15))
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
             
@@ -104,15 +104,15 @@ struct ChatEditorView: View {
             
             Image(systemName: "bubble.left.and.bubble.right")
                 .font(.system(size: 40))
-                .foregroundStyle(.white.opacity(0.3))
+                .foregroundStyle(.tertiary)
             
             Text("Continue your conversation")
                 .font(.system(size: 17, weight: .medium))
-                .foregroundStyle(.white.opacity(0.6))
+                .foregroundStyle(.secondary)
             
             Text("Ask AI to modify or improve this work")
                 .font(.system(size: 14))
-                .foregroundStyle(.white.opacity(0.4))
+                .foregroundStyle(.tertiary)
             
             Spacer()
         }
@@ -125,12 +125,12 @@ struct ChatEditorView: View {
         } label: {
             Text(text)
                 .font(.system(size: 14))
-                .foregroundStyle(.white.opacity(0.9))
+                .foregroundStyle(.primary.opacity(0.9))
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-                .background(Color.white.opacity(0.1))
+                .background(Color.secondaryBackground)
                 .clipShape(Capsule())
-                .overlay(Capsule().stroke(Color.white.opacity(0.15), lineWidth: 1))
+                .overlay(Capsule().stroke(Color.border, lineWidth: 1))
         }
     }
     
@@ -140,21 +140,21 @@ struct ChatEditorView: View {
         HStack(spacing: 12) {
             TextField("Message...", text: $chatViewModel.inputText, axis: .vertical)
                 .font(.system(size: 16))
-                .foregroundStyle(.white)
+                .foregroundStyle(.primary)
                 .lineLimit(1...5)
                 .focused($isInputFocused)
                 .tint(Color.brand)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
-                .background(Color.white.opacity(0.1))
+                .background(Color.secondaryBackground)
                 .clipShape(RoundedRectangle(cornerRadius: 24))
-                .overlay(RoundedRectangle(cornerRadius: 24).stroke(Color.white.opacity(0.15), lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: 24).stroke(Color.border, lineWidth: 1))
             
             sendButton
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(Color.black.opacity(0.5))
+        .background(Color.appBackground.opacity(0.9))
     }
     
     private var sendButton: some View {
@@ -169,7 +169,7 @@ struct ChatEditorView: View {
             Circle()
                 .fill(chatViewModel.isLoading || !chatViewModel.inputText.isEmpty
                       ? .brandGradient
-                      : LinearGradient(colors: [.white.opacity(0.2)], startPoint: .top, endPoint: .bottom))
+                      : LinearGradient(colors: [Color.secondaryBackground], startPoint: .top, endPoint: .bottom))
                 .frame(width: 44, height: 44)
                 .overlay {
                     Image(systemName: chatViewModel.isLoading ? "stop.fill" : "arrow.up")
@@ -180,4 +180,3 @@ struct ChatEditorView: View {
         .disabled(!chatViewModel.isLoading && chatViewModel.inputText.isEmpty)
     }
 }
-

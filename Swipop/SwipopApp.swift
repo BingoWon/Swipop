@@ -8,6 +8,7 @@ import GoogleSignIn
 
 @main
 struct SwipopApp: App {
+    @State private var appearance = AppearanceSettings.shared
     
     init() {
         // Configure Google Sign-In
@@ -22,10 +23,8 @@ struct SwipopApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
-                .preferredColorScheme(.dark)
-                .onOpenURL { url in
-                    GIDSignIn.sharedInstance.handle(url)
-                }
+                .preferredColorScheme(appearance.colorScheme)
+                .environment(appearance)
         }
     }
 }

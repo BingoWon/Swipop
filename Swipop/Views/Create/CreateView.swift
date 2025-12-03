@@ -16,7 +16,7 @@ struct CreateView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                LinearGradient.darkBackgroundGradient.ignoresSafeArea()
+                Color.appBackground.ignoresSafeArea()
                 
                 if AuthService.shared.isAuthenticated {
                     content

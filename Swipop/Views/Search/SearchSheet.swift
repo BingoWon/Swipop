@@ -15,7 +15,7 @@ struct SearchSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.black.ignoresSafeArea()
+                Color.appBackground.ignoresSafeArea()
                 
                 if searchText.isEmpty {
                     // Trending / Suggestions
@@ -44,7 +44,7 @@ struct SearchSheet: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(.black)
+        .presentationBackground(Color.appBackground)
     }
     
     // MARK: - Trending Section
@@ -53,7 +53,7 @@ struct SearchSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             Label("Trending", systemImage: "flame.fill")
                 .font(.system(size: 17, weight: .semibold))
-                .foregroundColor(.white)
+                .foregroundStyle(.primary)
             
             ForEach(trendingTags, id: \.self) { tag in
                 Button {
@@ -62,11 +62,11 @@ struct SearchSheet: View {
                     HStack {
                         Text("#\(tag)")
                             .font(.system(size: 15))
-                            .foregroundColor(Color(hex: "a855f7"))
+                            .foregroundStyle(Color.brand)
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.3))
+                            .foregroundStyle(.tertiary)
                     }
                     .padding(.vertical, 8)
                 }
@@ -80,24 +80,24 @@ struct SearchSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             Label("Suggested Creators", systemImage: "person.2.fill")
                 .font(.system(size: 17, weight: .semibold))
-                .foregroundColor(.white)
+                .foregroundStyle(.primary)
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 16) {
                     ForEach(suggestedCreators, id: \.self) { creator in
                         VStack(spacing: 8) {
                             Circle()
-                                .fill(Color(hex: "a855f7"))
+                                .fill(Color.brand)
                                 .frame(width: 60, height: 60)
                                 .overlay(
                                     Text(creator.prefix(1).uppercased())
                                         .font(.system(size: 22, weight: .bold))
-                                        .foregroundColor(.white)
+                                        .foregroundStyle(.white)
                                 )
                             
                             Text("@\(creator)")
                                 .font(.system(size: 12))
-                                .foregroundColor(.white.opacity(0.7))
+                                .foregroundStyle(.secondary)
                                 .lineLimit(1)
                         }
                         .frame(width: 80)
@@ -114,7 +114,7 @@ struct SearchSheet: View {
             LazyVStack(alignment: .leading, spacing: 0) {
                 Text("Results for \"\(searchText)\"")
                     .font(.system(size: 13))
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundStyle(.secondary)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
                 
@@ -122,16 +122,16 @@ struct SearchSheet: View {
                 ForEach(0..<5, id: \.self) { _ in
                     HStack(spacing: 12) {
                         RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.white.opacity(0.1))
+                            .fill(Color.secondaryBackground)
                             .frame(width: 60, height: 60)
                         
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Work Title")
                                 .font(.system(size: 15, weight: .medium))
-                                .foregroundColor(.white)
+                                .foregroundStyle(.primary)
                             Text("@creator")
                                 .font(.system(size: 13))
-                                .foregroundColor(.white.opacity(0.5))
+                                .foregroundStyle(.secondary)
                         }
                         
                         Spacer()
@@ -156,6 +156,4 @@ struct SearchSheet: View {
 
 #Preview {
     SearchSheet()
-        .preferredColorScheme(.dark)
 }
-

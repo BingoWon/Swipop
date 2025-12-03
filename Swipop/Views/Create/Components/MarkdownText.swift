@@ -9,11 +9,12 @@ import SwiftUI
 
 struct MarkdownText: View {
     let content: String
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         if content.isEmpty {
             Text("...")
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(.secondary)
         } else {
             Text(attributedContent)
                 .textSelection(.enabled)
@@ -30,7 +31,7 @@ struct MarkdownText: View {
             ))
             
             // Apply base styling
-            attributed.foregroundColor = .white
+            attributed.foregroundColor = colorScheme == .dark ? .white : .black
             attributed.font = .system(size: 15)
             
             // Style inline code
@@ -38,7 +39,7 @@ struct MarkdownText: View {
                 if run.inlinePresentationIntent?.contains(.code) == true {
                     let range = run.range
                     attributed[range].font = .system(size: 14, design: .monospaced)
-                    attributed[range].backgroundColor = Color.white.opacity(0.1)
+                    attributed[range].backgroundColor = colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1)
                 }
             }
             
@@ -46,7 +47,7 @@ struct MarkdownText: View {
         } catch {
             // Fallback to plain text
             var plain = AttributedString(content)
-            plain.foregroundColor = .white
+            plain.foregroundColor = colorScheme == .dark ? .white : .black
             plain.font = .system(size: 15)
             return plain
         }
@@ -66,35 +67,35 @@ struct CodeBlockView: View {
                 HStack {
                     Text(language.uppercased())
                         .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(.secondary)
                     Spacer()
                     Button {
                         UIPasteboard.general.string = code
                     } label: {
                         Image(systemName: "doc.on.doc")
                             .font(.system(size: 12))
-                            .foregroundStyle(.white.opacity(0.5))
+                            .foregroundStyle(.secondary)
                     }
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                .background(Color.white.opacity(0.05))
+                .background(Color.secondaryBackground.opacity(0.5))
             }
             
             // Code content
             ScrollView(.horizontal, showsIndicators: false) {
                 Text(code)
                     .font(.system(size: 13, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.9))
+                    .foregroundStyle(.primary.opacity(0.9))
                     .textSelection(.enabled)
                     .padding(12)
             }
         }
-        .background(Color.black.opacity(0.3))
+        .background(Color.secondaryBackground.opacity(0.3))
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                .stroke(Color.border, lineWidth: 1)
         )
     }
 }
@@ -183,4 +184,3 @@ struct RichMessageContent: View {
         return blocks
     }
 }
-

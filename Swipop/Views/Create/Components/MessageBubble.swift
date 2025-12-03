@@ -30,7 +30,7 @@ struct MessageBubble: View {
             Text(message.segments.first.flatMap { if case .content(let t) = $0 { return t } else { return nil } } ?? "")
                 .font(.system(size: 13))
         }
-        .foregroundStyle(.white.opacity(0.5))
+        .foregroundStyle(.secondary)
         .frame(maxWidth: .infinity, alignment: .center)
         .padding(.vertical, 8)
     }
@@ -74,7 +74,7 @@ struct MessageBubble: View {
                 contentBubble(text)
             } else if message.isStreaming && index == message.segments.count - 1 {
                 Text("...")
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(.secondary)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                     .background(Color.assistantBubble)
@@ -102,7 +102,7 @@ struct MessageBubble: View {
                 
                 Text(message.errorContent)
                     .font(.system(size: 14))
-                    .foregroundStyle(.white.opacity(0.9))
+                    .foregroundStyle(.primary.opacity(0.9))
             }
             
             if let onRetry {
@@ -113,10 +113,10 @@ struct MessageBubble: View {
                         Text("Retry")
                             .font(.system(size: 13, weight: .medium))
                     }
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(Color.white.opacity(0.15))
+                    .background(Color.secondaryBackground)
                     .clipShape(Capsule())
                 }
             }
@@ -156,12 +156,12 @@ struct ThinkingSegmentView: View {
             
             if isExpanded && !info.text.isEmpty {
                 Divider()
-                    .background(Color.white.opacity(0.1))
+                    .background(Color.border)
                 
                 ScrollView {
                     Text(info.text)
                         .font(.system(size: 13))
-                        .foregroundStyle(.white.opacity(0.65))
+                        .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 10)
@@ -170,11 +170,11 @@ struct ThinkingSegmentView: View {
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .background(info.isActive ? Color.brand.opacity(0.12) : Color.white.opacity(0.05))
+        .background(info.isActive ? Color.brand.opacity(0.12) : Color.secondaryBackground.opacity(0.5))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(info.isActive ? Color.brand.opacity(0.3) : Color.white.opacity(0.08), lineWidth: 1)
+                .stroke(info.isActive ? Color.brand.opacity(0.3) : Color.border, lineWidth: 1)
         )
         .onAppear { if info.isActive { startTimer() } }
         .onDisappear { stopTimer() }
@@ -195,19 +195,19 @@ struct ThinkingSegmentView: View {
             if info.isActive {
                 Text("Thinking \(elapsedSeconds)s")
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.8))
+                    .foregroundStyle(.primary.opacity(0.8))
                 
                 ShimmerBar()
             } else {
                 Text("Thought for \(info.duration ?? 0)s")
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(.secondary)
             }
             
             if !info.text.isEmpty {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.4))
+                    .foregroundStyle(.tertiary)
                     .rotationEffect(.degrees(isExpanded ? 90 : 0))
             }
         }

@@ -28,7 +28,7 @@ struct InboxView: View {
                     messagesList
                 }
             }
-            .background(Color.black)
+            .background(Color.appBackground)
             .navigationTitle("Inbox")
             .navigationBarTitleDisplayMode(.inline)
         }
@@ -41,7 +41,7 @@ struct InboxView: View {
             LazyVStack(spacing: 0) {
                 ForEach(Activity.samples) { activity in
                     ActivityRow(activity: activity)
-                    Divider().overlay(Color.white.opacity(0.1))
+                    Divider().overlay(Color.divider)
                 }
             }
         }
@@ -63,7 +63,7 @@ struct InboxView: View {
             LazyVStack(spacing: 0) {
                 ForEach(Conversation.samples) { conversation in
                     ConversationRow(conversation: conversation)
-                    Divider().overlay(Color.white.opacity(0.1))
+                    Divider().overlay(Color.divider)
                 }
             }
         }
@@ -99,12 +99,12 @@ private struct ActivityRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(activity.type.message(userName: activity.userName, workTitle: activity.workTitle))
                     .font(.system(size: 14))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                     .lineLimit(2)
                 
                 Text(activity.timeAgo)
                     .font(.system(size: 12))
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(.secondary)
             }
             
             Spacer()
@@ -122,7 +122,7 @@ private struct ConversationRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Circle()
-                .fill(Color(hex: "a855f7"))
+                .fill(Color.brand)
                 .frame(width: 50, height: 50)
                 .overlay(
                     Text(conversation.recipientName.prefix(1).uppercased())
@@ -134,19 +134,19 @@ private struct ConversationRow: View {
                 HStack {
                     Text("@\(conversation.recipientName)")
                         .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.primary)
                     
                     Spacer()
                     
                     Text(conversation.timeAgo)
                         .font(.system(size: 12))
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(.secondary)
                 }
                 
                 HStack {
                     Text(conversation.lastMessage)
                         .font(.system(size: 14))
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(.secondary)
                         .lineLimit(1)
                     
                     Spacer()
@@ -157,7 +157,7 @@ private struct ConversationRow: View {
                             .foregroundStyle(.white)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(Color(hex: "a855f7"))
+                            .background(Color.brand)
                             .clipShape(Capsule())
                     }
                 }
@@ -170,5 +170,4 @@ private struct ConversationRow: View {
 
 #Preview {
     InboxView()
-        .preferredColorScheme(.dark)
 }

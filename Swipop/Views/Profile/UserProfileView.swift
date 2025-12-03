@@ -38,13 +38,13 @@ struct UserProfileView: View {
                 }
             }
         }
-        .background(Color.black)
+        .background(Color.appBackground)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button { dismiss() } label: {
                     Image(systemName: "chevron.left")
-                        .foregroundColor(.white)
+                        .foregroundStyle(.primary)
                 }
             }
         }
@@ -62,10 +62,10 @@ struct UserProfileView: View {
             } label: {
                 Text(viewModel.isFollowing ? "Following" : "Follow")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(viewModel.isFollowing ? .white : .black)
+                    .foregroundColor(viewModel.isFollowing ? .primary : .white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 36)
-                    .background(viewModel.isFollowing ? Color.white.opacity(0.15) : Color.white)
+                    .background(viewModel.isFollowing ? Color.secondaryBackground : Color.brand)
                     .cornerRadius(8)
             }
             .disabled(viewModel.isLoading)
@@ -88,5 +88,4 @@ struct UserProfileView: View {
     NavigationStack {
         UserProfileView(userId: UUID(), showLogin: .constant(false))
     }
-    .preferredColorScheme(.dark)
 }

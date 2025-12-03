@@ -7,15 +7,29 @@ import SwiftUI
 import Auth
 
 struct SettingsView: View {
-    
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppearanceSettings.self) private var appearance
     @State private var showLogoutConfirm = false
     
     private let auth = AuthService.shared
     
     var body: some View {
+        @Bindable var appearance = appearance
+        
         NavigationStack {
             List {
+                // Appearance Section
+                Section("Appearance") {
+                    Picker(selection: $appearance.mode) {
+                        ForEach(AppearanceMode.allCases) { mode in
+                            Label(mode.displayName, systemImage: mode.icon)
+                                .tag(mode)
+                        }
+                    } label: {
+                        Label("Theme", systemImage: "paintbrush")
+                    }
+                }
+                
                 // Account Section
                 Section("Account") {
                     NavigationLink {
@@ -64,14 +78,14 @@ struct SettingsView: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .background(Color.black)
+            .background(Color.appBackground)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { dismiss() } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.white.opacity(0.6))
+                            .foregroundStyle(.secondary)
                     }
                 }
             }
@@ -99,11 +113,11 @@ struct AccountSettingsView: View {
         List {
             Section("Email") {
                 Text(AuthService.shared.currentUser?.email ?? "Not set")
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundStyle(.secondary)
             }
         }
         .scrollContentBackground(.hidden)
-        .background(Color.black)
+        .background(Color.appBackground)
         .navigationTitle("Account")
     }
 }
@@ -124,7 +138,7 @@ struct NotificationSettingsView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .background(Color.black)
+        .background(Color.appBackground)
         .navigationTitle("Notifications")
     }
 }
@@ -143,7 +157,7 @@ struct PrivacySettingsView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .background(Color.black)
+        .background(Color.appBackground)
         .navigationTitle("Privacy")
     }
 }
@@ -158,30 +172,29 @@ struct AboutView: View {
                     Text("Version")
                     Spacer()
                     Text("1.0.0")
-                        .foregroundColor(.white.opacity(0.6))
+                        .foregroundStyle(.secondary)
                 }
                 
                 HStack {
                     Text("Build")
                     Spacer()
                     Text("1")
-                        .foregroundColor(.white.opacity(0.6))
+                        .foregroundStyle(.secondary)
                 }
             }
             
             Section {
                 Text("Swipop is a platform for discovering and sharing creative frontend works. Built with SwiftUI and Supabase.")
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundStyle(.secondary)
             }
         }
         .scrollContentBackground(.hidden)
-        .background(Color.black)
+        .background(Color.appBackground)
         .navigationTitle("About")
     }
 }
 
 #Preview {
     SettingsView()
-        .preferredColorScheme(.dark)
+        .environment(AppearanceSettings.shared)
 }
-

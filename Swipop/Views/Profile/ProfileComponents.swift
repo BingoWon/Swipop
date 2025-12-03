@@ -17,10 +17,10 @@ struct ProfileStatColumn: View {
         VStack(spacing: 4) {
             Text(value.formatted)
                 .font(.system(size: 18, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundStyle(.primary)
             Text(label)
                 .font(.system(size: 13))
-                .foregroundColor(.white.opacity(0.6))
+                .foregroundStyle(.secondary)
         }
     }
 }
@@ -37,10 +37,10 @@ struct ProfileTabButton: View {
             VStack(spacing: 8) {
                 Image(systemName: isSelected ? "\(icon).fill" : icon)
                     .font(.system(size: 20))
-                    .foregroundColor(isSelected ? .white : .white.opacity(0.5))
+                    .foregroundStyle(isSelected ? .primary : .secondary)
                 
                 Rectangle()
-                    .fill(isSelected ? Color.white : Color.clear)
+                    .fill(isSelected ? Color.primary : Color.clear)
                     .frame(height: 2)
             }
             .frame(maxWidth: .infinity)
@@ -62,25 +62,25 @@ struct ProfileHeaderView: View {
                 .overlay(
                     Text(profile?.username?.prefix(1).uppercased() ?? "U")
                         .font(.system(size: 36, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundStyle(.white)
                 )
                 .redacted(reason: isLoading ? .placeholder : [])
             
             Text(profile?.displayName ?? profile?.username ?? "User")
                 .font(.system(size: 20, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundStyle(.primary)
                 .redacted(reason: isLoading ? .placeholder : [])
             
             if let username = profile?.username {
                 Text("@\(username)")
                     .font(.system(size: 14))
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundStyle(.secondary)
             }
             
             if let bio = profile?.bio, !bio.isEmpty {
                 Text(bio)
                     .font(.system(size: 14))
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
             }

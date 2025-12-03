@@ -9,6 +9,7 @@ import AuthenticationServices
 struct LoginView: View {
     
     @Binding var isPresented: Bool
+    @Environment(\.colorScheme) private var colorScheme
     @State private var errorAlert: ErrorAlert?
     
     private let auth = AuthService.shared
@@ -19,12 +20,7 @@ struct LoginView: View {
     
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color.black, Color(hex: "1a1a2e")],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            Color.appBackground.ignoresSafeArea()
             
             VStack(spacing: 0) {
                 // Close
@@ -32,9 +28,9 @@ struct LoginView: View {
                     Button { isPresented = false } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundStyle(.secondary)
                             .frame(width: 36, height: 36)
-                            .background(Color.white.opacity(0.1))
+                            .background(Color.secondaryBackground)
                             .clipShape(Circle())
                     }
                     Spacer()
@@ -50,7 +46,7 @@ struct LoginView: View {
                         .font(.system(size: 48, weight: .bold, design: .rounded))
                         .foregroundStyle(
                             LinearGradient(
-                                colors: [.white, Color(hex: "a855f7")],
+                                colors: [.textPrimary, .brand],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
@@ -58,7 +54,7 @@ struct LoginView: View {
                     
                     Text("Sign in to like, collect, and create")
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundStyle(.secondary)
                 }
                 .padding(.bottom, 60)
                 
@@ -74,13 +70,13 @@ struct LoginView: View {
                 
                 Text("By continuing, you agree to our Terms of Service")
                     .font(.caption)
-                    .foregroundColor(.white.opacity(0.4))
+                    .foregroundStyle(.tertiary)
                     .padding(.bottom, 32)
             }
             
             if auth.isLoading {
-                Color.black.opacity(0.5).ignoresSafeArea()
-                ProgressView().tint(.white).scaleEffect(1.5)
+                Color.appBackground.opacity(0.8).ignoresSafeArea()
+                ProgressView().tint(.brand).scaleEffect(1.5)
             }
         }
         .alert(item: $errorAlert) { alert in
@@ -106,7 +102,7 @@ struct LoginView: View {
         } onCompletion: { result in
             Task { await handleAppleSignIn(result) }
         }
-        .signInWithAppleButtonStyle(.white)
+        .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
         .frame(height: 54)
         .cornerRadius(12)
     }
@@ -141,10 +137,10 @@ struct LoginView: View {
                 Text("Sign in with Google")
                     .font(.system(size: 17, weight: .medium))
             }
-            .foregroundColor(.black)
+            .foregroundStyle(colorScheme == .dark ? .black : .white)
             .frame(maxWidth: .infinity)
             .frame(height: 54)
-            .background(Color.white)
+            .background(colorScheme == .dark ? Color.white : Color.black)
             .cornerRadius(12)
         }
     }

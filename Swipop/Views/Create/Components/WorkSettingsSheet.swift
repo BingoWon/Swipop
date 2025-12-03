@@ -76,7 +76,7 @@ struct WorkSettingsSheet: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .background(Color.darkBackground)
+            .background(Color.appBackground)
             .navigationTitle("Work Options")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -125,7 +125,7 @@ struct WorkSettingsSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(Color.darkSheet)
+        .presentationBackground(Color.sheetBackground)
     }
     
     // MARK: - Thumbnail Editor

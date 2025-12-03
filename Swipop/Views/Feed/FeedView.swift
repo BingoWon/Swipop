@@ -23,7 +23,7 @@ struct FeedView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.black.ignoresSafeArea()
+                Color.appBackground.ignoresSafeArea()
                 
                 if isViewingWork {
                     // Fullscreen work viewer (inline, not fullScreenCover)
@@ -212,7 +212,7 @@ struct FeedView: View {
         VStack {
             Spacer()
             ProgressView()
-                .tint(.white)
+                .tint(.primary)
             Spacer()
         }
         .frame(maxWidth: .infinity, minHeight: 400)
@@ -224,15 +224,15 @@ struct FeedView: View {
             
             Image(systemName: "sparkles")
                 .font(.system(size: 48))
-                .foregroundStyle(.white.opacity(0.3))
+                .foregroundStyle(.tertiary)
             
             Text("No works yet")
                 .font(.system(size: 17, weight: .medium))
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(.secondary)
             
             Text("Be the first to create!")
                 .font(.system(size: 14))
-                .foregroundStyle(.white.opacity(0.3))
+                .foregroundStyle(.tertiary)
             
             Spacer()
         }
@@ -259,7 +259,7 @@ struct WorkGridCell: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(work.title.isEmpty ? "Untitled" : work.title)
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                     .lineLimit(2)
                 
                 HStack(spacing: 4) {
@@ -274,7 +274,7 @@ struct WorkGridCell: View {
                     
                     Text(work.creator?.username ?? "user")
                         .font(.system(size: 11))
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(.secondary)
                         .lineLimit(1)
                     
                     Spacer()
@@ -285,14 +285,14 @@ struct WorkGridCell: View {
                         Text(work.likeCount.formatted)
                             .font(.system(size: 11))
                     }
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(.tertiary)
                 }
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 10)
         }
         .frame(width: columnWidth)
-        .background(Color(hex: "1a1a2e"))
+        .background(Color.secondaryBackground)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
     
@@ -307,5 +307,4 @@ struct WorkGridCell: View {
 
 #Preview {
     FeedView(showLogin: .constant(false), isViewingWork: .constant(false))
-        .preferredColorScheme(.dark)
 }

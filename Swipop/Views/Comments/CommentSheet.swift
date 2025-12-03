@@ -23,12 +23,12 @@ struct CommentSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.black.ignoresSafeArea()
+                Color.appBackground.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
                     if isLoading {
                         Spacer()
-                        ProgressView().tint(.white)
+                        ProgressView().tint(.primary)
                         Spacer()
                     } else if comments.isEmpty {
                         emptyState
@@ -36,7 +36,7 @@ struct CommentSheet: View {
                         commentList
                     }
                     
-                    Divider().background(Color.white.opacity(0.2))
+                    Divider().background(Color.border)
                     commentInput
                 }
             }
@@ -46,7 +46,7 @@ struct CommentSheet: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { dismiss() } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.white.opacity(0.6))
+                            .foregroundStyle(.secondary)
                             .font(.title2)
                     }
                 }
@@ -54,7 +54,7 @@ struct CommentSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(.black)
+        .presentationBackground(Color.appBackground)
         .task {
             await loadComments()
         }
@@ -67,12 +67,12 @@ struct CommentSheet: View {
             Spacer()
             Image(systemName: "bubble.left.and.bubble.right")
                 .font(.system(size: 48))
-                .foregroundColor(.white.opacity(0.3))
+                .foregroundStyle(.tertiary)
             Text("No comments yet")
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundStyle(.secondary)
             Text("Be the first to comment!")
                 .font(.caption)
-                .foregroundColor(.white.opacity(0.3))
+                .foregroundStyle(.tertiary)
             Spacer()
         }
     }
@@ -97,33 +97,33 @@ struct CommentSheet: View {
     private var commentInput: some View {
         HStack(spacing: 12) {
             Circle()
-                .fill(Color(hex: "a855f7"))
+                .fill(Color.brand)
                 .frame(width: 32, height: 32)
                 .overlay(
                     Text(auth.currentUser?.email?.prefix(1).uppercased() ?? "?")
                         .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundStyle(.white)
                 )
             
             TextField("Add a comment...", text: $newComment)
                 .textFieldStyle(.plain)
-                .foregroundColor(.white)
+                .foregroundStyle(.primary)
                 .disabled(!auth.isAuthenticated)
             
             Button {
                 Task { await sendComment() }
             } label: {
                 if isSending {
-                    ProgressView().tint(.white)
+                    ProgressView().tint(.primary)
                 } else {
                     Image(systemName: "paperplane.fill")
-                        .foregroundColor(newComment.isEmpty ? .white.opacity(0.3) : Color(hex: "a855f7"))
+                        .foregroundColor(newComment.isEmpty ? Color.secondary : Color.brand)
                 }
             }
             .disabled(newComment.isEmpty || isSending)
         }
         .padding(16)
-        .background(Color.white.opacity(0.05))
+        .background(Color.secondaryBackground.opacity(0.5))
         .onTapGesture {
             if !auth.isAuthenticated {
                 dismiss()
@@ -205,23 +205,23 @@ private struct CommentRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Circle()
-                .fill(Color(hex: "a855f7"))
+                .fill(Color.brand)
                 .frame(width: 36, height: 36)
                 .overlay(
                     Text(comment.user?.username?.prefix(1).uppercased() ?? "?")
                         .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundStyle(.white)
                 )
             
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text("@\(comment.user?.username ?? "user")")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundStyle(.primary)
                     
                     Text(comment.createdAt.timeAgo)
                         .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.4))
+                        .foregroundStyle(.tertiary)
                     
                     Spacer()
                     
@@ -232,19 +232,19 @@ private struct CommentRow: View {
                         } label: {
                             Image(systemName: "trash")
                                 .font(.system(size: 12))
-                                .foregroundColor(.white.opacity(0.4))
+                                .foregroundStyle(.tertiary)
                         }
                     }
                 }
                 
                 Text(comment.content)
                     .font(.system(size: 15))
-                    .foregroundColor(.white.opacity(0.9))
+                    .foregroundStyle(.primary.opacity(0.9))
                 
                 if let replyCount = comment.replyCount, replyCount > 0 {
                     Text("\(replyCount) replies")
                         .font(.system(size: 13))
-                        .foregroundColor(Color(hex: "a855f7"))
+                        .foregroundStyle(Color.brand)
                         .padding(.top, 4)
                 }
             }
@@ -256,4 +256,3 @@ private struct CommentRow: View {
 #Preview {
     CommentSheet(work: .sample, showLogin: .constant(false))
 }
-

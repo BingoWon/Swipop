@@ -27,23 +27,23 @@ struct WorkDetailSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     creatorSection
-                    Divider().background(Color.white.opacity(0.2))
+                    Divider().background(Color.border)
                     workSection
-                    Divider().background(Color.white.opacity(0.2))
+                    Divider().background(Color.border)
                     actionsSection
-                    Divider().background(Color.white.opacity(0.2))
+                    Divider().background(Color.border)
                     sourceCodeSection
                 }
                 .padding(20)
             }
-            .background(Color.black)
+            .background(Color.appBackground)
             .navigationTitle(work.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { dismiss() } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.white.opacity(0.6))
+                            .foregroundStyle(.secondary)
                             .font(.title2)
                     }
                 }
@@ -51,7 +51,7 @@ struct WorkDetailSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(.black)
+        .presentationBackground(Color.appBackground)
         .task {
             await interaction.loadState()
         }
@@ -68,22 +68,22 @@ struct WorkDetailSheet: View {
     private var creatorSection: some View {
         HStack(spacing: 12) {
             Circle()
-                .fill(Color(hex: "a855f7"))
+                .fill(Color.brand)
                 .frame(width: 56, height: 56)
                 .overlay(
                     Text("C")
                         .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundStyle(.white)
                 )
             
             VStack(alignment: .leading, spacing: 4) {
                 Text("@creator")
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundStyle(.primary)
                 
                 Text("Creative Developer")
                     .font(.system(size: 14))
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundStyle(.secondary)
             }
             
             Spacer()
@@ -91,10 +91,10 @@ struct WorkDetailSheet: View {
             Button { requireLogin {} } label: {
                 Text("Follow")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundStyle(.white)
                     .padding(.horizontal, 20)
                     .padding(.vertical, 8)
-                    .background(Color(hex: "a855f7"))
+                    .background(Color.brand)
                     .cornerRadius(20)
             }
         }
@@ -104,12 +104,12 @@ struct WorkDetailSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(work.title)
                 .font(.system(size: 20, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundStyle(.primary)
             
             if let description = work.description {
                 Text(description)
                     .font(.system(size: 15))
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundStyle(.secondary)
                     .lineSpacing(4)
             }
             
@@ -117,14 +117,14 @@ struct WorkDetailSheet: View {
                 ForEach(["#creative", "#webdev", "#animation"], id: \.self) { tag in
                     Text(tag)
                         .font(.system(size: 13))
-                        .foregroundColor(Color(hex: "a855f7"))
+                        .foregroundStyle(Color.brand)
                 }
             }
             .padding(.top, 4)
             
             Text("2 hours ago")
                 .font(.system(size: 13))
-                .foregroundColor(.white.opacity(0.4))
+                .foregroundStyle(.tertiary)
                 .padding(.top, 4)
         }
     }
@@ -135,14 +135,14 @@ struct WorkDetailSheet: View {
             StatActionTile(
                 icon: "eye",
                 count: work.viewCount,
-                tint: .white
+                tint: .primary
             )
             
             // Like
             StatActionTile(
                 icon: interaction.isLiked ? "heart.fill" : "heart",
                 count: interaction.likeCount,
-                tint: interaction.isLiked ? .red : .white
+                tint: interaction.isLiked ? .red : .primary
             ) {
                 requireLogin {
                     Task { await interaction.toggleLike() }
@@ -153,7 +153,7 @@ struct WorkDetailSheet: View {
             StatActionTile(
                 icon: "bubble.right",
                 count: work.commentCount,
-                tint: .white
+                tint: .primary
             ) {
                 showComments = true
             }
@@ -162,7 +162,7 @@ struct WorkDetailSheet: View {
             StatActionTile(
                 icon: interaction.isCollected ? "bookmark.fill" : "bookmark",
                 count: interaction.collectCount,
-                tint: interaction.isCollected ? .yellow : .white
+                tint: interaction.isCollected ? .yellow : .primary
             ) {
                 requireLogin {
                     Task { await interaction.toggleCollect() }
@@ -173,7 +173,7 @@ struct WorkDetailSheet: View {
             StatActionTile(
                 icon: "square.and.arrow.up",
                 count: work.shareCount,
-                tint: .white
+                tint: .primary
             ) {
                 showShareSheet = true
             }
@@ -185,10 +185,10 @@ struct WorkDetailSheet: View {
             // Header
             HStack {
                 Image(systemName: "chevron.left.forwardslash.chevron.right")
-                    .foregroundStyle(Color(hex: "a855f7"))
+                    .foregroundStyle(Color.brand)
                 Text("Source Code")
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
             }
             
             // Segmented Picker
@@ -205,7 +205,7 @@ struct WorkDetailSheet: View {
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                        .stroke(Color.border, lineWidth: 1)
                 )
         }
     }
@@ -237,7 +237,7 @@ struct WorkDetailSheet: View {
 private struct StatActionTile: View {
     let icon: String
     let count: Int
-    var tint: Color = .white
+    var tint: Color = .primary
     var action: (() -> Void)?
     
     var body: some View {
@@ -258,7 +258,7 @@ private struct StatActionTile: View {
                 .foregroundStyle(tint)
             Text(count.formatted)
                 .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(.secondary)
         }
     }
 }
