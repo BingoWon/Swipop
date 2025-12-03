@@ -83,18 +83,11 @@ private struct CodeTextView: UIViewRepresentable {
         textView.characterPairs = []
         textView.gutterLeadingPadding = 12
         textView.gutterTrailingPadding = 8
-        
-        // Top inset for status bar, bottom for home indicator
-        let window = UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .first?.windows.first
-        let topInset = window?.safeAreaInsets.top ?? 44
-        let bottomInset = window?.safeAreaInsets.bottom ?? 34
-        textView.textContainerInset = UIEdgeInsets(top: topInset + 8, left: 4, bottom: bottomInset + 8, right: 12)
+        textView.textContainerInset = UIEdgeInsets(top: 8, left: 4, bottom: 8, right: 12)
         textView.theme = CodeTheme()
         
-        // Allow scrolling under safe areas
-        textView.contentInsetAdjustmentBehavior = .never
+        // Use automatic adjustment like WebView - scrolls under safe areas
+        textView.contentInsetAdjustmentBehavior = .scrollableAxes
         
         if isEditable {
             textView.editorDelegate = context.coordinator
