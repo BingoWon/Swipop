@@ -112,7 +112,7 @@ struct CreateView: View {
         case .chat:
             ChatEditorView(chatViewModel: chatViewModel, showSuggestions: true, isInputFocused: $isInputFocused)
         case .preview:
-            WorkPreviewView(html: workEditor.html, css: workEditor.css, javascript: workEditor.javascript)
+            WorkPreviewView(workEditor: workEditor)
         case .html:
             RunestoneCodeView(language: .html, code: $workEditor.html, isEditable: true)
         case .css:

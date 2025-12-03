@@ -9,9 +9,7 @@ import SwiftUI
 import WebKit
 
 struct WorkPreviewView: View {
-    let html: String
-    let css: String
-    let javascript: String
+    @Bindable var workEditor: WorkEditorViewModel
     
     private var fullHTML: String {
         """
@@ -28,19 +26,28 @@ struct WorkPreviewView: View {
                     color: white;
                     font-family: -apple-system, BlinkMacSystemFont, sans-serif;
                 }
-                \(css)
+                \(workEditor.css)
             </style>
         </head>
         <body>
-            \(html)
-            <script>\(javascript)</script>
+            \(workEditor.html)
+            <script>\(workEditor.javascript)</script>
         </body>
         </html>
         """
     }
     
     private var isEmpty: Bool {
-        html.isEmpty && css.isEmpty && javascript.isEmpty
+        workEditor.html.isEmpty && workEditor.css.isEmpty && workEditor.javascript.isEmpty
+    }
+    
+    /// Content hash for change detection
+    private var contentHash: Int {
+        var hasher = Hasher()
+        hasher.combine(workEditor.html)
+        hasher.combine(workEditor.css)
+        hasher.combine(workEditor.javascript)
+        return hasher.finalize()
     }
     
     var body: some View {
@@ -48,6 +55,7 @@ struct WorkPreviewView: View {
             emptyState
         } else {
             WebViewRepresentable(html: fullHTML)
+                .id(contentHash)  // Force recreation on content change
                 .ignoresSafeArea()
         }
     }
@@ -82,19 +90,16 @@ private struct WebViewRepresentable: UIViewRepresentable {
         webView.isOpaque = false
         webView.backgroundColor = .clear
         webView.scrollView.backgroundColor = .clear
+        webView.loadHTMLString(html, baseURL: nil)
         return webView
     }
     
     func updateUIView(_ webView: WKWebView, context: Context) {
-        webView.loadHTMLString(html, baseURL: nil)
+        // Handled by .id() modifier - view is recreated on change
     }
 }
 
 #Preview {
-    WorkPreviewView(
-        html: "<h1>Hello World</h1><p>This is a preview</p>",
-        css: "h1 { color: #a855f7; } p { color: #888; }",
-        javascript: ""
-    )
+    WorkPreviewView(workEditor: WorkEditorViewModel())
 }
 
