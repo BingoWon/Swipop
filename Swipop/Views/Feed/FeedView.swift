@@ -247,8 +247,7 @@ struct WorkGridCell: View {
     let columnWidth: CGFloat
     
     private var imageHeight: CGFloat {
-        let aspectRatio = work.coverAspectRatio ?? 1.0
-        return columnWidth / aspectRatio
+        columnWidth / (work.thumbnailAspectRatio ?? 0.75)
     }
     
     var body: some View {

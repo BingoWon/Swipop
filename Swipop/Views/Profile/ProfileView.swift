@@ -63,17 +63,21 @@ struct ProfileContentView: View {
     @State private var showEditProfile = false
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                ProfileHeaderView(profile: userProfile.profile)
-                ProfileStatsRow(
-                    workCount: userProfile.workCount,
-                    followerCount: userProfile.followerCount,
-                    followingCount: userProfile.followingCount
-                )
-                actionButtons
-                contentTabs
-                workGrid
+        GeometryReader { geometry in
+            let columnWidth = (geometry.size.width - 8) / 3 // 3 columns, 2px spacing * 4
+            
+            ScrollView {
+                VStack(spacing: 0) {
+                    ProfileHeaderView(profile: userProfile.profile)
+                    ProfileStatsRow(
+                        workCount: userProfile.workCount,
+                        followerCount: userProfile.followerCount,
+                        followingCount: userProfile.followingCount
+                    )
+                    actionButtons
+                    contentTabs
+                    workMasonryGrid(columnWidth: columnWidth)
+                }
             }
         }
         .background(Color.black)
@@ -95,7 +99,6 @@ struct ProfileContentView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItemGroup(placement: .topBarTrailing) {
-            // Refresh button or indicator
             if userProfile.isRefreshing {
                 ProgressView()
                     .scaleEffect(0.8)
@@ -155,20 +158,14 @@ struct ProfileContentView: View {
         .padding(.horizontal, 16)
     }
     
-    // MARK: - Work Grid
+    // MARK: - Work Masonry Grid
     
-    private var workGrid: some View {
-        LazyVGrid(columns: [
-            GridItem(.flexible(), spacing: 2),
-            GridItem(.flexible(), spacing: 2),
-            GridItem(.flexible(), spacing: 2)
-        ], spacing: 2) {
-            ForEach(currentItems) { work in
-                WorkThumbnail(work: work, showDraftBadge: !work.isPublished)
-                    .onTapGesture {
-                        editWork(work)
-                    }
-            }
+    private func workMasonryGrid(columnWidth: CGFloat) -> some View {
+        MasonryGrid(works: currentItems, columnWidth: columnWidth, columns: 3, spacing: 2) { work in
+            ProfileWorkCell(work: work, columnWidth: columnWidth, showDraftBadge: !work.isPublished)
+                .onTapGesture {
+                    editWork(work)
+                }
         }
         .padding(.top, 2)
     }
@@ -179,6 +176,74 @@ struct ProfileContentView: View {
         case 2: return userProfile.collectedWorks
         default: return userProfile.works
         }
+    }
+}
+
+// MARK: - Profile Work Cell (Cover only, minimal)
+
+struct ProfileWorkCell: View {
+    let work: Work
+    let columnWidth: CGFloat
+    var showDraftBadge = false
+    
+    private var imageHeight: CGFloat {
+        columnWidth / (work.thumbnailAspectRatio ?? 0.75)
+    }
+    
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            coverImage
+                .frame(width: columnWidth, height: imageHeight)
+                .clipped()
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+            
+            if showDraftBadge {
+                Text("Draft")
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundColor(.black)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .background(Color.orange)
+                    .cornerRadius(3)
+                    .padding(3)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var coverImage: some View {
+        if let urlString = work.thumbnailUrl, let url = URL(string: urlString) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image.resizable().scaledToFill()
+                case .failure, .empty:
+                    placeholderImage
+                @unknown default:
+                    placeholderImage
+                }
+            }
+        } else {
+            placeholderImage
+        }
+    }
+    
+    private var placeholderImage: some View {
+        ZStack {
+            Color(hex: "1a1a2e")
+            
+            Text(displayText)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(.white.opacity(0.3))
+        }
+    }
+    
+    private var displayText: String {
+        if !work.title.isEmpty { return String(work.title.prefix(2)).uppercased() }
+        if work.htmlContent?.isEmpty == false { return "H" }
+        if work.cssContent?.isEmpty == false { return "C" }
+        if work.jsContent?.isEmpty == false { return "J" }
+        return "?"
     }
 }
 

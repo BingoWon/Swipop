@@ -16,15 +16,16 @@ struct WorkSettingsSheet: View {
     @State private var tagInput = ""
     @State private var showDeleteConfirmation = false
     @State private var selectedPhoto: PhotosPickerItem?
+    @State private var isSaving = false
     
     var body: some View {
         NavigationStack {
             Form {
-                // Cover
+                // Thumbnail
                 Section {
-                    coverEditor
+                    thumbnailEditor
                 } header: {
-                    Label("Cover", systemImage: "photo")
+                    Label("Thumbnail", systemImage: "photo")
                 }
                 
                 // Details
@@ -79,9 +80,28 @@ struct WorkSettingsSheet: View {
             .navigationTitle("Work Options")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundStyle(.white.opacity(0.6))
+                }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                        .fontWeight(.semibold)
+                    Button {
+                        Task {
+                            isSaving = true
+                            await workEditor.save()
+                            isSaving = false
+                            dismiss()
+                        }
+                    } label: {
+                        if isSaving {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        } else {
+                            Text("Save")
+                                .fontWeight(.semibold)
+                        }
+                    }
+                    .disabled(isSaving)
                 }
             }
             .confirmationDialog(
@@ -108,60 +128,56 @@ struct WorkSettingsSheet: View {
         .presentationBackground(Color.darkSheet)
     }
     
-    // MARK: - Cover Editor
+    // MARK: - Thumbnail Editor
     
     private var captureDisabled: Bool {
-        workEditor.previewWebView == nil || !workEditor.hasCode || workEditor.isCapturingCover
+        workEditor.previewWebView == nil || !workEditor.hasCode || workEditor.isCapturingThumbnail
     }
     
-    private var coverEditor: some View {
+    private var thumbnailEditor: some View {
         VStack(spacing: 12) {
-            // Preview
-            coverPreview
+            thumbnailPreview
             
-            // Actions
-            HStack(spacing: 12) {
-                // Capture from preview
+            VStack(spacing: 8) {
                 Button {
                     Task {
-                        await workEditor.captureCover()
+                        await workEditor.captureThumbnail()
                     }
                 } label: {
-                    Label("Capture", systemImage: "camera.viewfinder")
+                    Label("Capture from Preview", systemImage: "camera.viewfinder")
                         .font(.system(size: 14, weight: .medium))
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
+                        .padding(.vertical, 12)
                         .background(captureDisabled ? Color.white.opacity(0.05) : Color.brand.opacity(0.2))
                         .foregroundStyle(captureDisabled ? .white.opacity(0.3) : Color.brand)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
+                .buttonStyle(.plain)
                 .disabled(captureDisabled)
                 
-                // Upload from photos
                 PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                    Label("Upload", systemImage: "photo.on.rectangle")
+                    Label("Upload from Photos", systemImage: "photo.on.rectangle")
                         .font(.system(size: 14, weight: .medium))
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
+                        .padding(.vertical, 12)
                         .background(Color.white.opacity(0.1))
                         .foregroundStyle(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
+                .buttonStyle(.plain)
             }
             
-            // Hint when capture is disabled
-            if captureDisabled && !workEditor.isCapturingCover {
+            if captureDisabled && !workEditor.isCapturingThumbnail {
                 Text("Visit Preview tab first to enable capture")
                     .font(.system(size: 12))
                     .foregroundStyle(.white.opacity(0.4))
             }
             
-            // Remove button (if has cover)
-            if workEditor.hasCover {
+            if workEditor.hasThumbnail {
                 Button(role: .destructive) {
-                    workEditor.removeCover()
+                    workEditor.removeThumbnail()
                 } label: {
-                    Text("Remove Cover")
+                    Text("Remove Thumbnail")
                         .font(.system(size: 13))
                 }
             }
@@ -170,20 +186,18 @@ struct WorkSettingsSheet: View {
     }
     
     @ViewBuilder
-    private var coverPreview: some View {
+    private var thumbnailPreview: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color.white.opacity(0.05))
             
-            if let image = workEditor.coverImage {
-                // Local image (not yet uploaded)
+            if let image = workEditor.thumbnailImage {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
                     .clipShape(RoundedRectangle(cornerRadius: 12))
-            } else if let urlString = workEditor.coverUrl,
+            } else if let urlString = workEditor.thumbnailUrl,
                       let url = URL(string: urlString) {
-                // Remote image
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let image):
@@ -192,19 +206,18 @@ struct WorkSettingsSheet: View {
                             .scaledToFill()
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     case .failure:
-                        coverPlaceholder
+                        thumbnailPlaceholder
                     case .empty:
                         ProgressView()
                     @unknown default:
-                        coverPlaceholder
+                        thumbnailPlaceholder
                     }
                 }
             } else {
-                coverPlaceholder
+                thumbnailPlaceholder
             }
             
-            // Capturing indicator
-            if workEditor.isCapturingCover {
+            if workEditor.isCapturingThumbnail {
                 Color.black.opacity(0.5)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                 ProgressView()
@@ -216,12 +229,12 @@ struct WorkSettingsSheet: View {
         .frame(maxWidth: .infinity)
     }
     
-    private var coverPlaceholder: some View {
+    private var thumbnailPlaceholder: some View {
         VStack(spacing: 8) {
             Image(systemName: "photo")
                 .font(.system(size: 32))
                 .foregroundStyle(.white.opacity(0.3))
-            Text("No cover")
+            Text("No thumbnail")
                 .font(.system(size: 13))
                 .foregroundStyle(.white.opacity(0.4))
         }
@@ -233,7 +246,7 @@ struct WorkSettingsSheet: View {
         do {
             if let data = try await item.loadTransferable(type: Data.self),
                let image = UIImage(data: data) {
-                workEditor.setCover(image: image)
+                workEditor.setThumbnail(image: image)
             }
         } catch {
             print("Failed to load photo: \(error)")

@@ -1,49 +1,51 @@
 //
-//  CoverService.swift
+//  ThumbnailService.swift
 //  Swipop
 //
-//  Service for capturing, cropping, and uploading work covers
+//  Service for capturing, cropping, and uploading work thumbnails
 //
 
 import UIKit
 import WebKit
 import Supabase
 
-actor CoverService {
+/// Result of thumbnail upload: URL and aspect ratio
+struct ThumbnailUploadResult {
+    let url: String
+    let aspectRatio: CGFloat  // width / height
+}
+
+actor ThumbnailService {
     
-    static let shared = CoverService()
+    static let shared = ThumbnailService()
     
     private let supabase = SupabaseService.shared.client
     private let bucket = "thumbnails"
-    
-    /// Aspect ratio constraints: 4:3 to 3:4
-    private let minAspectRatio: CGFloat = 3.0 / 4.0  // 0.75 (portrait)
-    private let maxAspectRatio: CGFloat = 4.0 / 3.0  // 1.33 (landscape)
     
     private init() {}
     
     // MARK: - Public API
     
-    /// Capture screenshot from WKWebView, crop to valid ratio, upload to storage
+    /// Capture screenshot from WKWebView and return cropped image (for preview)
     @MainActor
-    func captureAndUpload(from webView: WKWebView, workId: UUID) async throws -> String {
-        // 1. Capture screenshot
+    func capture(from webView: WKWebView) async throws -> UIImage {
         let screenshot = try await captureScreenshot(from: webView)
-        
-        // 2. Crop to valid aspect ratio
-        let cropped = Self.cropToValidRatio(screenshot)
-        
-        // 3. Upload to storage
-        return try await upload(image: cropped, workId: workId)
+        return Self.cropToValidRatio(screenshot)
     }
     
-    /// Process uploaded image: crop to valid ratio and upload
-    func processAndUpload(image: UIImage, workId: UUID) async throws -> String {
-        // 1. Crop to valid aspect ratio
+    /// Process and upload image to storage
+    func upload(image: UIImage, workId: UUID) async throws -> ThumbnailUploadResult {
         let cropped = Self.cropToValidRatio(image)
-        
-        // 2. Upload to storage
-        return try await upload(image: cropped, workId: workId)
+        let aspectRatio = cropped.size.width / cropped.size.height
+        let url = try await uploadToStorage(image: cropped, workId: workId)
+        return ThumbnailUploadResult(url: url, aspectRatio: aspectRatio)
+    }
+    
+    /// Delete thumbnail from storage
+    func delete(workId: UUID) async throws {
+        guard let userId = try? await supabase.auth.session.user.id else { return }
+        let path = "\(userId.uuidString)/\(workId.uuidString).jpg"
+        try await supabase.storage.from(bucket).remove(paths: [path])
     }
     
     // MARK: - Screenshot Capture
@@ -56,11 +58,11 @@ actor CoverService {
             
             webView.takeSnapshot(with: config) { image, error in
                 if let error {
-                    continuation.resume(throwing: CoverError.captureFailed(error))
+                    continuation.resume(throwing: ThumbnailError.captureFailed(error))
                 } else if let image {
                     continuation.resume(returning: image)
                 } else {
-                    continuation.resume(throwing: CoverError.noImage)
+                    continuation.resume(throwing: ThumbnailError.noImage)
                 }
             }
         }
@@ -68,11 +70,10 @@ actor CoverService {
     
     // MARK: - Aspect Ratio Cropping
     
-    /// Crop image to valid aspect ratio (4:3 to 3:4) - Static for synchronous access
+    /// Crop image to valid aspect ratio (3:4 to 4:3) - Static for synchronous access
     static func cropToValidRatio(_ image: UIImage) -> UIImage {
         let minRatio: CGFloat = 3.0 / 4.0  // 0.75 (portrait)
         let maxRatio: CGFloat = 4.0 / 3.0  // 1.33 (landscape)
-        
         let currentRatio = image.size.width / image.size.height
         
         // Already within valid range
@@ -80,15 +81,7 @@ actor CoverService {
             return image
         }
         
-        let targetRatio: CGFloat
-        if currentRatio < minRatio {
-            // Too tall (portrait), crop to 3:4
-            targetRatio = minRatio
-        } else {
-            // Too wide (landscape), crop to 4:3
-            targetRatio = maxRatio
-        }
-        
+        let targetRatio = currentRatio < minRatio ? minRatio : maxRatio
         return cropToRatio(image, targetRatio: targetRatio)
     }
     
@@ -125,56 +118,29 @@ actor CoverService {
         return UIImage(cgImage: cgImage, scale: image.scale, orientation: image.imageOrientation)
     }
     
-    // MARK: - Upload
+    // MARK: - Storage Upload
     
-    private func upload(image: UIImage, workId: UUID) async throws -> String {
-        // Compress to JPEG
+    private func uploadToStorage(image: UIImage, workId: UUID) async throws -> String {
         guard let data = image.jpegData(compressionQuality: 0.8) else {
-            throw CoverError.compressionFailed
+            throw ThumbnailError.compressionFailed
         }
         
-        // Get user ID for path
         guard let userId = try? await supabase.auth.session.user.id else {
-            throw CoverError.notAuthenticated
+            throw ThumbnailError.notAuthenticated
         }
         
-        // Path: {userId}/{workId}.jpg
-        let path = "\(userId.uuidString)/\(workId.uuidString).jpg"
-        
-        // Upload (upsert to replace existing)
-        try await supabase.storage
-            .from(bucket)
-            .upload(
-                path,
-                data: data,
-                options: FileOptions(
-                    contentType: "image/jpeg",
-                    upsert: true
-                )
-            )
-        
-        // Return public URL
-        let publicUrl = try supabase.storage
-            .from(bucket)
-            .getPublicURL(path: path)
-        
-        return publicUrl.absoluteString
-    }
-    
-    // MARK: - Delete
-    
-    func delete(workId: UUID) async throws {
-        guard let userId = try? await supabase.auth.session.user.id else { return }
         let path = "\(userId.uuidString)/\(workId.uuidString).jpg"
         
         try await supabase.storage
             .from(bucket)
-            .remove(paths: [path])
+            .upload(path, data: data, options: FileOptions(contentType: "image/jpeg", upsert: true))
+        
+        return try supabase.storage.from(bucket).getPublicURL(path: path).absoluteString
     }
     
     // MARK: - Errors
     
-    enum CoverError: LocalizedError {
+    enum ThumbnailError: LocalizedError {
         case captureFailed(Error)
         case noImage
         case compressionFailed
@@ -190,4 +156,3 @@ actor CoverService {
         }
     }
 }
-

@@ -16,6 +16,7 @@ struct Work: Identifiable, Equatable {
     var cssContent: String?
     var jsContent: String?
     var thumbnailUrl: String?
+    var thumbnailAspectRatio: CGFloat?  // width / height, range: 0.75 ~ 1.33
     var tags: [String]?
     var chatMessages: [[String: Any]]?
     var isPublished: Bool
@@ -54,6 +55,7 @@ struct Work: Identifiable, Equatable {
         case cssContent = "css_content"
         case jsContent = "js_content"
         case thumbnailUrl = "thumbnail_url"
+        case thumbnailAspectRatio = "thumbnail_aspect_ratio"
         case tags
         case chatMessages = "chat_messages"
         case isPublished = "is_published"
@@ -81,6 +83,11 @@ extension Work: Codable {
         cssContent = try container.decodeIfPresent(String.self, forKey: .cssContent)
         jsContent = try container.decodeIfPresent(String.self, forKey: .jsContent)
         thumbnailUrl = try container.decodeIfPresent(String.self, forKey: .thumbnailUrl)
+        if let ratio = try container.decodeIfPresent(Double.self, forKey: .thumbnailAspectRatio) {
+            thumbnailAspectRatio = CGFloat(ratio)
+        } else {
+            thumbnailAspectRatio = nil
+        }
         tags = try container.decodeIfPresent([String].self, forKey: .tags)
         isPublished = try container.decodeIfPresent(Bool.self, forKey: .isPublished) ?? false
         viewCount = try container.decodeIfPresent(Int.self, forKey: .viewCount) ?? 0
@@ -123,6 +130,9 @@ extension Work: Codable {
         try container.encodeIfPresent(cssContent, forKey: .cssContent)
         try container.encodeIfPresent(jsContent, forKey: .jsContent)
         try container.encodeIfPresent(thumbnailUrl, forKey: .thumbnailUrl)
+        if let ratio = thumbnailAspectRatio {
+            try container.encode(Double(ratio), forKey: .thumbnailAspectRatio)
+        }
         try container.encodeIfPresent(tags, forKey: .tags)
         try container.encode(isPublished, forKey: .isPublished)
         try container.encode(viewCount, forKey: .viewCount)

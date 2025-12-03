@@ -48,10 +48,7 @@ struct MasonryGrid<Item: Identifiable, Content: View>: View {
         var columnItems: [[Item]] = Array(repeating: [], count: columns)
         
         for item in items {
-            // Find the shortest column
             let shortestColumn = columnHeights.enumerated().min(by: { $0.element < $1.element })?.offset ?? 0
-            
-            // Add item to shortest column
             columnItems[shortestColumn].append(item)
             columnHeights[shortestColumn] += heightProvider(item) + spacing
         }
@@ -60,11 +57,14 @@ struct MasonryGrid<Item: Identifiable, Content: View>: View {
     }
 }
 
-// MARK: - Work-specific extension
+// MARK: - Work-specific convenience initializers
 
 extension MasonryGrid where Item == Work {
     
-    /// Convenience initializer for Work items with automatic height calculation
+    /// Default aspect ratio when thumbnail_aspect_ratio is not set
+    private static var defaultAspectRatio: CGFloat { 0.75 }  // 3:4 portrait
+    
+    /// Discover page: 2 columns with title and creator info
     init(
         works: [Work],
         columnWidth: CGFloat,
@@ -77,31 +77,31 @@ extension MasonryGrid where Item == Work {
             spacing: spacing,
             content: content,
             heightProvider: { work in
-                // Calculate cell height based on cover aspect ratio
-                // Cover aspect ratio: 3:4 (0.75) to 4:3 (1.33)
-                // Default to 1:1 if no cover
-                let aspectRatio = work.coverAspectRatio ?? 1.0
-                let imageHeight = columnWidth / aspectRatio
+                let ratio = work.thumbnailAspectRatio ?? Self.defaultAspectRatio
+                let imageHeight = columnWidth / ratio
                 let infoHeight: CGFloat = 60 // Title + creator info
                 return imageHeight + infoHeight
             }
         )
     }
-}
-
-// MARK: - Work extension for aspect ratio
-
-extension Work {
-    /// Cover image aspect ratio (width / height)
-    /// Returns nil if no cover, defaults handled by caller
-    var coverAspectRatio: CGFloat? {
-        // For now, return a default ratio
-        // In production, this would be stored with the thumbnail URL
-        // or extracted from image metadata
-        guard thumbnailUrl != nil else { return nil }
-        
-        // Default to 3:4 portrait (0.75) as most common for mobile screenshots
-        return 0.75
+    
+    /// Profile page: custom columns, thumbnail only (no info)
+    init(
+        works: [Work],
+        columnWidth: CGFloat,
+        columns: Int,
+        spacing: CGFloat = 2,
+        @ViewBuilder content: @escaping (Work) -> Content
+    ) {
+        self.init(
+            items: works,
+            columns: columns,
+            spacing: spacing,
+            content: content,
+            heightProvider: { work in
+                let ratio = work.thumbnailAspectRatio ?? Self.defaultAspectRatio
+                return columnWidth / ratio
+            }
+        )
     }
 }
-

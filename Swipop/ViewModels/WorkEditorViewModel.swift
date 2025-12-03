@@ -14,7 +14,6 @@ final class WorkEditorViewModel {
     
     // MARK: - Identity
     
-    /// Work ID (nil for new unsaved work)
     var workId: UUID?
     
     // MARK: - Content
@@ -25,7 +24,6 @@ final class WorkEditorViewModel {
     
     // MARK: - Chat
     
-    /// Chat messages for this work (stored as JSON)
     var chatMessages: [[String: Any]] = []
     
     // MARK: - Metadata
@@ -35,13 +33,13 @@ final class WorkEditorViewModel {
     var tags: [String] = [] { didSet { if tags != oldValue { isDirty = true } } }
     var isPublished = false { didSet { if isPublished != oldValue { isDirty = true } } }
     
-    // MARK: - Cover
+    // MARK: - Thumbnail
     
-    var coverUrl: String?
-    var coverImage: UIImage?  // Local image before upload
-    var isCapturingCover = false
+    var thumbnailUrl: String?
+    var thumbnailAspectRatio: CGFloat?
+    var thumbnailImage: UIImage?
+    var isCapturingThumbnail = false
     
-    /// Reference to preview WebView for screenshot capture
     weak var previewWebView: WKWebView?
     
     // MARK: - State
@@ -53,86 +51,47 @@ final class WorkEditorViewModel {
     
     // MARK: - Computed
     
-    /// Check if code files have any content
-    var hasCode: Bool {
-        !html.isEmpty || !css.isEmpty || !javascript.isEmpty
-    }
-    
-    /// Check if metadata has any content
-    var hasMetadata: Bool {
-        !title.isEmpty || !description.isEmpty || !tags.isEmpty
-    }
-    
-    /// Check if chat has any messages (excluding system prompt)
-    var hasChat: Bool {
-        chatMessages.contains { ($0["role"] as? String) != "system" }
-    }
-    
-    /// Work exists if any content is present
-    /// 作品存在条件 = 会话非空 ∨ Metadata非空 ∨ 代码非空
-    var hasContent: Bool {
-        hasChat || hasMetadata || hasCode
-    }
-    
-    /// Whether this is a new work (not yet saved to database)
+    var hasCode: Bool { !html.isEmpty || !css.isEmpty || !javascript.isEmpty }
+    var hasMetadata: Bool { !title.isEmpty || !description.isEmpty || !tags.isEmpty }
+    var hasChat: Bool { chatMessages.contains { ($0["role"] as? String) != "system" } }
+    var hasContent: Bool { hasChat || hasMetadata || hasCode }
     var isNew: Bool { workId == nil }
+    var hasThumbnail: Bool { thumbnailUrl != nil || thumbnailImage != nil }
     
-    /// Has cover (either URL or local image)
-    var hasCover: Bool {
-        coverUrl != nil || coverImage != nil
-    }
+    // MARK: - Thumbnail Actions
     
-    // MARK: - Cover Actions
-    
-    /// Capture cover from preview WebView
-    func captureCover() async {
+    func captureThumbnail() async {
         guard let webView = previewWebView else { return }
         
-        isCapturingCover = true
-        defer { isCapturingCover = false }
+        isCapturingThumbnail = true
+        defer { isCapturingThumbnail = false }
         
         do {
-            // Capture screenshot
-            let config = WKSnapshotConfiguration()
-            config.rect = webView.bounds
-            
-            let screenshot: UIImage = try await withCheckedThrowingContinuation { continuation in
-                webView.takeSnapshot(with: config) { image, error in
-                    if let error {
-                        continuation.resume(throwing: error)
-                    } else if let image {
-                        continuation.resume(returning: image)
-                    } else {
-                        continuation.resume(throwing: CoverService.CoverError.noImage)
-                    }
-                }
-            }
-            
-            // Crop to valid ratio immediately for accurate preview
-            coverImage = CoverService.cropToValidRatio(screenshot)
+            let cropped = try await ThumbnailService.shared.capture(from: webView)
+            thumbnailImage = cropped
+            thumbnailAspectRatio = cropped.size.width / cropped.size.height
             isDirty = true
         } catch {
-            print("Cover capture failed: \(error)")
+            saveError = error
         }
     }
     
-    /// Set cover from photo picker (auto-crops to valid ratio)
-    func setCover(image: UIImage) {
-        // Crop to valid ratio (4:3 ~ 3:4) immediately for accurate preview
-        coverImage = CoverService.cropToValidRatio(image)
+    func setThumbnail(image: UIImage) {
+        let cropped = ThumbnailService.cropToValidRatio(image)
+        thumbnailImage = cropped
+        thumbnailAspectRatio = cropped.size.width / cropped.size.height
         isDirty = true
     }
     
-    /// Remove cover
-    func removeCover() {
-        coverImage = nil
-        coverUrl = nil
+    func removeThumbnail() {
+        thumbnailImage = nil
+        thumbnailUrl = nil
+        thumbnailAspectRatio = nil
         isDirty = true
     }
     
-    // MARK: - Actions
+    // MARK: - Save
     
-    /// Save work to database (with cover upload if needed)
     func save() async {
         guard hasContent else { return }
         
@@ -141,50 +100,40 @@ final class WorkEditorViewModel {
         defer { isSaving = false }
         
         do {
-            // Ensure we have a work ID for cover upload
+            // Create work if new
             let effectiveWorkId: UUID
-            
             if let existingId = workId {
                 effectiveWorkId = existingId
             } else {
-                // Create work first to get ID
                 effectiveWorkId = try await WorkService.shared.createWork(
-                    title: title,
-                    description: description,
-                    tags: tags,
-                    html: html,
-                    css: css,
-                    javascript: javascript,
-                    chatMessages: chatMessages,
-                    isPublished: isPublished,
-                    coverUrl: nil
+                    title: title, description: description, tags: tags,
+                    html: html, css: css, javascript: javascript,
+                    chatMessages: chatMessages, isPublished: isPublished,
+                    thumbnailUrl: nil, thumbnailAspectRatio: nil
                 )
                 workId = effectiveWorkId
             }
             
-            // Upload cover if we have a local image
-            var finalCoverUrl = coverUrl
-            if let image = coverImage {
-                finalCoverUrl = try await CoverService.shared.processAndUpload(
-                    image: image,
-                    workId: effectiveWorkId
-                )
-                coverUrl = finalCoverUrl
-                coverImage = nil  // Clear local image after upload
+            // Upload thumbnail if needed
+            var finalThumbnailUrl = thumbnailUrl
+            var finalAspectRatio = thumbnailAspectRatio
+            
+            if let image = thumbnailImage {
+                let result = try await ThumbnailService.shared.upload(image: image, workId: effectiveWorkId)
+                finalThumbnailUrl = result.url
+                finalAspectRatio = result.aspectRatio
+                thumbnailUrl = result.url
+                thumbnailAspectRatio = result.aspectRatio
+                thumbnailImage = nil
             }
             
-            // Update work with all data including cover URL
+            // Update work
             try await WorkService.shared.updateWork(
                 id: effectiveWorkId,
-                title: title,
-                description: description,
-                tags: tags,
-                html: html,
-                css: css,
-                javascript: javascript,
-                chatMessages: chatMessages,
-                isPublished: isPublished,
-                coverUrl: finalCoverUrl
+                title: title, description: description, tags: tags,
+                html: html, css: css, javascript: javascript,
+                chatMessages: chatMessages, isPublished: isPublished,
+                thumbnailUrl: finalThumbnailUrl, thumbnailAspectRatio: finalAspectRatio
             )
             
             isDirty = false
@@ -194,15 +143,13 @@ final class WorkEditorViewModel {
         }
     }
     
-    /// Save if has content, then reset
     func saveAndReset() async {
-        if hasContent {
-            await save()
-        }
+        if hasContent { await save() }
         reset()
     }
     
-    /// Reset to empty state for new work
+    // MARK: - Reset & Load
+    
     func reset() {
         workId = nil
         html = ""
@@ -213,15 +160,15 @@ final class WorkEditorViewModel {
         description = ""
         tags = []
         isPublished = false
-        coverUrl = nil
-        coverImage = nil
+        thumbnailUrl = nil
+        thumbnailAspectRatio = nil
+        thumbnailImage = nil
         isDirty = false
         lastSaved = nil
         saveError = nil
         previewWebView = nil
     }
     
-    /// Load work from database
     func load(work: Work) {
         workId = work.id
         title = work.title
@@ -232,13 +179,13 @@ final class WorkEditorViewModel {
         javascript = work.jsContent ?? ""
         chatMessages = work.chatMessages ?? []
         isPublished = work.isPublished
-        coverUrl = work.thumbnailUrl
-        coverImage = nil
+        thumbnailUrl = work.thumbnailUrl
+        thumbnailAspectRatio = work.thumbnailAspectRatio
+        thumbnailImage = nil
         isDirty = false
         lastSaved = work.updatedAt
     }
     
-    /// Mark as dirty when content changes
     func markDirty() {
         isDirty = true
     }

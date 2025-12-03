@@ -21,17 +21,21 @@ struct UserProfileView: View {
     }
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                ProfileHeaderView(profile: viewModel.profile, isLoading: viewModel.isLoading)
-                ProfileStatsRow(
-                    workCount: viewModel.workCount,
-                    followerCount: viewModel.followerCount,
-                    followingCount: viewModel.followingCount,
-                    isLoading: viewModel.isLoading
-                )
-                actionButtons
-                workGrid
+        GeometryReader { geometry in
+            let columnWidth = (geometry.size.width - 8) / 3
+            
+            ScrollView {
+                VStack(spacing: 0) {
+                    ProfileHeaderView(profile: viewModel.profile, isLoading: viewModel.isLoading)
+                    ProfileStatsRow(
+                        workCount: viewModel.workCount,
+                        followerCount: viewModel.followerCount,
+                        followingCount: viewModel.followingCount,
+                        isLoading: viewModel.isLoading
+                    )
+                    actionButtons
+                    workMasonryGrid(columnWidth: columnWidth)
+                }
             }
         }
         .background(Color.black)
@@ -70,17 +74,11 @@ struct UserProfileView: View {
         .padding(.bottom, 20)
     }
     
-    // MARK: - Work Grid
+    // MARK: - Work Masonry Grid
     
-    private var workGrid: some View {
-        LazyVGrid(columns: [
-            GridItem(.flexible(), spacing: 2),
-            GridItem(.flexible(), spacing: 2),
-            GridItem(.flexible(), spacing: 2)
-        ], spacing: 2) {
-            ForEach(viewModel.works) { work in
-                WorkThumbnail(work: work)
-            }
+    private func workMasonryGrid(columnWidth: CGFloat) -> some View {
+        MasonryGrid(works: viewModel.works, columnWidth: columnWidth, columns: 3, spacing: 2) { work in
+            ProfileWorkCell(work: work, columnWidth: columnWidth)
         }
         .padding(.top, 2)
     }

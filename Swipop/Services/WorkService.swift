@@ -75,22 +75,18 @@ actor WorkService {
         javascript: String,
         chatMessages: [[String: Any]],
         isPublished: Bool,
-        coverUrl: String? = nil
+        thumbnailUrl: String? = nil,
+        thumbnailAspectRatio: CGFloat? = nil
     ) async throws -> UUID {
         guard let userId = try? await supabase.auth.session.user.id else {
             throw WorkError.notAuthenticated
         }
         
         var payload = buildPayload(
-            title: title,
-            description: description,
-            tags: tags,
-            html: html,
-            css: css,
-            javascript: javascript,
-            chatMessages: chatMessages,
-            isPublished: isPublished,
-            coverUrl: coverUrl
+            title: title, description: description, tags: tags,
+            html: html, css: css, javascript: javascript,
+            chatMessages: chatMessages, isPublished: isPublished,
+            thumbnailUrl: thumbnailUrl, thumbnailAspectRatio: thumbnailAspectRatio
         )
         payload["user_id"] = .string(userId.uuidString)
         
@@ -117,18 +113,14 @@ actor WorkService {
         javascript: String,
         chatMessages: [[String: Any]],
         isPublished: Bool,
-        coverUrl: String? = nil
+        thumbnailUrl: String? = nil,
+        thumbnailAspectRatio: CGFloat? = nil
     ) async throws {
         var payload = buildPayload(
-            title: title,
-            description: description,
-            tags: tags,
-            html: html,
-            css: css,
-            javascript: javascript,
-            chatMessages: chatMessages,
-            isPublished: isPublished,
-            coverUrl: coverUrl
+            title: title, description: description, tags: tags,
+            html: html, css: css, javascript: javascript,
+            chatMessages: chatMessages, isPublished: isPublished,
+            thumbnailUrl: thumbnailUrl, thumbnailAspectRatio: thumbnailAspectRatio
         )
         payload["updated_at"] = .string(ISO8601DateFormatter().string(from: Date()))
         
@@ -140,8 +132,7 @@ actor WorkService {
     }
     
     func deleteWork(id: UUID) async throws {
-        // Delete cover from storage first
-        try? await CoverService.shared.delete(workId: id)
+        try? await ThumbnailService.shared.delete(workId: id)
         
         try await supabase
             .from("works")
@@ -161,7 +152,8 @@ actor WorkService {
         javascript: String,
         chatMessages: [[String: Any]],
         isPublished: Bool,
-        coverUrl: String?
+        thumbnailUrl: String?,
+        thumbnailAspectRatio: CGFloat?
     ) -> [String: AnyJSON] {
         let chatJson = (try? JSONSerialization.data(withJSONObject: chatMessages))
             .flatMap { String(data: $0, encoding: .utf8) }
@@ -177,9 +169,12 @@ actor WorkService {
             "is_published": .bool(isPublished)
         ]
         
-        // Only include cover URL if provided
-        if let coverUrl {
-            payload["thumbnail_url"] = .string(coverUrl)
+        if let thumbnailUrl {
+            payload["thumbnail_url"] = .string(thumbnailUrl)
+        }
+        
+        if let thumbnailAspectRatio {
+            payload["thumbnail_aspect_ratio"] = .double(Double(thumbnailAspectRatio))
         }
         
         return payload
