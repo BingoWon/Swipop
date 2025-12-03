@@ -21,7 +21,12 @@ struct FeedView: View {
             ZStack {
                 Color.black
                 
-                if let work = feed.currentWork {
+                if feed.isLoading && feed.works.isEmpty {
+                    ProgressView()
+                        .tint(.white)
+                } else if feed.isEmpty {
+                    emptyState
+                } else if let work = feed.currentWork {
                     WorkCardView(work: work)
                         .id(feed.currentIndex)
                         .transition(.asymmetric(
@@ -34,6 +39,7 @@ struct FeedView: View {
             .toolbar { toolbarContent }
             .toolbarBackground(.hidden, for: .navigationBar)
         }
+        .refreshable { await feed.refresh() }
         .onChange(of: feed.currentWork?.id) { _, _ in loadInteraction() }
         .task { loadInteraction() }
         .sheet(isPresented: $showComments) {
@@ -118,6 +124,24 @@ struct FeedView: View {
             return
         }
         Task { await interaction?.toggleCollect() }
+    }
+    
+    // MARK: - Empty State
+    
+    private var emptyState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 48))
+                .foregroundStyle(.white.opacity(0.3))
+            
+            Text("No works yet")
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(.white.opacity(0.5))
+            
+            Text("Be the first to create!")
+                .font(.system(size: 14))
+                .foregroundStyle(.white.opacity(0.3))
+        }
     }
 }
 
