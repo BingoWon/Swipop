@@ -27,7 +27,7 @@ struct CreateView: View {
             .toolbar { toolbarContent }
             .toolbarBackground(.hidden, for: .navigationBar)
         }
-        .tint(.white)  // Override TabView tint for content
+        .tint(.primary)
         .sheet(isPresented: $showSettings) {
             WorkSettingsSheet(workEditor: workEditor, chatViewModel: chatViewModel) {
                 workEditor.reset()
@@ -131,18 +131,18 @@ struct CreateView: View {
         VStack(spacing: 24) {
             Image(systemName: "plus.square.dashed")
                 .font(.system(size: 64))
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundStyle(.secondary)
             
             Text("Sign in to create")
                 .font(.title2)
-                .foregroundColor(.white)
+                .foregroundStyle(.primary)
             
             Button { showLogin = true } label: {
                 Text("Sign In")
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.black)
+                    .foregroundStyle(.white)
                     .frame(width: 200, height: 50)
-                    .background(Color.white)
+                    .background(Color.brand)
                     .cornerRadius(25)
             }
         }
@@ -166,6 +166,5 @@ private struct CreateViewPreview: View {
         .onAppear {
             chatViewModel = ChatViewModel(workEditor: workEditor)
         }
-        .preferredColorScheme(.dark)
     }
 }

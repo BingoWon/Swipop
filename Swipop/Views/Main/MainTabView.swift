@@ -72,7 +72,7 @@ struct MainTabView: View {
                 continueToWork: continueToWork
             )
         }
-        .tint(selectedTab == 3 ? .brand : .white)
+        .tint(selectedTab == 3 ? .brand : .primary)
         .animation(.easeInOut(duration: 0.25), value: selectedTab)
         .sheet(isPresented: $showWorkDetail) {
             if let work = feed.currentWork {
@@ -152,11 +152,11 @@ private struct WorkModeAccessory: View {
             }
             .frame(maxWidth: .infinity)
             
-            Divider().frame(height: 28).overlay(Color.white.opacity(0.2))
+            Divider().frame(height: 28).overlay(Color.border)
             
             navigationButtons
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(.primary)
     }
     
     private var workInfoLabel: some View {
@@ -202,7 +202,7 @@ private struct WorkModeAccessory: View {
             }
             .opacity(feed.currentIndex == 0 ? 0.3 : 1)
             
-            Divider().frame(height: 18).overlay(Color.white.opacity(0.15))
+            Divider().frame(height: 18).overlay(Color.border)
             
             Button {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
@@ -238,7 +238,7 @@ private struct ContinueAccessory: View {
                 
                 Divider()
                     .frame(height: 28)
-                    .overlay(Color.white.opacity(0.2))
+                    .overlay(Color.border)
                 
                 HStack(spacing: 6) {
                     Image(systemName: "play.fill")
@@ -248,7 +248,7 @@ private struct ContinueAccessory: View {
                 }
                 .frame(width: 100)
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(.primary)
         }
     }
     
@@ -285,5 +285,4 @@ private struct ContinueAccessory: View {
 
 #Preview {
     MainTabView(showLogin: .constant(false))
-        .preferredColorScheme(.dark)
 }

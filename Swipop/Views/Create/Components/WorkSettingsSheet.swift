@@ -82,7 +82,7 @@ struct WorkSettingsSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { dismiss() }
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(.secondary)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -148,8 +148,8 @@ struct WorkSettingsSheet: View {
                         .font(.system(size: 14, weight: .medium))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(captureDisabled ? Color.white.opacity(0.05) : Color.brand.opacity(0.2))
-                        .foregroundStyle(captureDisabled ? .white.opacity(0.3) : Color.brand)
+                        .background(captureDisabled ? Color.secondaryBackground.opacity(0.5) : Color.brand.opacity(0.2))
+                        .foregroundColor(captureDisabled ? Color.secondary : Color.brand)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
                 .buttonStyle(.plain)
@@ -160,8 +160,8 @@ struct WorkSettingsSheet: View {
                         .font(.system(size: 14, weight: .medium))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(Color.white.opacity(0.1))
-                        .foregroundStyle(.white)
+                        .background(Color.secondaryBackground)
+                        .foregroundStyle(.primary)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
                 .buttonStyle(.plain)
@@ -170,7 +170,7 @@ struct WorkSettingsSheet: View {
             if captureDisabled && !workEditor.isCapturingThumbnail {
                 Text("Visit Preview tab first to enable capture")
                     .font(.system(size: 12))
-                    .foregroundStyle(.white.opacity(0.4))
+                    .foregroundStyle(.tertiary)
             }
             
             if workEditor.hasThumbnail {
@@ -182,14 +182,14 @@ struct WorkSettingsSheet: View {
                 }
             }
         }
-        .listRowBackground(Color.white.opacity(0.05))
+        .listRowBackground(Color.secondaryBackground.opacity(0.5))
     }
     
     @ViewBuilder
     private var thumbnailPreview: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.white.opacity(0.05))
+                .fill(Color.secondaryBackground.opacity(0.5))
             
             if let image = workEditor.thumbnailImage {
                 // Local image (not yet uploaded)
@@ -223,10 +223,10 @@ struct WorkSettingsSheet: View {
         VStack(spacing: 8) {
             Image(systemName: "photo")
                 .font(.system(size: 32))
-                .foregroundStyle(.white.opacity(0.3))
+                .foregroundStyle(.tertiary)
             Text("No thumbnail")
                 .font(.system(size: 13))
-                .foregroundStyle(.white.opacity(0.4))
+                .foregroundStyle(.tertiary)
         }
     }
     
@@ -257,11 +257,11 @@ struct WorkSettingsSheet: View {
                 ZStack(alignment: .leading) {
                     // Background
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.white.opacity(0.1))
+                        .fill(Color.secondaryBackground)
                     
                     // Buffer zone indicator
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.white.opacity(0.05))
+                        .fill(Color.secondaryBackground.opacity(0.5))
                         .frame(width: geo.size.width - bufferStart)
                         .offset(x: bufferStart)
                     
@@ -283,37 +283,37 @@ struct WorkSettingsSheet: View {
                 
                 Divider()
                     .frame(height: 28)
-                    .background(Color.white.opacity(0.2))
+                    .background(Color.border)
                 
                 statItem(
                     label: "Available",
                     value: formatTokens(ChatViewModel.usableLimit - chat.promptTokens),
-                    color: .white
+                    color: .primary
                 )
                 
                 Divider()
                     .frame(height: 28)
-                    .background(Color.white.opacity(0.2))
+                    .background(Color.border)
                 
                 statItem(
                     label: "Buffer",
                     value: formatTokens(ChatViewModel.bufferSize),
-                    color: .white.opacity(0.5)
+                    color: .secondary
                 )
                 
                 Divider()
                     .frame(height: 28)
-                    .background(Color.white.opacity(0.2))
+                    .background(Color.border)
                 
                 statItem(
                     label: "Total",
                     value: "128K",
-                    color: .white.opacity(0.5)
+                    color: .secondary
                 )
             }
         }
         .padding(.vertical, 4)
-        .listRowBackground(Color.white.opacity(0.05))
+        .listRowBackground(Color.secondaryBackground.opacity(0.5))
     }
     
     private func statItem(label: String, value: String, color: Color) -> some View {
@@ -323,7 +323,7 @@ struct WorkSettingsSheet: View {
                 .foregroundStyle(color)
             Text(label)
                 .font(.system(size: 10))
-                .foregroundStyle(.white.opacity(0.4))
+                .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: .infinity)
     }
@@ -381,29 +381,29 @@ struct WorkSettingsSheet: View {
             HStack(spacing: 14) {
                 Image(systemName: icon)
                     .font(.system(size: 20))
-                    .foregroundStyle(isSelected ? color : .white.opacity(0.4))
+                    .foregroundColor(isSelected ? color : Color.secondary)
                     .frame(width: 32)
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.primary)
                     Text(subtitle)
                         .font(.system(size: 13))
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(.secondary)
                 }
                 
                 Spacer()
                 
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 22))
-                    .foregroundStyle(isSelected ? color : .white.opacity(0.2))
+                    .foregroundColor(isSelected ? color : Color.secondary)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(isSelected ? color.opacity(0.15) : Color.white.opacity(0.05))
+                    .fill(isSelected ? color.opacity(0.15) : Color.secondaryBackground.opacity(0.5))
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(isSelected ? color.opacity(0.3) : .clear, lineWidth: 1)
@@ -425,7 +425,7 @@ struct WorkSettingsSheet: View {
                 
                 Button(action: addTag) {
                     Image(systemName: "plus.circle.fill")
-                        .foregroundStyle(tagInput.isEmpty ? .white.opacity(0.3) : Color.brand)
+                        .foregroundColor(tagInput.isEmpty ? Color.secondary : Color.brand)
                 }
                 .disabled(tagInput.isEmpty)
             }
@@ -440,7 +440,7 @@ struct WorkSettingsSheet: View {
                 }
             }
         }
-        .listRowBackground(Color.white.opacity(0.05))
+        .listRowBackground(Color.secondaryBackground.opacity(0.5))
     }
     
     private func addTag() {
@@ -478,5 +478,4 @@ private struct TagChip: View {
     WorkSettingsSheet(workEditor: WorkEditorViewModel(), chatViewModel: nil) {
         print("Delete tapped")
     }
-    .preferredColorScheme(.dark)
 }

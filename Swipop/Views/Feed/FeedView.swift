@@ -133,7 +133,7 @@ struct FeedView: View {
             ToolbarItem(placement: .principal) {
                 Text("Discover")
                     .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
             }
         }
         
@@ -147,7 +147,7 @@ struct FeedView: View {
                         systemImage: interaction?.isLiked == true ? "heart.fill" : "heart"
                     )
                 }
-                .tint(interaction?.isLiked == true ? .red : .white)
+                .tint(interaction?.isLiked == true ? .red : .primary)
                 
                 // Comment
                 Button { showComments = true } label: {
@@ -161,7 +161,7 @@ struct FeedView: View {
                         systemImage: interaction?.isCollected == true ? "bookmark.fill" : "bookmark"
                     )
                 }
-                .tint(interaction?.isCollected == true ? .yellow : .white)
+                .tint(interaction?.isCollected == true ? .yellow : .primary)
                 
                 // Share
                 Button { showShare = true } label: {
@@ -177,7 +177,7 @@ struct FeedView: View {
         ToolbarItem(placement: .topBarTrailing) {
             Button { showSearch = true } label: {
                 Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.white)
+                    .foregroundStyle(isViewingWork ? .white : .primary)
             }
         }
     }

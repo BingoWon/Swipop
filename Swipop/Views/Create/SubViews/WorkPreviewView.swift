@@ -45,15 +45,15 @@ struct WorkPreviewView: View {
         VStack(spacing: 16) {
             Image(systemName: "play.slash")
                 .font(.system(size: 48))
-                .foregroundStyle(.white.opacity(0.3))
+                .foregroundStyle(.tertiary)
             
             Text("No preview available")
                 .font(.system(size: 17, weight: .medium))
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(.secondary)
             
             Text("Start chatting to generate code")
                 .font(.system(size: 14))
-                .foregroundStyle(.white.opacity(0.3))
+                .foregroundStyle(.tertiary)
         }
     }
 }
