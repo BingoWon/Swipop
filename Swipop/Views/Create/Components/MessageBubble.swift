@@ -191,8 +191,6 @@ struct ThinkingSegmentView: View {
                     .foregroundStyle(.white.opacity(0.6))
             }
             
-            Spacer()
-            
             // Show chevron if there's content
             if !info.text.isEmpty {
                 Image(systemName: "chevron.right")

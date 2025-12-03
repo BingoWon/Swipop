@@ -64,8 +64,6 @@ struct ToolCallView: View {
                     .foregroundStyle(.white.opacity(0.9))
             }
             
-            Spacer()
-            
             // Show chevron if there's content
             if !toolCall.arguments.isEmpty {
                 Image(systemName: "chevron.right")

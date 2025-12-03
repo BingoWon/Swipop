@@ -14,9 +14,17 @@ final class ChatViewModel {
     var messages: [ChatMessage] = []
     var inputText = ""
     var isLoading = false
-    var selectedModel: AIModel = .reasoner {
-        didSet { AIService.shared.currentModel = selectedModel }
+    var selectedModel: AIModel {
+        get { AIModel(rawValue: selectedModelRaw) ?? .chat }
+        set {
+            selectedModelRaw = newValue.rawValue
+            AIService.shared.currentModel = newValue
+        }
     }
+    
+    // Persist model selection in UserDefaults (default: chat/non-thinking)
+    @ObservationIgnored
+    @AppStorage("selectedAIModel") private var selectedModelRaw: String = AIModel.chat.rawValue
     
     weak var workEditor: WorkEditorViewModel?
     
@@ -65,6 +73,8 @@ final class ChatViewModel {
     init(workEditor: WorkEditorViewModel? = nil) {
         self.workEditor = workEditor
         history.append(["role": "system", "content": systemPrompt])
+        // Sync persisted model selection to AIService
+        AIService.shared.currentModel = selectedModel
     }
     
     // MARK: - Actions
