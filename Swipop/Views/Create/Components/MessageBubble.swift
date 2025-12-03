@@ -35,7 +35,7 @@ struct MessageBubble: View {
         }
     }
     
-    // MARK: - Assistant Message (no avatar, full width)
+    // MARK: - Assistant Message
     
     private var assistantBubble: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -121,6 +121,8 @@ struct MessageBubble: View {
 struct ThinkingSegmentView: View {
     let info: ChatMessage.ThinkingSegment
     
+    private let iconWidth: CGFloat = 16
+    
     @State private var isExpanded = false
     @State private var elapsedSeconds = 0
     @State private var timer: Timer?
@@ -136,7 +138,6 @@ struct ThinkingSegmentView: View {
                     }
                 }
             
-            // Only show content when manually expanded
             if isExpanded && !info.text.isEmpty {
                 Divider()
                     .background(Color.white.opacity(0.1))
@@ -166,23 +167,19 @@ struct ThinkingSegmentView: View {
         }
     }
     
-    @ViewBuilder
     private var headerView: some View {
         HStack(spacing: 8) {
+            // Fixed-width icon container
             Image(systemName: "brain")
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(info.isActive ? Color.brand : Color.brand.opacity(0.8))
                 .symbolEffect(.pulse, options: .repeating, isActive: info.isActive)
+                .frame(width: iconWidth)
             
             if info.isActive {
-                Text("Thinking")
+                Text("Thinking \(elapsedSeconds)s")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.white.opacity(0.8))
-                
-                Text("\(elapsedSeconds)s")
-                    .font(.system(size: 12, weight: .medium, design: .monospaced))
-                    .foregroundStyle(Color.brand)
-                    .contentTransition(.numericText())
                 
                 ShimmerBar()
             } else {
@@ -191,7 +188,6 @@ struct ThinkingSegmentView: View {
                     .foregroundStyle(.white.opacity(0.6))
             }
             
-            // Show chevron if there's content
             if !info.text.isEmpty {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 10, weight: .bold))
@@ -207,7 +203,6 @@ struct ThinkingSegmentView: View {
         if let start = info.startTime {
             elapsedSeconds = Int(Date().timeIntervalSince(start))
         }
-        
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             withAnimation(.easeInOut(duration: 0.2)) {
                 elapsedSeconds += 1

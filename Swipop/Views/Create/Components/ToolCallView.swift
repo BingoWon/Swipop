@@ -6,13 +6,15 @@ import SwiftUI
 
 struct ToolCallView: View {
     let toolCall: ChatMessage.ToolCallSegment
+    
+    private let iconWidth: CGFloat = 16
+    
     @State private var isExpanded = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
             
-            // Only expand when manually toggled
             if isExpanded && !toolCall.arguments.isEmpty {
                 Divider()
                     .background(Color.white.opacity(0.1))
@@ -37,34 +39,24 @@ struct ToolCallView: View {
     
     private var header: some View {
         HStack(spacing: 8) {
-            // Icon
-            if toolCall.isStreaming {
-                Image(systemName: iconForTool)
-                    .font(.system(size: 12))
-                    .foregroundStyle(.orange)
-                    .symbolEffect(.pulse, options: .repeating, isActive: true)
-            } else {
-                Image(systemName: iconForTool)
-                    .font(.system(size: 12))
-                    .foregroundStyle(.green)
-            }
+            // Fixed-width icon container
+            Image(systemName: iconForTool)
+                .font(.system(size: 12))
+                .foregroundStyle(toolCall.isStreaming ? .orange : .green)
+                .symbolEffect(.pulse, options: .repeating, isActive: toolCall.isStreaming)
+                .frame(width: iconWidth)
             
-            // Status text
-            if toolCall.isStreaming {
-                Text("Calling \(displayName)...")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.9))
-                
-                ProgressView()
-                    .scaleEffect(0.6)
-                    .tint(.orange)
-            } else {
-                Text("Called \(displayName)")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.9))
-            }
+            // Status text - consistent layout for both states
+            Text(toolCall.isStreaming ? "Calling \(displayName)..." : "Called \(displayName)")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.white.opacity(0.9))
             
-            // Show chevron if there's content
+            // Always reserve space for ProgressView to maintain consistent height
+            ProgressView()
+                .scaleEffect(0.6)
+                .tint(.orange)
+                .opacity(toolCall.isStreaming ? 1 : 0)
+            
             if !toolCall.arguments.isEmpty {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 10, weight: .bold))
@@ -116,22 +108,14 @@ struct ToolCallView: View {
     }
     
     private var iconForTool: String {
-        switch toolCall.name {
-        case "edit_html": "chevron.left.forwardslash.chevron.right"
-        case "edit_css": "paintbrush"
-        case "edit_javascript": "curlybraces"
-        case "update_metadata": "text.badge.star"
-        default: "wrench"
-        }
+        if toolCall.name.contains("html") { return "chevron.left.forwardslash.chevron.right" }
+        if toolCall.name.contains("css") { return "paintbrush" }
+        if toolCall.name.contains("javascript") { return "curlybraces" }
+        if toolCall.name.contains("metadata") { return "text.badge.star" }
+        return "wrench"
     }
     
     private var displayName: String {
-        switch toolCall.name {
-        case "edit_html": "edit_html"
-        case "edit_css": "edit_css"
-        case "edit_javascript": "edit_javascript"
-        case "update_metadata": "update_metadata"
-        default: toolCall.name
-        }
+        toolCall.name
     }
 }
