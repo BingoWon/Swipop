@@ -18,21 +18,7 @@ struct WorkSettingsSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                // Context Window
-                if let chat = chatViewModel {
-                    Section {
-                        contextWindowView(chat: chat)
-                    } header: {
-                        Label("Context Window", systemImage: "cpu")
-                    }
-                }
-                
-                Section {
-                    visibilityPicker
-                } header: {
-                    Label("Visibility", systemImage: "eye")
-                }
-                
+                // Details
                 Section {
                     TextField("Title", text: $workEditor.title)
                     TextField("Description", text: $workEditor.description, axis: .vertical)
@@ -41,10 +27,30 @@ struct WorkSettingsSheet: View {
                     Label("Details", systemImage: "doc.text")
                 }
                 
+                // Tags
                 Section {
                     tagsEditor
                 } header: {
                     Label("Tags", systemImage: "tag")
+                }
+                
+                // Visibility
+                Section {
+                    visibilityPicker
+                } header: {
+                    Label("Visibility", systemImage: "eye")
+                }
+                
+                // Context Window
+                if let chat = chatViewModel {
+                    Section {
+                        contextWindowView(chat: chat)
+                    } header: {
+                        Label("Context", systemImage: "brain")
+                    } footer: {
+                        Text("Auto-summarize is always enabled. When context reaches capacity, conversation will be automatically compacted to continue.")
+                            .font(.system(size: 12))
+                    }
                 }
                 
                 // Danger Zone
@@ -91,47 +97,44 @@ struct WorkSettingsSheet: View {
     // MARK: - Context Window
     
     private func contextWindowView(chat: ChatViewModel) -> some View {
-        VStack(spacing: 12) {
-            // Progress bar
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.white.opacity(0.1))
-                    
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(progressColor(for: chat.usagePercentage))
-                        .frame(width: geo.size.width * min(chat.usagePercentage, 1.0))
-                }
+        HStack(spacing: 16) {
+            // Circular progress
+            ZStack {
+                Circle()
+                    .stroke(Color.white.opacity(0.1), lineWidth: 6)
+                
+                Circle()
+                    .trim(from: 0, to: min(chat.usagePercentage, 1.0))
+                    .stroke(
+                        contextColor(for: chat.usagePercentage),
+                        style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+                
+                Text("\(Int(chat.usagePercentage * 100))%")
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundStyle(contextColor(for: chat.usagePercentage))
             }
-            .frame(height: 8)
+            .frame(width: 52, height: 52)
             
             // Stats
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Used: \(formatTokens(chat.promptTokens))")
-                        .font(.system(size: 12, design: .monospaced))
-                    Text("Available: \(formatTokens(ChatViewModel.usableLimit))")
-                        .font(.system(size: 12, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.5))
-                }
+            VStack(alignment: .leading, spacing: 4) {
+                Text("\(formatTokens(chat.promptTokens)) / \(formatTokens(ChatViewModel.usableLimit))")
+                    .font(.system(size: 15, weight: .medium, design: .rounded))
+                    .foregroundStyle(.white)
                 
-                Spacer()
-                
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(Int(chat.usagePercentage * 100))%")
-                        .font(.system(size: 20, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(progressColor(for: chat.usagePercentage))
-                    Text("Buffer: \(formatTokens(ChatViewModel.bufferSize))")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.white.opacity(0.4))
-                }
+                Text("tokens used")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.white.opacity(0.5))
             }
+            
+            Spacer()
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 8)
         .listRowBackground(Color.white.opacity(0.05))
     }
     
-    private func progressColor(for percentage: Double) -> Color {
+    private func contextColor(for percentage: Double) -> Color {
         if percentage >= 0.8 { return .red }
         if percentage >= 0.6 { return .orange }
         return .green
@@ -139,7 +142,7 @@ struct WorkSettingsSheet: View {
     
     private func formatTokens(_ count: Int) -> String {
         if count >= 1000 {
-            return String(format: "%.1fK", Double(count) / 1000)
+            return String(format: "%.0fK", Double(count) / 1000)
         }
         return "\(count)"
     }
