@@ -31,7 +31,7 @@ actor CoverService {
         let screenshot = try await captureScreenshot(from: webView)
         
         // 2. Crop to valid aspect ratio
-        let cropped = cropToValidRatio(screenshot)
+        let cropped = Self.cropToValidRatio(screenshot)
         
         // 3. Upload to storage
         return try await upload(image: cropped, workId: workId)
@@ -40,7 +40,7 @@ actor CoverService {
     /// Process uploaded image: crop to valid ratio and upload
     func processAndUpload(image: UIImage, workId: UUID) async throws -> String {
         // 1. Crop to valid aspect ratio
-        let cropped = cropToValidRatio(image)
+        let cropped = Self.cropToValidRatio(image)
         
         // 2. Upload to storage
         return try await upload(image: cropped, workId: workId)
@@ -68,27 +68,31 @@ actor CoverService {
     
     // MARK: - Aspect Ratio Cropping
     
-    private nonisolated func cropToValidRatio(_ image: UIImage) -> UIImage {
+    /// Crop image to valid aspect ratio (4:3 to 3:4) - Static for synchronous access
+    static func cropToValidRatio(_ image: UIImage) -> UIImage {
+        let minRatio: CGFloat = 3.0 / 4.0  // 0.75 (portrait)
+        let maxRatio: CGFloat = 4.0 / 3.0  // 1.33 (landscape)
+        
         let currentRatio = image.size.width / image.size.height
         
         // Already within valid range
-        if currentRatio >= minAspectRatio && currentRatio <= maxAspectRatio {
+        if currentRatio >= minRatio && currentRatio <= maxRatio {
             return image
         }
         
         let targetRatio: CGFloat
-        if currentRatio < minAspectRatio {
+        if currentRatio < minRatio {
             // Too tall (portrait), crop to 3:4
-            targetRatio = minAspectRatio
+            targetRatio = minRatio
         } else {
             // Too wide (landscape), crop to 4:3
-            targetRatio = maxAspectRatio
+            targetRatio = maxRatio
         }
         
         return cropToRatio(image, targetRatio: targetRatio)
     }
     
-    private nonisolated func cropToRatio(_ image: UIImage, targetRatio: CGFloat) -> UIImage {
+    private static func cropToRatio(_ image: UIImage, targetRatio: CGFloat) -> UIImage {
         let originalSize = image.size
         let originalRatio = originalSize.width / originalSize.height
         

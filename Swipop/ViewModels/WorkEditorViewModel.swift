@@ -92,11 +92,11 @@ final class WorkEditorViewModel {
         defer { isCapturingCover = false }
         
         do {
-            // Capture and store locally first
+            // Capture screenshot
             let config = WKSnapshotConfiguration()
             config.rect = webView.bounds
             
-            coverImage = try await withCheckedThrowingContinuation { continuation in
+            let screenshot: UIImage = try await withCheckedThrowingContinuation { continuation in
                 webView.takeSnapshot(with: config) { image, error in
                     if let error {
                         continuation.resume(throwing: error)
@@ -108,15 +108,18 @@ final class WorkEditorViewModel {
                 }
             }
             
+            // Crop to valid ratio immediately for accurate preview
+            coverImage = CoverService.cropToValidRatio(screenshot)
             isDirty = true
         } catch {
             print("Cover capture failed: \(error)")
         }
     }
     
-    /// Set cover from photo picker
+    /// Set cover from photo picker (auto-crops to valid ratio)
     func setCover(image: UIImage) {
-        coverImage = image
+        // Crop to valid ratio (4:3 ~ 3:4) immediately for accurate preview
+        coverImage = CoverService.cropToValidRatio(image)
         isDirty = true
     }
     
