@@ -110,6 +110,10 @@ struct WorkSettingsSheet: View {
     
     // MARK: - Cover Editor
     
+    private var captureDisabled: Bool {
+        workEditor.previewWebView == nil || !workEditor.hasCode || workEditor.isCapturingCover
+    }
+    
     private var coverEditor: some View {
         VStack(spacing: 12) {
             // Preview
@@ -127,11 +131,11 @@ struct WorkSettingsSheet: View {
                         .font(.system(size: 14, weight: .medium))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
-                        .background(Color.brand.opacity(0.2))
-                        .foregroundStyle(Color.brand)
+                        .background(captureDisabled ? Color.white.opacity(0.05) : Color.brand.opacity(0.2))
+                        .foregroundStyle(captureDisabled ? .white.opacity(0.3) : Color.brand)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
-                .disabled(workEditor.previewWebView == nil || workEditor.isCapturingCover)
+                .disabled(captureDisabled)
                 
                 // Upload from photos
                 PhotosPicker(selection: $selectedPhoto, matching: .images) {
@@ -143,6 +147,13 @@ struct WorkSettingsSheet: View {
                         .foregroundStyle(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
+            }
+            
+            // Hint when capture is disabled
+            if captureDisabled && !workEditor.isCapturingCover {
+                Text("Visit Preview tab first to enable capture")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.white.opacity(0.4))
             }
             
             // Remove button (if has cover)
