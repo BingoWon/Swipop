@@ -34,6 +34,12 @@ final class FeedViewModel {
     
     // MARK: - Navigation
     
+    func setCurrentWork(_ work: Work) {
+        if let index = works.firstIndex(where: { $0.id == work.id }) {
+            currentIndex = index
+        }
+    }
+    
     func goToNext() {
         guard currentIndex < works.count - 1 else { return }
         currentIndex += 1
