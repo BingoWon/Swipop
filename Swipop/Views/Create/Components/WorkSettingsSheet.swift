@@ -9,6 +9,7 @@ import SwiftUI
 
 struct WorkSettingsSheet: View {
     @Bindable var workEditor: WorkEditorViewModel
+    var chatViewModel: ChatViewModel?
     var onDelete: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
     @State private var tagInput = ""
@@ -17,6 +18,15 @@ struct WorkSettingsSheet: View {
     var body: some View {
         NavigationStack {
             Form {
+                // Context Window
+                if let chat = chatViewModel {
+                    Section {
+                        contextWindowView(chat: chat)
+                    } header: {
+                        Label("Context Window", systemImage: "cpu")
+                    }
+                }
+                
                 Section {
                     visibilityPicker
                 } header: {
@@ -76,6 +86,62 @@ struct WorkSettingsSheet: View {
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
         .presentationBackground(Color.darkSheet)
+    }
+    
+    // MARK: - Context Window
+    
+    private func contextWindowView(chat: ChatViewModel) -> some View {
+        VStack(spacing: 12) {
+            // Progress bar
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.white.opacity(0.1))
+                    
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(progressColor(for: chat.usagePercentage))
+                        .frame(width: geo.size.width * min(chat.usagePercentage, 1.0))
+                }
+            }
+            .frame(height: 8)
+            
+            // Stats
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Used: \(formatTokens(chat.promptTokens))")
+                        .font(.system(size: 12, design: .monospaced))
+                    Text("Available: \(formatTokens(ChatViewModel.usableLimit))")
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.5))
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("\(Int(chat.usagePercentage * 100))%")
+                        .font(.system(size: 20, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(progressColor(for: chat.usagePercentage))
+                    Text("Buffer: \(formatTokens(ChatViewModel.bufferSize))")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(0.4))
+                }
+            }
+        }
+        .padding(.vertical, 4)
+        .listRowBackground(Color.white.opacity(0.05))
+    }
+    
+    private func progressColor(for percentage: Double) -> Color {
+        if percentage >= 0.8 { return .red }
+        if percentage >= 0.6 { return .orange }
+        return .green
+    }
+    
+    private func formatTokens(_ count: Int) -> String {
+        if count >= 1000 {
+            return String(format: "%.1fK", Double(count) / 1000)
+        }
+        return "\(count)"
     }
     
     // MARK: - Visibility
@@ -212,7 +278,7 @@ private struct TagChip: View {
 }
 
 #Preview {
-    WorkSettingsSheet(workEditor: WorkEditorViewModel()) {
+    WorkSettingsSheet(workEditor: WorkEditorViewModel(), chatViewModel: nil) {
         print("Delete tapped")
     }
     .preferredColorScheme(.dark)

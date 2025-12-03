@@ -29,7 +29,7 @@ struct CreateView: View {
         }
         .tint(.white)  // Override TabView tint for content
         .sheet(isPresented: $showSettings) {
-            WorkSettingsSheet(workEditor: workEditor) {
+            WorkSettingsSheet(workEditor: workEditor, chatViewModel: chatViewModel) {
                 workEditor.reset()
                 chatViewModel.clear()
             }

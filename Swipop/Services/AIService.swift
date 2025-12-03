@@ -62,8 +62,20 @@ final class AIService {
                         
                         let jsonStr = String(line.dropFirst(6))
                         guard let data = jsonStr.data(using: .utf8),
-                              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                              let choices = json["choices"] as? [[String: Any]],
+                              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { continue }
+                        
+                        // Parse usage (appears in last chunk)
+                        if let usage = json["usage"] as? [String: Any] {
+                            let promptTokens = usage["prompt_tokens"] as? Int ?? 0
+                            let completionTokens = usage["completion_tokens"] as? Int ?? 0
+                            var reasoningTokens = 0
+                            if let details = usage["completion_tokens_details"] as? [String: Any] {
+                                reasoningTokens = details["reasoning_tokens"] as? Int ?? 0
+                            }
+                            continuation.yield(.usage(promptTokens: promptTokens, completionTokens: completionTokens, reasoningTokens: reasoningTokens))
+                        }
+                        
+                        guard let choices = json["choices"] as? [[String: Any]],
                               let choice = choices.first,
                               let delta = choice["delta"] as? [String: Any] else { continue }
                         
@@ -127,6 +139,7 @@ final class AIService {
         case toolCallStart(index: Int, id: String, name: String)
         case toolCallArguments(index: Int, delta: String)
         case toolCallComplete(index: Int, arguments: String)
+        case usage(promptTokens: Int, completionTokens: Int, reasoningTokens: Int)
     }
     
     enum ToolName: String {
@@ -137,6 +150,7 @@ final class AIService {
         case replaceInHtml = "replace_in_html"
         case replaceInCss = "replace_in_css"
         case replaceInJavascript = "replace_in_javascript"
+        case summarizeConversation = "summarize_conversation"
     }
     
     enum AIError: LocalizedError {
@@ -153,7 +167,7 @@ final class AIService {
         }
     }
     
-    // MARK: - Tools Definition (7 tools)
+    // MARK: - Tools Definition (8 tools)
     
     static let tools: [[String: Any]] = [
         // Metadata
@@ -201,6 +215,14 @@ final class AIService {
                 "replace": prop("string", "New text to substitute")
              ],
              required: ["search", "replace"]),
+        
+        // Context Management
+        tool("summarize_conversation",
+             "Create a summary when context window is nearly full. Only call when explicitly instructed.",
+             properties: [
+                "summary": prop("string", "Comprehensive summary including: user's goals, key decisions, completed tasks, current work progress, and user preferences")
+             ],
+             required: ["summary"]),
     ]
     
     // MARK: - Tool Builder Helpers

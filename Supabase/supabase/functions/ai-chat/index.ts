@@ -66,6 +66,7 @@ Deno.serve(async (req) => {
     model,
     messages,
     stream: true,
+    stream_options: { include_usage: true },
   };
 
   if (tools?.length) {
@@ -136,7 +137,6 @@ function streamResponse(upstreamResponse: Response): Response {
   const stream = new ReadableStream({
     async start(controller) {
       const reader = upstreamResponse.body!.getReader();
-      const decoder = new TextDecoder();
 
       try {
         while (true) {

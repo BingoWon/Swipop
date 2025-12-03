@@ -22,6 +22,27 @@ final class ChatViewModel {
         }
     }
     
+    // MARK: - Context Window
+    
+    static let contextLimit = 128_000      // DeepSeek context window
+    static let bufferSize = 30_000         // Reserved for AI output
+    static let usableLimit = contextLimit - bufferSize  // 98,000
+    
+    private(set) var promptTokens = 0
+    private(set) var completionTokens = 0
+    private(set) var reasoningTokens = 0
+    
+    var usagePercentage: Double {
+        guard Self.usableLimit > 0 else { return 0 }
+        return Double(promptTokens) / Double(Self.usableLimit)
+    }
+    
+    var shouldSummarize: Bool {
+        promptTokens >= Self.usableLimit
+    }
+    
+    private var pendingSummarizeRequest: String?
+    
     @ObservationIgnored
     @AppStorage("selectedAIModel") private var selectedModelRaw: String = AIModel.chat.rawValue
     
@@ -90,12 +111,43 @@ final class ChatViewModel {
         
         clearReasoningFromHistory()
         
+        // Check if we need to summarize before sending
+        if shouldSummarize {
+            pendingSummarizeRequest = text
+            injectSummarizeInstruction()
+            streamTask = Task { await streamResponse() }
+            return
+        }
+        
         // Inject current work state + user message
         let userMessageWithContext = buildUserMessageWithContext(text)
         history.append(["role": "user", "content": userMessageWithContext])
         syncToWorkEditor()
         
         streamTask = Task { await streamResponse() }
+    }
+    
+    private let summarizePrompt = """
+    <explicit_instructions type="summarize_conversation">
+    The conversation is running out of context window. You MUST create a summary now.
+    
+    You MUST ONLY respond by calling the summarize_conversation tool.
+    There is no other option.
+    
+    Your summary should include:
+    1. Primary Request: User's main goals and intentions
+    2. Key Decisions: Important choices made during the conversation
+    3. Task Progress: What has been completed, what remains
+    4. Current Work: What was being worked on before this summary
+    5. User Preferences: Any preferences or constraints mentioned
+    
+    IMPORTANT: The current code state (HTML, CSS, JavaScript) will be automatically 
+    preserved and re-injected after summarization. Focus on conversation context only.
+    </explicit_instructions>
+    """
+    
+    private func injectSummarizeInstruction() {
+        history.append(["role": "user", "content": summarizePrompt])
     }
     
     func retry() {
@@ -138,6 +190,10 @@ final class ChatViewModel {
         accumulatedReasoning = ""
         streamingToolCalls = [:]
         currentThinkingIndex = nil
+        promptTokens = 0
+        completionTokens = 0
+        reasoningTokens = 0
+        pendingSummarizeRequest = nil
         syncToWorkEditor()
     }
     
@@ -364,6 +420,11 @@ final class ChatViewModel {
                         segment.result = executeToolCall(name: info.name, arguments: arguments)
                         messages[currentMessageIndex].segments[info.segmentIndex] = .toolCall(segment)
                     }
+                    
+                case .usage(let prompt, let completion, let reasoning):
+                    promptTokens = prompt
+                    completionTokens = completion
+                    reasoningTokens = reasoning
                 }
             }
             
@@ -474,6 +535,54 @@ final class ChatViewModel {
     // MARK: - Tool Handling
     
     private func finalizeToolCallsAndContinue() async {
+        // Check if this was a summarize call
+        var wasSummarizeCall = false
+        for index in streamingToolCalls.keys.sorted() {
+            if let info = streamingToolCalls[index], info.name == "summarize_conversation" {
+                wasSummarizeCall = true
+                break
+            }
+        }
+        
+        if wasSummarizeCall {
+            // Don't add summarize tool calls to history (it's already reset)
+            streamingToolCalls = [:]
+            
+            // Finalize current message and add system notification
+            messages[currentMessageIndex].isStreaming = false
+            messages.append(.system("Conversation compacted to free up context space."))
+            
+            // If there's a pending user request, process it now
+            if let request = pendingSummarizeRequest {
+                pendingSummarizeRequest = nil
+                let userMessageWithContext = buildUserMessageWithContext(request)
+                history.append(["role": "user", "content": userMessageWithContext])
+                syncToWorkEditor()
+                
+                // Start new message for the continuation
+                currentMessageIndex = messages.count
+                var newMessage = ChatMessage(role: .assistant)
+                newMessage.isStreaming = true
+                if selectedModel.supportsThinking {
+                    var thinking = ChatMessage.ThinkingSegment()
+                    thinking.startTime = Date()
+                    thinking.isActive = true
+                    newMessage.segments.append(.thinking(thinking))
+                    currentThinkingIndex = 0
+                }
+                messages.append(newMessage)
+                
+                pendingContent = ""
+                pendingReasoning = ""
+                accumulatedReasoning = ""
+                await processStream()
+            } else {
+                isLoading = false
+            }
+            return
+        }
+        
+        // Normal tool call flow
         var assistantEntry: [String: Any] = ["role": "assistant"]
         
         if !accumulatedReasoning.isEmpty {
@@ -563,7 +672,37 @@ final class ChatViewModel {
             return executeReplace(args, type: .css)
         case .replaceInJavascript:
             return executeReplace(args, type: .javascript)
+        case .summarizeConversation:
+            return executeSummarize(args)
         }
+    }
+    
+    private func executeSummarize(_ args: [String: Any]) -> String {
+        guard let summary = args["summary"] as? String else {
+            return #"{"error": "Missing summary parameter"}"#
+        }
+        
+        // Reset history with only system prompt
+        history.removeAll()
+        history.append(["role": "system", "content": systemPrompt])
+        
+        // Add continuation prompt with summary
+        let continuationPrompt = """
+        This session is being continued from a previous conversation that ran out of context.
+        
+        Summary of previous conversation:
+        \(summary)
+        
+        Please continue from where we left off.
+        """
+        history.append(["role": "user", "content": continuationPrompt])
+        
+        // Reset token count (will be updated after next API call)
+        promptTokens = 0
+        completionTokens = 0
+        reasoningTokens = 0
+        
+        return #"{"success": true, "action": "conversation_summarized"}"#
     }
     
     private func executeWrite(_ args: [String: Any], type: CodeType) -> String {

@@ -16,7 +16,23 @@ struct MessageBubble: View {
             userBubble
         case .assistant:
             assistantBubble
+        case .system:
+            systemBubble
         }
+    }
+    
+    // MARK: - System Message
+    
+    private var systemBubble: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "info.circle.fill")
+                .font(.system(size: 12))
+            Text(message.segments.first.flatMap { if case .content(let t) = $0 { return t } else { return nil } } ?? "")
+                .font(.system(size: 13))
+        }
+        .foregroundStyle(.white.opacity(0.5))
+        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.vertical, 8)
     }
     
     // MARK: - User Message

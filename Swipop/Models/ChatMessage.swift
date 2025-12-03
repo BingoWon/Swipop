@@ -16,6 +16,7 @@ struct ChatMessage: Identifiable {
         case user
         case assistant
         case error
+        case system
     }
     
     /// A segment of an assistant message - can be thinking, tool call, or content
@@ -74,6 +75,12 @@ struct ChatMessage: Identifiable {
     
     static func error(_ content: String) -> ChatMessage {
         var msg = ChatMessage(role: .error)
+        msg.segments = [.content(content)]
+        return msg
+    }
+    
+    static func system(_ content: String) -> ChatMessage {
+        var msg = ChatMessage(role: .system)
         msg.segments = [.content(content)]
         return msg
     }
