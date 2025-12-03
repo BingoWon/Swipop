@@ -212,7 +212,7 @@ struct ProfileWorkCell: View {
     
     @ViewBuilder
     private var coverImage: some View {
-        if let urlString = work.thumbnailUrl, let url = URL(string: urlString) {
+        if let url = work.smallThumbnailURL {
             AsyncImage(url: url) { phase in
                 switch phase {
                 case .success(let image):

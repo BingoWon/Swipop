@@ -298,7 +298,7 @@ struct WorkGridCell: View {
     
     @ViewBuilder
     private var coverImage: some View {
-        if let urlString = work.thumbnailUrl, let url = URL(string: urlString) {
+        if let url = work.mediumThumbnailURL {
             AsyncImage(url: url) { phase in
                 switch phase {
                 case .success(let image):

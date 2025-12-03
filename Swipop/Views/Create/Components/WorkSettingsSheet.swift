@@ -196,8 +196,7 @@ struct WorkSettingsSheet: View {
                     .resizable()
                     .scaledToFill()
                     .clipShape(RoundedRectangle(cornerRadius: 12))
-            } else if let urlString = workEditor.thumbnailUrl,
-                      let url = URL(string: urlString) {
+            } else if let url = workEditor.smallThumbnailURL {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let image):

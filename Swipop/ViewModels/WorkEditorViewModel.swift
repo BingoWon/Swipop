@@ -58,6 +58,9 @@ final class WorkEditorViewModel {
     var isNew: Bool { workId == nil }
     var hasThumbnail: Bool { thumbnailUrl != nil || thumbnailImage != nil }
     
+    /// Small thumbnail URL for settings preview (200px)
+    var smallThumbnailURL: URL? { ThumbnailTransform.url(from: thumbnailUrl, size: .small) }
+    
     // MARK: - Thumbnail Actions
     
     func captureThumbnail() async {

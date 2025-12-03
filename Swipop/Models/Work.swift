@@ -152,6 +152,57 @@ extension Work: Codable {
     }
 }
 
+// MARK: - Thumbnail Image Transformation
+
+/// Supabase Image Transformation helper
+/// Transforms: /storage/v1/object/public/... → /storage/v1/render/image/public/...?width=X&quality=Y
+enum ThumbnailTransform {
+    case small   // Profile grid, Settings preview: 420px, 60%
+    case medium  // Home feed: 640px, 70%
+    
+    var width: Int {
+        switch self {
+        case .small: return 420
+        case .medium: return 640
+        }
+    }
+    
+    var quality: Int {
+        switch self {
+        case .small: return 60
+        case .medium: return 70
+        }
+    }
+    
+    /// Transform original Supabase storage URL to render URL
+    static func url(from originalUrl: String?, size: ThumbnailTransform) -> URL? {
+        guard let urlString = originalUrl,
+              let url = URL(string: urlString),
+              var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            return nil
+        }
+        
+        // Replace /object/ with /render/image/
+        components.path = components.path.replacingOccurrences(of: "/object/", with: "/render/image/")
+        
+        // Add transformation parameters
+        components.queryItems = [
+            URLQueryItem(name: "width", value: "\(size.width)"),
+            URLQueryItem(name: "quality", value: "\(size.quality)")
+        ]
+        
+        return components.url
+    }
+}
+
+extension Work {
+    /// Small thumbnail URL for profile grid (200px)
+    var smallThumbnailURL: URL? { ThumbnailTransform.url(from: thumbnailUrl, size: .small) }
+    
+    /// Medium thumbnail URL for home feed (400px)
+    var mediumThumbnailURL: URL? { ThumbnailTransform.url(from: thumbnailUrl, size: .medium) }
+}
+
 // MARK: - Sample Data
 
 extension Work {
