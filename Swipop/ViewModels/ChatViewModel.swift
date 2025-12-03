@@ -93,10 +93,24 @@ final class ChatViewModel {
     func stop() {
         streamTask?.cancel()
         streamTask = nil
+        debounceTask?.cancel()
+        debounceTask = nil
         
         if currentMessageIndex < messages.count {
             flushPendingContent()
-            finalizeCurrentMessage()
+            finalizeCurrentThinking()
+            
+            // Mark any streaming tool calls as stopped
+            for (_, info) in streamingToolCalls {
+                if info.segmentIndex < messages[currentMessageIndex].segments.count,
+                   case .toolCall(var segment) = messages[currentMessageIndex].segments[info.segmentIndex] {
+                    segment.isStreaming = false
+                    messages[currentMessageIndex].segments[info.segmentIndex] = .toolCall(segment)
+                }
+            }
+            streamingToolCalls = [:]
+            
+            messages[currentMessageIndex].isStreaming = false
         }
         
         isLoading = false

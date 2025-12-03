@@ -12,11 +12,20 @@ struct ToolCallView: View {
         VStack(alignment: .leading, spacing: 0) {
             header
             
-            if isExpanded && !toolCall.arguments.isEmpty {
+            // Auto-expand when streaming OR manually expanded
+            if (toolCall.isStreaming || isExpanded) && !toolCall.arguments.isEmpty {
                 Divider()
                     .background(Color.white.opacity(0.1))
                 
-                details
+                streamingContent
+            }
+            
+            // Show result when completed and expanded
+            if !toolCall.isStreaming && isExpanded, let result = toolCall.result {
+                Divider()
+                    .background(Color.white.opacity(0.1))
+                
+                resultContent(result)
             }
         }
         .background(Color.darkSheet)
@@ -29,18 +38,16 @@ struct ToolCallView: View {
     
     private var header: some View {
         HStack(spacing: 8) {
-            // Icon with animation when streaming
-            ZStack {
-                if toolCall.isStreaming {
-                    Image(systemName: iconForTool)
-                        .font(.system(size: 12))
-                        .foregroundStyle(.orange)
-                        .symbolEffect(.pulse, options: .repeating, isActive: true)
-                } else {
-                    Image(systemName: iconForTool)
-                        .font(.system(size: 12))
-                        .foregroundStyle(.green)
-                }
+            // Icon
+            if toolCall.isStreaming {
+                Image(systemName: iconForTool)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.orange)
+                    .symbolEffect(.pulse, options: .repeating, isActive: true)
+            } else {
+                Image(systemName: iconForTool)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.green)
             }
             
             // Status text
@@ -49,7 +56,6 @@ struct ToolCallView: View {
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.white.opacity(0.9))
                 
-                // Progress indicator
                 ProgressView()
                     .scaleEffect(0.6)
                     .tint(.orange)
@@ -61,8 +67,8 @@ struct ToolCallView: View {
             
             Spacer()
             
-            // Expand chevron (only if has arguments)
-            if !toolCall.arguments.isEmpty {
+            // Expand chevron (only when not streaming and has content)
+            if !toolCall.isStreaming && !toolCall.arguments.isEmpty {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.white.opacity(0.4))
@@ -73,26 +79,40 @@ struct ToolCallView: View {
         .padding(.vertical, 10)
         .contentShape(Rectangle())
         .onTapGesture {
-            guard !toolCall.arguments.isEmpty else { return }
+            guard !toolCall.isStreaming && !toolCall.arguments.isEmpty else { return }
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                 isExpanded.toggle()
             }
         }
     }
     
-    private var details: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if !toolCall.arguments.isEmpty {
-                DetailSection(
-                    title: toolCall.isStreaming ? "Arguments (streaming...)" : "Arguments",
-                    content: toolCall.arguments,
-                    color: .white.opacity(0.8)
-                )
-            }
+    private var streamingContent: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(toolCall.isStreaming ? "Arguments (streaming...)" : "Arguments")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.white.opacity(0.5))
             
-            if let result = toolCall.result {
-                DetailSection(title: "Result", content: result, color: .green)
+            ScrollView {
+                Text(toolCall.arguments)
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.8))
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .frame(maxHeight: 200)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+    }
+    
+    private func resultContent(_ result: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Result")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.white.opacity(0.5))
+            
+            Text(result)
+                .font(.system(size: 12, design: .monospaced))
+                .foregroundStyle(.green)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
@@ -115,28 +135,6 @@ struct ToolCallView: View {
         case "edit_javascript": "edit_javascript"
         case "update_metadata": "update_metadata"
         default: toolCall.name
-        }
-    }
-}
-
-private struct DetailSection: View {
-    let title: String
-    let content: String
-    let color: Color
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.white.opacity(0.5))
-            
-            ScrollView(.horizontal, showsIndicators: false) {
-                Text(content)
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(color)
-                    .lineLimit(nil)
-            }
-            .frame(maxHeight: 150)
         }
     }
 }

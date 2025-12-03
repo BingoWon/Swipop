@@ -161,13 +161,15 @@ struct ThinkingSegmentView: View {
             headerView
                 .contentShape(Rectangle())
                 .onTapGesture {
+                    // Only toggle when not actively streaming
+                    guard !info.isActive else { return }
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                         isExpanded.toggle()
                     }
                 }
             
-            // Expandable content
-            if isExpanded && !info.text.isEmpty {
+            // Auto-expand when active (streaming) OR manually expanded
+            if (info.isActive || isExpanded) && !info.text.isEmpty {
                 Divider()
                     .background(Color.white.opacity(0.1))
                 
@@ -223,8 +225,8 @@ struct ThinkingSegmentView: View {
             
             Spacer()
             
-            // Show chevron if there's content to expand
-            if !info.text.isEmpty {
+            // Show chevron only when not streaming and has content
+            if !info.isActive && !info.text.isEmpty {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.white.opacity(0.4))
