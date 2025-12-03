@@ -46,29 +46,29 @@ final class ChatViewModel {
     You are a creative AI assistant in Swipop, a social app for sharing HTML/CSS/JS creative works.
     Help users create interactive, visually appealing web components.
     
+    ## Current Work State
+    The current state of HTML, CSS, JavaScript, and metadata is provided with each message.
+    You always have access to the latest content - no need to read before editing.
+    
     ## Available Tools
     
-    ### Reading (always read before editing if unsure of current state)
-    - read_html, read_css, read_javascript: Get current file content
-    - read_metadata: Get current title, description, tags
-    
-    ### Writing (full replacement, for new files or complete rewrites)
+    ### Writing (full replacement)
     - write_html, write_css, write_javascript: Replace entire file content
+      - Use for new works or major rewrites
     
-    ### Replacing (targeted edits, preferred for existing files)
-    - replace_in_html, replace_in_css, replace_in_javascript: Find and replace specific text
-      - The 'search' text must match exactly and be unique in the file
+    ### Replacing (targeted edits, preferred for existing code)
+    - replace_in_html, replace_in_css, replace_in_javascript: Find and replace
+      - The 'search' text must match exactly and be unique
       - Use for small, localized changes
     
     ### Metadata
-    - update_metadata: Update title, description, and/or tags (only provide fields you want to change)
+    - update_metadata: Update title, description, and/or tags (partial updates supported)
     
     ## Guidelines
-    1. Use read_* first if you're unsure of the current content
-    2. Prefer replace_in_* for small changes to existing code
-    3. Use write_* for new files or major rewrites
-    4. Make it visually impressive with modern CSS
-    5. Add smooth animations and consider mobile responsiveness
+    1. Prefer replace_in_* for small changes to existing code
+    2. Use write_* for new works or major rewrites
+    3. Make it visually impressive with modern CSS
+    4. Add smooth animations and consider mobile responsiveness
     """
     
     // MARK: - Init
@@ -89,7 +89,10 @@ final class ChatViewModel {
         messages.append(.user(text))
         
         clearReasoningFromHistory()
-        history.append(["role": "user", "content": text])
+        
+        // Inject current work state + user message
+        let userMessageWithContext = buildUserMessageWithContext(text)
+        history.append(["role": "user", "content": userMessageWithContext])
         syncToWorkEditor()
         
         streamTask = Task { await streamResponse() }
@@ -138,6 +141,63 @@ final class ChatViewModel {
         syncToWorkEditor()
     }
     
+    // MARK: - Context Injection
+    
+    private func buildUserMessageWithContext(_ userText: String) -> String {
+        guard let editor = workEditor else { return userText }
+        
+        var parts: [String] = []
+        
+        // Metadata section
+        parts.append("[Current Work State]")
+        parts.append("Title: \(editor.title.isEmpty ? "(empty)" : editor.title)")
+        parts.append("Description: \(editor.description.isEmpty ? "(empty)" : editor.description)")
+        parts.append("Tags: \(editor.tags.isEmpty ? "(none)" : editor.tags.joined(separator: ", "))")
+        parts.append("")
+        
+        // HTML
+        if editor.html.isEmpty {
+            parts.append("[HTML] (empty)")
+        } else {
+            let lines = editor.html.components(separatedBy: .newlines).count
+            parts.append("[HTML] (\(lines) lines)")
+            parts.append("```html")
+            parts.append(editor.html)
+            parts.append("```")
+        }
+        parts.append("")
+        
+        // CSS
+        if editor.css.isEmpty {
+            parts.append("[CSS] (empty)")
+        } else {
+            let lines = editor.css.components(separatedBy: .newlines).count
+            parts.append("[CSS] (\(lines) lines)")
+            parts.append("```css")
+            parts.append(editor.css)
+            parts.append("```")
+        }
+        parts.append("")
+        
+        // JavaScript
+        if editor.javascript.isEmpty {
+            parts.append("[JavaScript] (empty)")
+        } else {
+            let lines = editor.javascript.components(separatedBy: .newlines).count
+            parts.append("[JavaScript] (\(lines) lines)")
+            parts.append("```javascript")
+            parts.append(editor.javascript)
+            parts.append("```")
+        }
+        parts.append("")
+        
+        // User message
+        parts.append("[User Request]")
+        parts.append(userText)
+        
+        return parts.joined(separator: "\n")
+    }
+    
     private func clearReasoningFromHistory() {
         for i in history.indices {
             if history[i]["reasoning_content"] != nil {
@@ -165,7 +225,9 @@ final class ChatViewModel {
                     currentAssistantMsg = nil
                 }
                 if let content = msg["content"] as? String {
-                    messages.append(.user(content))
+                    // Extract just the user request part for display
+                    let displayText = extractUserRequest(from: content)
+                    messages.append(.user(displayText))
                 }
                 
             case "assistant":
@@ -205,6 +267,14 @@ final class ChatViewModel {
         if let assistantMsg = currentAssistantMsg, !assistantMsg.segments.isEmpty {
             messages.append(assistantMsg)
         }
+    }
+    
+    /// Extract the actual user request from a context-injected message
+    private func extractUserRequest(from content: String) -> String {
+        if let range = content.range(of: "[User Request]\n") {
+            return String(content[range.upperBound...])
+        }
+        return content
     }
     
     private func findToolResult(for callId: String, startingFrom index: Int) -> String? {
@@ -479,25 +549,14 @@ final class ChatViewModel {
         }
         
         switch tool {
-        case .readMetadata:
-            return executeReadMetadata()
         case .updateMetadata:
             return executeUpdateMetadata(args)
-        // Read
-        case .readHtml:
-            return executeRead(.html)
-        case .readCss:
-            return executeRead(.css)
-        case .readJavascript:
-            return executeRead(.javascript)
-        // Write
         case .writeHtml:
             return executeWrite(args, type: .html)
         case .writeCss:
             return executeWrite(args, type: .css)
         case .writeJavascript:
             return executeWrite(args, type: .javascript)
-        // Replace
         case .replaceInHtml:
             return executeReplace(args, type: .html)
         case .replaceInCss:
@@ -505,31 +564,6 @@ final class ChatViewModel {
         case .replaceInJavascript:
             return executeReplace(args, type: .javascript)
         }
-    }
-    
-    private func executeRead(_ type: CodeType) -> String {
-        guard let editor = workEditor else {
-            return #"{"error": "Work editor not available"}"#
-        }
-        
-        let content: String
-        let typeName: String
-        switch type {
-        case .html:
-            content = editor.html
-            typeName = "HTML"
-        case .css:
-            content = editor.css
-            typeName = "CSS"
-        case .javascript:
-            content = editor.javascript
-            typeName = "JavaScript"
-        }
-        
-        if content.isEmpty {
-            return #"{"type": "\#(typeName)", "content": "", "lines": 0, "empty": true}"#
-        }
-        return #"{"type": "\#(typeName)", "content": \#(escapeJSON(content)), "lines": \#(content.components(separatedBy: .newlines).count)}"#
     }
     
     private func executeWrite(_ args: [String: Any], type: CodeType) -> String {
@@ -584,7 +618,6 @@ final class ChatViewModel {
             typeName = "JavaScript"
         }
         
-        // Check for matches
         let occurrences = content.components(separatedBy: search).count - 1
         if occurrences == 0 {
             return #"{"error": "Search text not found in \#(typeName)"}"#
@@ -593,7 +626,6 @@ final class ChatViewModel {
             return #"{"error": "Search text found \#(occurrences) times. Must be unique. Provide more context."}"#
         }
         
-        // Perform replacement
         content = content.replacingOccurrences(of: search, with: replace)
         
         switch type {
@@ -604,15 +636,6 @@ final class ChatViewModel {
         
         editor.isDirty = true
         return #"{"success": true, "type": "\#(typeName)", "replaced": 1}"#
-    }
-    
-    private func executeReadMetadata() -> String {
-        guard let editor = workEditor else {
-            return #"{"error": "Work editor not available"}"#
-        }
-        
-        let tagsJSON = "[" + editor.tags.map { #""\#($0)""# }.joined(separator: ",") + "]"
-        return #"{"title": \#(escapeJSON(editor.title)), "description": \#(escapeJSON(editor.description)), "tags": \#(tagsJSON)}"#
     }
     
     private func executeUpdateMetadata(_ args: [String: Any]) -> String {
@@ -641,16 +664,6 @@ final class ChatViewModel {
         
         editor.isDirty = true
         return #"{"success": true, "updated": [\#(updated.map { #""\#($0)""# }.joined(separator: ","))]}"#
-    }
-    
-    private func escapeJSON(_ string: String) -> String {
-        let escaped = string
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
-            .replacingOccurrences(of: "\n", with: "\\n")
-            .replacingOccurrences(of: "\r", with: "\\r")
-            .replacingOccurrences(of: "\t", with: "\\t")
-        return "\"\(escaped)\""
     }
     
     private func finalizeCurrentMessage() {

@@ -130,18 +130,10 @@ final class AIService {
     }
     
     enum ToolName: String {
-        // Metadata
-        case readMetadata = "read_metadata"
         case updateMetadata = "update_metadata"
-        // Read (get current content)
-        case readHtml = "read_html"
-        case readCss = "read_css"
-        case readJavascript = "read_javascript"
-        // Write (full replacement)
         case writeHtml = "write_html"
         case writeCss = "write_css"
         case writeJavascript = "write_javascript"
-        // Replace (targeted edit)
         case replaceInHtml = "replace_in_html"
         case replaceInCss = "replace_in_css"
         case replaceInJavascript = "replace_in_javascript"
@@ -161,55 +153,49 @@ final class AIService {
         }
     }
     
-    // MARK: - Tools Definition
+    // MARK: - Tools Definition (7 tools)
     
     static let tools: [[String: Any]] = [
         // Metadata
-        tool("read_metadata", "Read current work metadata (title, description, tags).", properties: [:]),
         tool("update_metadata",
              "Update work metadata. Only provide fields you want to change.",
              properties: [
-                "title": prop("string", "Work title (optional)"),
-                "description": prop("string", "Brief description (optional)"),
-                "tags": ["type": "array", "items": ["type": "string"], "description": "Tags for discovery (optional)"]
+                "title": prop("string", "Work title"),
+                "description": prop("string", "Brief description"),
+                "tags": ["type": "array", "items": ["type": "string"], "description": "Tags for discovery"]
              ]),
         
-        // Read tools - get current content before editing
-        tool("read_html", "Read current HTML content. Use before editing to see the latest state.", properties: [:]),
-        tool("read_css", "Read current CSS content. Use before editing to see the latest state.", properties: [:]),
-        tool("read_javascript", "Read current JavaScript content. Use before editing to see the latest state.", properties: [:]),
-        
-        // Write tools - full replacement
+        // Write (full replacement)
         tool("write_html",
-             "Replace entire HTML content. Use for new files or complete rewrites. Do NOT include <html>, <head>, or <body> tags.",
+             "Replace entire HTML content. Use for new works or complete rewrites. Do NOT include <html>, <head>, or <body> tags.",
              properties: ["content": prop("string", "Complete HTML content")],
              required: ["content"]),
         tool("write_css",
-             "Replace entire CSS content. Use for new files or complete rewrites.",
+             "Replace entire CSS content. Use for new works or complete rewrites.",
              properties: ["content": prop("string", "Complete CSS content")],
              required: ["content"]),
         tool("write_javascript",
-             "Replace entire JavaScript content. Use for new files or complete rewrites.",
+             "Replace entire JavaScript content. Use for new works or complete rewrites.",
              properties: ["content": prop("string", "Complete JavaScript content")],
              required: ["content"]),
         
-        // Replace tools - targeted edits
+        // Replace (targeted edits)
         tool("replace_in_html",
-             "Make targeted edits to HTML. The search text must match exactly and be unique in the file.",
+             "Make targeted edits to HTML. The search text must match exactly and be unique.",
              properties: [
                 "search": prop("string", "Exact text to find (must be unique)"),
                 "replace": prop("string", "New text to substitute")
              ],
              required: ["search", "replace"]),
         tool("replace_in_css",
-             "Make targeted edits to CSS. The search text must match exactly and be unique in the file.",
+             "Make targeted edits to CSS. The search text must match exactly and be unique.",
              properties: [
                 "search": prop("string", "Exact text to find (must be unique)"),
                 "replace": prop("string", "New text to substitute")
              ],
              required: ["search", "replace"]),
         tool("replace_in_javascript",
-             "Make targeted edits to JavaScript. The search text must match exactly and be unique in the file.",
+             "Make targeted edits to JavaScript. The search text must match exactly and be unique.",
              properties: [
                 "search": prop("string", "Exact text to find (must be unique)"),
                 "replace": prop("string", "New text to substitute")
