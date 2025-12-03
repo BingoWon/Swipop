@@ -10,7 +10,7 @@ import SwiftUI
 struct MainTabView: View {
     @Binding var showLogin: Bool
     @State private var selectedTab = 0
-    @State private var isViewingWork = false  // Track if viewing fullscreen work
+    @State private var isViewingWork = false
     @State private var showWorkDetail = false
     @State private var workEditor: WorkEditorViewModel
     @State private var chatViewModel: ChatViewModel
@@ -23,7 +23,6 @@ struct MainTabView: View {
         Binding(
             get: { selectedTab },
             set: { newValue in
-                // If Create tab is re-selected while already on it, create new work
                 if newValue == 3 && selectedTab == 3 {
                     Task { await createNewWork() }
                 }
@@ -62,7 +61,8 @@ struct MainTabView: View {
                 selectedTab: selectedTab,
                 isViewingWork: isViewingWork,
                 createSubTab: $createSubTab,
-                showWorkDetail: $showWorkDetail
+                showWorkDetail: $showWorkDetail,
+                continueToWork: continueToWork
             )
         }
         .tint(selectedTab == 3 ? .brand : .white)
@@ -73,7 +73,6 @@ struct MainTabView: View {
             }
         }
         .onChange(of: selectedTab) { oldValue, newValue in
-            // When LEAVING Create tab, save and reset for next visit
             if oldValue == 3 && newValue != 3 {
                 Task {
                     await workEditor.saveAndReset()
@@ -86,7 +85,6 @@ struct MainTabView: View {
     
     // MARK: - Actions
     
-    /// Navigate to Create tab with a work loaded for editing
     private func editWork(_ work: Work) {
         workEditor.load(work: work)
         chatViewModel.loadFromWorkEditor()
@@ -94,12 +92,17 @@ struct MainTabView: View {
         selectedTab = 3
     }
     
-    /// Save current work and reset to create a new one
     @MainActor
     private func createNewWork() async {
         await workEditor.saveAndReset()
         chatViewModel.clear()
         createSubTab = .chat
+    }
+    
+    /// Continue to last viewed work
+    private func continueToWork() {
+        selectedTab = 0
+        isViewingWork = true
     }
 }
 
@@ -110,30 +113,25 @@ private struct BottomAccessoryContent: View {
     let isViewingWork: Bool
     @Binding var createSubTab: CreateSubTab
     @Binding var showWorkDetail: Bool
+    let continueToWork: () -> Void
     
     var body: some View {
-        switch selectedTab {
-        case 0:
-            // Home tab
-            if isViewingWork {
-                FeedModeAccessory(showDetail: $showWorkDetail)
-            } else {
-                // Hide accessory on grid view (return EmptyView or minimal)
-                EmptyView()
-            }
-        case 3:
-            // Create tab
+        if selectedTab == 3 {
+            // Create tab: independent sub-tab bar
             CreateSubTabBar(selectedTab: $createSubTab)
-        default:
-            // Other tabs: show return to feed
-            ReturnToFeedAccessory()
+        } else if selectedTab == 0 && isViewingWork {
+            // Home tab viewing work: work info + navigation
+            WorkModeAccessory(showDetail: $showWorkDetail)
+        } else {
+            // All other cases: Continue to last work
+            ContinueAccessory(onContinue: continueToWork)
         }
     }
 }
 
-// MARK: - Feed Mode Accessory (when viewing work)
+// MARK: - Work Mode Accessory (viewing work in Home)
 
-private struct FeedModeAccessory: View {
+private struct WorkModeAccessory: View {
     @Binding var showDetail: Bool
     
     private let feed = FeedViewModel.shared
@@ -216,31 +214,35 @@ private struct FeedModeAccessory: View {
     }
 }
 
-// MARK: - Return to Feed Accessory (other tabs)
+// MARK: - Continue Accessory (return to last work)
 
-private struct ReturnToFeedAccessory: View {
+private struct ContinueAccessory: View {
+    let onContinue: () -> Void
+    
     private let feed = FeedViewModel.shared
     private var currentWork: Work? { feed.currentWork }
     private var creator: Profile? { currentWork?.creator }
     
     var body: some View {
-        HStack(spacing: 0) {
-            workInfoLabel
-                .frame(maxWidth: .infinity)
-            
-            Divider()
-                .frame(height: 28)
-                .overlay(Color.white.opacity(0.2))
-            
-            HStack(spacing: 6) {
-                Image(systemName: "house.fill")
-                    .font(.system(size: 12))
-                Text("Home")
-                    .font(.system(size: 13, weight: .medium))
+        Button(action: onContinue) {
+            HStack(spacing: 0) {
+                workInfoLabel
+                    .frame(maxWidth: .infinity)
+                
+                Divider()
+                    .frame(height: 28)
+                    .overlay(Color.white.opacity(0.2))
+                
+                HStack(spacing: 6) {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 12))
+                    Text("Continue")
+                        .font(.system(size: 13, weight: .medium))
+                }
+                .frame(width: 100)
             }
-            .frame(width: 80)
+            .foregroundStyle(.white)
         }
-        .foregroundStyle(.white)
     }
     
     private var workInfoLabel: some View {
