@@ -18,12 +18,19 @@ struct MainTabView: View {
     
     private let feed = FeedViewModel.shared
     
-    /// Custom binding to detect re-selection of Create tab
+    /// Custom binding to detect re-selection of tabs
     private var tabSelection: Binding<Int> {
         Binding(
             get: { selectedTab },
             set: { newValue in
-                if newValue == 3 && selectedTab == 3 {
+                // Re-selecting Home tab: return to Discover grid
+                if newValue == 0 && selectedTab == 0 && isViewingWork {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        isViewingWork = false
+                    }
+                }
+                // Re-selecting Create tab: create new work
+                else if newValue == 3 && selectedTab == 3 {
                     Task { await createNewWork() }
                 }
                 selectedTab = newValue
