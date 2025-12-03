@@ -25,15 +25,19 @@ struct UserProfileView: View {
             let columnWidth = (geometry.size.width - 8) / 3
             
             ScrollView {
-                VStack(spacing: 0) {
+                VStack(spacing: 8) {
                     ProfileHeaderView(profile: viewModel.profile, isLoading: viewModel.isLoading)
+                    
                     ProfileStatsRow(
                         workCount: viewModel.workCount,
+                        likeCount: viewModel.likeCount,
                         followerCount: viewModel.followerCount,
                         followingCount: viewModel.followingCount,
                         isLoading: viewModel.isLoading
                     )
+                    
                     actionButtons
+                    
                     workMasonryGrid(columnWidth: columnWidth)
                 }
             }
@@ -68,19 +72,34 @@ struct UserProfileView: View {
                     .background(viewModel.isFollowing ? Color.secondaryBackground : Color.brand)
                     .cornerRadius(8)
             }
+            .buttonStyle(.plain)
             .disabled(viewModel.isLoading)
         }
         .padding(.horizontal, 16)
-        .padding(.bottom, 20)
     }
     
     // MARK: - Work Masonry Grid
     
     private func workMasonryGrid(columnWidth: CGFloat) -> some View {
-        MasonryGrid(works: viewModel.works, columnWidth: columnWidth, columns: 3, spacing: 2) { work in
-            ProfileWorkCell(work: work, columnWidth: columnWidth)
+        Group {
+            if viewModel.works.isEmpty && !viewModel.isLoading {
+                VStack(spacing: 12) {
+                    Image(systemName: "square.grid.2x2")
+                        .font(.system(size: 40))
+                        .foregroundStyle(.tertiary)
+                    Text("No works yet")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 60)
+            } else {
+                MasonryGrid(works: viewModel.works, columnWidth: columnWidth, columns: 3, spacing: 2) { work in
+                    ProfileWorkCell(work: work, columnWidth: columnWidth)
+                }
+                .padding(.top, 2)
+            }
         }
-        .padding(.top, 2)
     }
 }
 

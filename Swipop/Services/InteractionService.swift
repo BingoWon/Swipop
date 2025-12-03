@@ -80,6 +80,28 @@ actor InteractionService {
         return (count ?? 0) > 0
     }
     
+    // MARK: - Counts
+    
+    /// Total likes received on user's works
+    func fetchLikeCount(userId: UUID) async throws -> Int {
+        // Sum up like_count from all user's works
+        struct LikeSum: Decodable {
+            let likeCount: Int
+            enum CodingKeys: String, CodingKey {
+                case likeCount = "like_count"
+            }
+        }
+        
+        let works: [LikeSum] = try await supabase
+            .from("works")
+            .select("like_count")
+            .eq("user_id", value: userId)
+            .execute()
+            .value
+        
+        return works.reduce(0) { $0 + $1.likeCount }
+    }
+    
     // MARK: - Fetch Collections
     
     func fetchLikedWorks(userId: UUID) async throws -> [Work] {

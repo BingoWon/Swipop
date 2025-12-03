@@ -29,9 +29,16 @@ actor UserService {
     }
     
     func updateProfile(_ profile: Profile) async throws -> Profile {
+        let payload = ProfileUpdatePayload(
+            username: profile.username,
+            displayName: profile.displayName,
+            bio: profile.bio,
+            links: profile.links
+        )
+        
         let updated: Profile = try await supabase
             .from("users")
-            .update(profile)
+            .update(payload)
             .eq("id", value: profile.id)
             .select()
             .single()
@@ -108,3 +115,18 @@ actor UserService {
     }
 }
 
+// MARK: - Profile Update Payload
+
+private struct ProfileUpdatePayload: Encodable {
+    let username: String?
+    let displayName: String?
+    let bio: String?
+    let links: [ProfileLink]
+    
+    enum CodingKeys: String, CodingKey {
+        case username
+        case displayName = "display_name"
+        case bio
+        case links
+    }
+}

@@ -22,6 +22,7 @@ final class CurrentUserProfile {
     private(set) var followerCount = 0
     private(set) var followingCount = 0
     private(set) var workCount = 0
+    private(set) var likeCount = 0
     
     /// True during initial load (no data yet)
     private(set) var isLoading = false
@@ -73,6 +74,7 @@ final class CurrentUserProfile {
         followerCount = 0
         followingCount = 0
         workCount = 0
+        likeCount = 0
         hasLoaded = false
     }
     
@@ -81,13 +83,14 @@ final class CurrentUserProfile {
         async let followerTask = userService.fetchFollowerCount(userId: userId)
         async let followingTask = userService.fetchFollowingCount(userId: userId)
         async let workCountTask = userService.fetchWorkCount(userId: userId)
+        async let likeCountTask = interactionService.fetchLikeCount(userId: userId)
         async let worksTask = workService.fetchMyWorks()
         async let likedTask = interactionService.fetchLikedWorks(userId: userId)
         async let collectedTask = interactionService.fetchCollectedWorks(userId: userId)
         
         do {
-            let (p, fc, fgc, wc, w, l, c) = try await (
-                profileTask, followerTask, followingTask, workCountTask,
+            let (p, fc, fgc, wc, lc, w, l, c) = try await (
+                profileTask, followerTask, followingTask, workCountTask, likeCountTask,
                 worksTask, likedTask, collectedTask
             )
             
@@ -95,6 +98,7 @@ final class CurrentUserProfile {
             followerCount = fc
             followingCount = fgc
             workCount = wc
+            likeCount = lc
             works = w
             likedWorks = l
             collectedWorks = c
@@ -118,12 +122,14 @@ final class OtherUserProfileViewModel {
     private(set) var followerCount = 0
     private(set) var followingCount = 0
     private(set) var workCount = 0
+    private(set) var likeCount = 0
     private(set) var isFollowing = false
     
     private(set) var isLoading = true
     
     private let userService = UserService.shared
     private let workService = WorkService.shared
+    private let interactionService = InteractionService.shared
     
     init(userId: UUID) {
         self.userId = userId
@@ -137,17 +143,19 @@ final class OtherUserProfileViewModel {
         async let followerTask = userService.fetchFollowerCount(userId: userId)
         async let followingTask = userService.fetchFollowingCount(userId: userId)
         async let workCountTask = userService.fetchWorkCount(userId: userId)
+        async let likeCountTask = interactionService.fetchLikeCount(userId: userId)
         async let worksTask = workService.fetchUserWorks(userId: userId)
         
         do {
-            let (p, fc, fgc, wc, w) = try await (
-                profileTask, followerTask, followingTask, workCountTask, worksTask
+            let (p, fc, fgc, wc, lc, w) = try await (
+                profileTask, followerTask, followingTask, workCountTask, likeCountTask, worksTask
             )
             
             profile = p
             followerCount = fc
             followingCount = fgc
             workCount = wc
+            likeCount = lc
             works = w
             
             if let currentUserId = AuthService.shared.currentUser?.id {

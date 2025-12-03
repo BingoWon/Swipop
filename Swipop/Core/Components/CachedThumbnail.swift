@@ -11,22 +11,48 @@ import Kingfisher
 /// Cached thumbnail with Kingfisher (memory + disk cache)
 struct CachedThumbnail: View {
     let url: URL?
+    let size: CGSize?
     let placeholder: AnyView
     
+    /// Initialize with explicit size (recommended for grid cells)
+    init(url: URL?, size: CGSize, @ViewBuilder placeholder: () -> some View) {
+        self.url = url
+        self.size = size
+        self.placeholder = AnyView(placeholder())
+    }
+    
+    /// Initialize without size (for flexible layouts like settings preview)
     init(url: URL?, @ViewBuilder placeholder: () -> some View) {
         self.url = url
+        self.size = nil
         self.placeholder = AnyView(placeholder())
     }
     
     var body: some View {
         if let url {
-            KFImage(url)
-                .placeholder { placeholder }
-                .fade(duration: 0.2)
-                .resizable()
-                .scaledToFill()
+            if let size {
+                // Fixed size mode: fill and clip
+                KFImage(url)
+                    .placeholder { placeholder.frame(width: size.width, height: size.height) }
+                    .fade(duration: 0.2)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: size.width, height: size.height)
+                    .clipped()
+            } else {
+                // Flexible mode: just resizable, let parent control size
+                KFImage(url)
+                    .placeholder { placeholder }
+                    .fade(duration: 0.2)
+                    .resizable()
+                    .scaledToFill()
+            }
         } else {
-            placeholder
+            if let size {
+                placeholder.frame(width: size.width, height: size.height)
+            } else {
+                placeholder
+            }
         }
     }
 }
@@ -35,13 +61,13 @@ struct CachedThumbnail: View {
 
 extension CachedThumbnail {
     /// Work thumbnail with gradient placeholder
-    init(work: Work, size: ThumbnailTransform) {
-        let url: URL? = switch size {
+    init(work: Work, transform: ThumbnailTransform, size: CGSize) {
+        let url: URL? = switch transform {
         case .small: work.smallThumbnailURL
         case .medium: work.mediumThumbnailURL
         }
         
-        self.init(url: url) {
+        self.init(url: url, size: size) {
             WorkThumbnailPlaceholder(title: work.title)
         }
     }
@@ -105,4 +131,3 @@ enum ThumbnailCache {
         }
     }
 }
-

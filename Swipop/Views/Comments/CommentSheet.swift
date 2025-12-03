@@ -208,14 +208,14 @@ private struct CommentRow: View {
                 .fill(Color.brand)
                 .frame(width: 36, height: 36)
                 .overlay(
-                    Text(comment.user?.username?.prefix(1).uppercased() ?? "?")
+                    Text(comment.user?.initial ?? "?")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(.white)
                 )
             
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text("@\(comment.user?.username ?? "user")")
+                    Text("@\(comment.user?.handle ?? "user")")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(.primary)
                     

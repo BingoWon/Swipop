@@ -41,9 +41,13 @@ struct InboxView: View {
             LazyVStack(spacing: 0) {
                 ForEach(Activity.samples) { activity in
                     ActivityRow(activity: activity)
-                    Divider().overlay(Color.divider)
+                    Divider().overlay(Color.border)
                 }
             }
+        }
+        .refreshable {
+            // TODO: Implement activity refresh
+            try? await Task.sleep(for: .milliseconds(500))
         }
         .overlay {
             if Activity.samples.isEmpty {
@@ -63,9 +67,13 @@ struct InboxView: View {
             LazyVStack(spacing: 0) {
                 ForEach(Conversation.samples) { conversation in
                     ConversationRow(conversation: conversation)
-                    Divider().overlay(Color.divider)
+                    Divider().overlay(Color.border)
                 }
             }
+        }
+        .refreshable {
+            // TODO: Implement messages refresh
+            try? await Task.sleep(for: .milliseconds(500))
         }
         .overlay {
             if Conversation.samples.isEmpty {

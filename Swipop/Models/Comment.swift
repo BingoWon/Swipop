@@ -35,6 +35,16 @@ struct CommentUser: Codable, Equatable {
     let displayName: String?
     let avatarUrl: String?
     
+    /// Username for @ mention
+    var handle: String {
+        username ?? displayName?.lowercased().replacingOccurrences(of: " ", with: "_") ?? "user"
+    }
+    
+    /// First character for avatar placeholder
+    var initial: String {
+        String((displayName ?? username ?? "U").prefix(1)).uppercased()
+    }
+    
     enum CodingKeys: String, CodingKey {
         case id
         case username

@@ -186,9 +186,11 @@ enum ThumbnailTransform {
         components.path = components.path.replacingOccurrences(of: "/object/", with: "/render/image/")
         
         // Add transformation parameters
+        // resize=contain: scale to fit within width while preserving aspect ratio (no cropping)
         components.queryItems = [
             URLQueryItem(name: "width", value: "\(size.width)"),
-            URLQueryItem(name: "quality", value: "\(size.quality)")
+            URLQueryItem(name: "quality", value: "\(size.quality)"),
+            URLQueryItem(name: "resize", value: "contain")
         ]
         
         return components.url

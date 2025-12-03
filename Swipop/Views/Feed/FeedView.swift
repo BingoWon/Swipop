@@ -166,14 +166,15 @@ struct FeedView: View {
             }
         }
         
+        // Search button only in grid mode
         if !isViewingWork {
             ToolbarSpacer(.fixed, placement: .topBarTrailing)
-        }
-        
-        ToolbarItem(placement: .topBarTrailing) {
-            Button { showSearch = true } label: {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(isViewingWork ? .white : .primary)
+            
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showSearch = true } label: {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(.primary)
+                }
             }
         }
     }
@@ -249,8 +250,6 @@ struct WorkGridCell: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             coverImage
-                .frame(width: columnWidth, height: imageHeight)
-                .clipped()
             
             VStack(alignment: .leading, spacing: 6) {
                 Text(work.title.isEmpty ? "Untitled" : work.title)
@@ -268,7 +267,7 @@ struct WorkGridCell: View {
                                 .foregroundStyle(.white)
                         }
                     
-                    Text(work.creator?.username ?? "user")
+                    Text("@\(work.creator?.handle ?? "user")")
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -293,11 +292,11 @@ struct WorkGridCell: View {
     }
     
     private var coverImage: some View {
-        CachedThumbnail(work: work, size: .medium)
+        CachedThumbnail(work: work, transform: .medium, size: CGSize(width: columnWidth, height: imageHeight))
     }
     
     private var creatorInitial: String {
-        String((work.creator?.displayName ?? work.creator?.username ?? "U").prefix(1)).uppercased()
+        work.creator?.initial ?? "U"
     }
 }
 

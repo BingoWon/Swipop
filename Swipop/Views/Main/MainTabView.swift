@@ -150,7 +150,8 @@ private struct WorkModeAccessory: View {
             Button { showDetail = true } label: {
                 workInfoLabel
             }
-            .frame(maxWidth: .infinity)
+            
+            Spacer(minLength: 0)
             
             Divider().frame(height: 28).overlay(Color.border)
             
@@ -175,13 +176,13 @@ private struct WorkModeAccessory: View {
                     .font(.system(size: 14, weight: .semibold))
                     .lineLimit(1)
                 
-                Text("@\(creator?.username ?? "unknown")")
+                Text("@\(creator?.handle ?? "unknown")")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
         }
-        .padding(.horizontal, 12)
+        .padding(.leading, 12)
     }
     
     private var navigationButtons: some View {
@@ -212,7 +213,7 @@ private struct WorkModeAccessory: View {
     }
     
     private var creatorInitial: String {
-        String((creator?.displayName ?? creator?.username ?? "?").prefix(1)).uppercased()
+        creator?.initial ?? "?"
     }
 }
 
@@ -229,7 +230,8 @@ private struct ContinueAccessory: View {
         Button(action: onContinue) {
             HStack(spacing: 0) {
                 workInfoLabel
-                    .frame(maxWidth: .infinity)
+                
+                Spacer(minLength: 0)
                 
                 Divider()
                     .frame(height: 28)
@@ -263,17 +265,17 @@ private struct ContinueAccessory: View {
                     .font(.system(size: 14, weight: .semibold))
                     .lineLimit(1)
                 
-                Text("@\(creator?.username ?? "unknown")")
+                Text("@\(creator?.handle ?? "unknown")")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
         }
-        .padding(.horizontal, 12)
+        .padding(.leading, 12)
     }
     
     private var creatorInitial: String {
-        String((creator?.displayName ?? creator?.username ?? "?").prefix(1)).uppercased()
+        creator?.initial ?? "?"
     }
 }
 

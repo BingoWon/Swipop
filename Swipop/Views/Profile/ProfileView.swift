@@ -46,6 +46,7 @@ struct ProfileView: View {
                     .background(Color.brand)
                     .cornerRadius(25)
             }
+            .buttonStyle(.plain)
         }
     }
 }
@@ -64,21 +65,34 @@ struct ProfileContentView: View {
     
     var body: some View {
         GeometryReader { geometry in
-            let columnWidth = (geometry.size.width - 8) / 3 // 3 columns, 2px spacing * 4
+            let columnWidth = (geometry.size.width - 8) / 3
             
             ScrollView {
-                VStack(spacing: 0) {
-                    ProfileHeaderView(profile: userProfile.profile)
+                VStack(spacing: 8) {
+                    // Header with Edit button
+                    ProfileHeaderView(
+                        profile: userProfile.profile,
+                        showEditButton: true,
+                        onEditTapped: { showEditProfile = true }
+                    )
+                    
+                    // Stats
                     ProfileStatsRow(
                         workCount: userProfile.workCount,
+                        likeCount: userProfile.likeCount,
                         followerCount: userProfile.followerCount,
                         followingCount: userProfile.followingCount
                     )
-                    actionButtons
+                    
+                    // Content tabs
                     contentTabs
+                        .padding(.top, 8)
+                    
+                    // Works grid
                     workMasonryGrid(columnWidth: columnWidth)
                 }
             }
+            .refreshable { await userProfile.refresh() }
         }
         .background(Color.appBackground)
         .navigationBarTitleDisplayMode(.inline)
@@ -98,47 +112,12 @@ struct ProfileContentView: View {
     
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItemGroup(placement: .topBarTrailing) {
-            if userProfile.isRefreshing {
-                ProgressView()
-                    .scaleEffect(0.8)
-                    .tint(.primary)
-            } else {
-                Button {
-                    Task { await userProfile.refresh() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                        .foregroundStyle(.primary)
-                }
-            }
-        }
-        
-        ToolbarSpacer(.fixed, placement: .topBarTrailing)
-        
         ToolbarItem(placement: .topBarTrailing) {
             Button { showSettings = true } label: {
                 Image(systemName: "gearshape")
                     .foregroundStyle(.primary)
             }
         }
-    }
-    
-    // MARK: - Action Buttons
-    
-    private var actionButtons: some View {
-        HStack(spacing: 12) {
-            Button { showEditProfile = true } label: {
-                Text("Edit Profile")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.primary)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 36)
-                    .background(Color.secondaryBackground)
-                    .cornerRadius(8)
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 20)
     }
     
     // MARK: - Content Tabs
@@ -161,13 +140,49 @@ struct ProfileContentView: View {
     // MARK: - Work Masonry Grid
     
     private func workMasonryGrid(columnWidth: CGFloat) -> some View {
-        MasonryGrid(works: currentItems, columnWidth: columnWidth, columns: 3, spacing: 2) { work in
-            ProfileWorkCell(work: work, columnWidth: columnWidth, showDraftBadge: !work.isPublished)
-                .onTapGesture {
-                    editWork(work)
+        Group {
+            if currentItems.isEmpty {
+                emptyState
+            } else {
+                MasonryGrid(works: currentItems, columnWidth: columnWidth, columns: 3, spacing: 2) { work in
+                    ProfileWorkCell(work: work, columnWidth: columnWidth, showDraftBadge: !work.isPublished)
+                        .onTapGesture {
+                            editWork(work)
+                        }
                 }
+                .padding(.top, 2)
+            }
         }
-        .padding(.top, 2)
+    }
+    
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: emptyStateIcon)
+                .font(.system(size: 40))
+                .foregroundStyle(.tertiary)
+            
+            Text(emptyStateMessage)
+                .font(.system(size: 14))
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 60)
+    }
+    
+    private var emptyStateIcon: String {
+        switch selectedTab {
+        case 1: return "heart"
+        case 2: return "bookmark"
+        default: return "square.grid.2x2"
+        }
+    }
+    
+    private var emptyStateMessage: String {
+        switch selectedTab {
+        case 1: return "No liked works yet"
+        case 2: return "No saved works yet"
+        default: return "No works created yet"
+        }
     }
     
     private var currentItems: [Work] {
@@ -193,8 +208,6 @@ struct ProfileWorkCell: View {
     var body: some View {
         ZStack(alignment: .topTrailing) {
             coverImage
-                .frame(width: columnWidth, height: imageHeight)
-                .clipped()
                 .clipShape(RoundedRectangle(cornerRadius: 4))
             
             if showDraftBadge {
@@ -211,7 +224,7 @@ struct ProfileWorkCell: View {
     }
     
     private var coverImage: some View {
-        CachedThumbnail(work: work, size: .small)
+        CachedThumbnail(work: work, transform: .small, size: CGSize(width: columnWidth, height: imageHeight))
     }
 }
 
