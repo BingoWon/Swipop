@@ -97,41 +97,84 @@ struct WorkSettingsSheet: View {
     // MARK: - Context Window
     
     private func contextWindowView(chat: ChatViewModel) -> some View {
-        HStack(spacing: 16) {
-            // Circular progress
-            ZStack {
-                Circle()
-                    .stroke(Color.white.opacity(0.1), lineWidth: 6)
+        VStack(spacing: 12) {
+            // Progress bar with segments
+            GeometryReader { geo in
+                let usedWidth = geo.size.width * min(chat.usagePercentage, 1.0)
+                let bufferStart = geo.size.width * (Double(ChatViewModel.usableLimit) / Double(ChatViewModel.contextLimit))
                 
-                Circle()
-                    .trim(from: 0, to: min(chat.usagePercentage, 1.0))
-                    .stroke(
-                        contextColor(for: chat.usagePercentage),
-                        style: StrokeStyle(lineWidth: 6, lineCap: .round)
-                    )
-                    .rotationEffect(.degrees(-90))
-                
-                Text("\(Int(chat.usagePercentage * 100))%")
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                    .foregroundStyle(contextColor(for: chat.usagePercentage))
+                ZStack(alignment: .leading) {
+                    // Background
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.white.opacity(0.1))
+                    
+                    // Buffer zone indicator
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.white.opacity(0.05))
+                        .frame(width: geo.size.width - bufferStart)
+                        .offset(x: bufferStart)
+                    
+                    // Used portion
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(contextColor(for: chat.usagePercentage))
+                        .frame(width: max(usedWidth, 0))
+                }
             }
-            .frame(width: 52, height: 52)
+            .frame(height: 8)
             
-            // Stats
-            VStack(alignment: .leading, spacing: 4) {
-                Text("\(formatTokens(chat.promptTokens)) / \(formatTokens(ChatViewModel.usableLimit))")
-                    .font(.system(size: 15, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white)
+            // Stats grid
+            HStack(spacing: 0) {
+                statItem(
+                    label: "Used",
+                    value: formatTokens(chat.promptTokens),
+                    color: contextColor(for: chat.usagePercentage)
+                )
                 
-                Text("tokens used")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.white.opacity(0.5))
+                Divider()
+                    .frame(height: 28)
+                    .background(Color.white.opacity(0.2))
+                
+                statItem(
+                    label: "Available",
+                    value: formatTokens(ChatViewModel.usableLimit - chat.promptTokens),
+                    color: .white
+                )
+                
+                Divider()
+                    .frame(height: 28)
+                    .background(Color.white.opacity(0.2))
+                
+                statItem(
+                    label: "Buffer",
+                    value: formatTokens(ChatViewModel.bufferSize),
+                    color: .white.opacity(0.5)
+                )
+                
+                Divider()
+                    .frame(height: 28)
+                    .background(Color.white.opacity(0.2))
+                
+                statItem(
+                    label: "Total",
+                    value: "128K",
+                    color: .white.opacity(0.5)
+                )
             }
-            
-            Spacer()
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 4)
         .listRowBackground(Color.white.opacity(0.05))
+    }
+    
+    private func statItem(label: String, value: String, color: Color) -> some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundStyle(color)
+            Text(label)
+                .font(.system(size: 10))
+                .foregroundStyle(.white.opacity(0.4))
+        }
+        .frame(maxWidth: .infinity)
     }
     
     private func contextColor(for percentage: Double) -> Color {
