@@ -92,43 +92,28 @@ struct WorkViewerPage: View {
     }
     
     private var actionButtonsGroup: some View {
-        HStack(spacing: 2) {
-            GlassActionButton(
-                icon: interaction.isLiked ? "heart.fill" : "heart",
-                count: interaction.likeCount,
-                tint: interaction.isLiked ? .red : .white,
-                action: handleLike
-            )
-            
-            GlassActionButton(
-                icon: "bubble.right",
-                count: currentWork.commentCount,
-                tint: .white
-            ) {
-                showComments = true
-            }
-            
-            GlassActionButton(
-                icon: interaction.isCollected ? "bookmark.fill" : "bookmark",
-                count: interaction.collectCount,
-                tint: interaction.isCollected ? .yellow : .white,
-                action: handleCollect
-            )
-            
-            GlassActionButton(
-                icon: "square.and.arrow.up",
-                tint: .white
-            ) {
-                showShare = true
-            }
+        HStack(spacing: 0) {
+            glassIconButton(interaction.isLiked ? "heart.fill" : "heart", tint: interaction.isLiked ? .red : .white, action: handleLike)
+            glassIconButton("bubble.right", action: { showComments = true })
+            glassIconButton(interaction.isCollected ? "bookmark.fill" : "bookmark", tint: interaction.isCollected ? .yellow : .white, action: handleCollect)
+            glassIconButton("square.and.arrow.up", action: { showShare = true })
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 4)
+        .padding(.vertical, 4)
         .background(.ultraThinMaterial, in: Capsule())
         .overlay(
             Capsule()
                 .strokeBorder(Color.white.opacity(0.2), lineWidth: 0.5)
         )
+    }
+    
+    private func glassIconButton(_ icon: String, tint: Color = .white, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(tint)
+                .frame(width: 36, height: 36)
+        }
     }
     
     // MARK: - Actions
@@ -152,32 +137,6 @@ struct WorkViewerPage: View {
             return
         }
         Task { await interaction.toggleCollect() }
-    }
-}
-
-// MARK: - Glass Action Button
-
-private struct GlassActionButton: View {
-    let icon: String
-    var count: Int? = nil
-    let tint: Color
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: .medium))
-                
-                if let count = count {
-                    Text("\(count)")
-                        .font(.system(size: 12, weight: .medium))
-                }
-            }
-            .foregroundStyle(tint)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-        }
     }
 }
 
