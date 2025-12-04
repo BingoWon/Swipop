@@ -36,7 +36,6 @@ struct CreateView: View {
                 FloatingCreateAccessory(selectedSubTab: $selectedSubTab)
             }
         }
-        .toolbar(.hidden, for: .tabBar)
         .modifier(CreateNavigationModifier(
             onBack: onBack,
             workEditor: workEditor,
@@ -122,6 +121,28 @@ private struct CreateNavigationModifier: ViewModifier {
     }
 }
 
+// MARK: - Shared Toolbar Components
+
+private struct CreateToolbarActions {
+    @Bindable var workEditor: WorkEditorViewModel
+    @Bindable var chatViewModel: ChatViewModel
+    
+    func toggleVisibility() {
+        withAnimation(.spring(response: 0.3)) {
+            workEditor.isPublished.toggle()
+            workEditor.isDirty = true
+        }
+    }
+    
+    func save() {
+        Task { await workEditor.save() }
+    }
+    
+    func selectModel(_ model: AIModel) {
+        chatViewModel.selectedModel = model
+    }
+}
+
 // MARK: - iOS 26 Create Toolbar
 
 @available(iOS 26.0, *)
@@ -132,6 +153,10 @@ private struct iOS26CreateToolbar: ToolbarContent {
     let selectedSubTab: CreateSubTab
     @Binding var showSettings: Bool
     
+    private var actions: CreateToolbarActions {
+        CreateToolbarActions(workEditor: workEditor, chatViewModel: chatViewModel)
+    }
+    
     var body: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
             Button(action: onBack) {
@@ -141,62 +166,44 @@ private struct iOS26CreateToolbar: ToolbarContent {
         
         if selectedSubTab == .chat {
             ToolbarItem(placement: .topBarLeading) {
-                modelSelector
+                Menu {
+                    ForEach(AIModel.allCases) { model in
+                        Button(model.displayName) { actions.selectModel(model) }
+                    }
+                } label: {
+                    Text(chatViewModel.selectedModel.displayName)
+                        .font(.system(size: 13, weight: .medium))
+                }
             }
         }
         
         ToolbarItemGroup(placement: .topBarTrailing) {
             if selectedSubTab != .chat {
-                saveIndicator
+                Button(action: actions.save) {
+                    HStack(spacing: 4) {
+                        if workEditor.isSaving {
+                            ProgressView().scaleEffect(0.7)
+                        } else {
+                            Image(systemName: workEditor.isDirty ? "circle.fill" : "checkmark")
+                                .font(.system(size: 10))
+                        }
+                        Text(workEditor.isSaving ? "Saving" : workEditor.isDirty ? "Save" : "Saved")
+                            .font(.system(size: 13, weight: .medium))
+                    }
+                    .foregroundStyle(workEditor.isDirty ? .orange : .green)
+                }
+                .disabled(workEditor.isSaving || !workEditor.isDirty)
             }
-            visibilityButton
+            
+            Button(action: actions.toggleVisibility) {
+                Image(systemName: workEditor.isPublished ? "eye" : "eye.slash")
+            }
+            .tint(workEditor.isPublished ? .green : .orange)
             
             Button { showSettings = true } label: {
                 Image(systemName: "slider.horizontal.3")
             }
         }
-    }
-    
-    private var modelSelector: some View {
-        Menu {
-            ForEach(AIModel.allCases) { model in
-                Button(model.displayName) {
-                    chatViewModel.selectedModel = model
-                }
-            }
-        } label: {
-            Text(chatViewModel.selectedModel.displayName)
-                .font(.system(size: 13, weight: .medium))
-        }
-    }
-    
-    private var saveIndicator: some View {
-        Button { Task { await workEditor.save() } } label: {
-            HStack(spacing: 4) {
-                if workEditor.isSaving {
-                    ProgressView().scaleEffect(0.7)
-                } else {
-                    Image(systemName: workEditor.isDirty ? "circle.fill" : "checkmark")
-                        .font(.system(size: 10))
-                }
-                Text(workEditor.isSaving ? "Saving" : workEditor.isDirty ? "Save" : "Saved")
-                    .font(.system(size: 13, weight: .medium))
-            }
-            .foregroundStyle(workEditor.isDirty ? .orange : .green)
-        }
-        .disabled(workEditor.isSaving || !workEditor.isDirty)
-    }
-    
-    private var visibilityButton: some View {
-        Button {
-            withAnimation(.spring(response: 0.3)) {
-                workEditor.isPublished.toggle()
-                workEditor.isDirty = true
-            }
-        } label: {
-            Image(systemName: workEditor.isPublished ? "eye" : "eye.slash")
-        }
-        .tint(workEditor.isPublished ? .green : .orange)
     }
 }
 
@@ -212,62 +219,40 @@ private struct iOS18CreateTopBar: View {
     private let buttonHeight: CGFloat = 44
     private let iconSize: CGFloat = 20
     
+    private var actions: CreateToolbarActions {
+        CreateToolbarActions(workEditor: workEditor, chatViewModel: chatViewModel)
+    }
+    
     var body: some View {
         HStack(spacing: 12) {
-            // Close button
-            Button(action: onBack) {
-                Image(systemName: "xmark")
-                    .font(.system(size: iconSize, weight: .semibold))
-                    .foregroundStyle(.primary)
-                    .frame(width: buttonHeight, height: buttonHeight)
-                    .background(.ultraThinMaterial, in: Circle())
-                    .overlay(
-                        Circle()
-                            .strokeBorder(Color.primary.opacity(0.1), lineWidth: 0.5)
-                    )
-            }
+            glassCircleButton("xmark", action: onBack)
             
-            // Model selector (chat mode only)
             if selectedSubTab == .chat {
                 modelSelector
             }
             
             Spacer()
             
-            // Right action buttons group
-            HStack(spacing: 0) {
-                if selectedSubTab != .chat {
-                    saveIndicator
-                    Divider().frame(height: 18).overlay(Color.border)
-                }
-                
-                visibilityButton
-                Divider().frame(height: 18).overlay(Color.border)
-                
-                Button { showSettings = true } label: {
-                    Image(systemName: "slider.horizontal.3")
-                        .font(.system(size: iconSize - 2, weight: .medium))
-                        .foregroundStyle(.primary)
-                        .frame(width: buttonHeight, height: buttonHeight)
-                        .contentShape(Rectangle())
-                }
-            }
-            .frame(height: buttonHeight)
-            .background(.ultraThinMaterial, in: Capsule())
-            .overlay(
-                Capsule()
-                    .strokeBorder(Color.primary.opacity(0.1), lineWidth: 0.5)
-            )
+            actionButtonGroup
         }
         .padding(.horizontal, 16)
+    }
+    
+    private func glassCircleButton(_ icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: iconSize, weight: .semibold))
+                .foregroundStyle(.primary)
+                .frame(width: buttonHeight, height: buttonHeight)
+                .background(.ultraThinMaterial, in: Circle())
+                .overlay(Circle().strokeBorder(Color.primary.opacity(0.1), lineWidth: 0.5))
+        }
     }
     
     private var modelSelector: some View {
         Menu {
             ForEach(AIModel.allCases) { model in
-                Button(model.displayName) {
-                    chatViewModel.selectedModel = model
-                }
+                Button(model.displayName) { actions.selectModel(model) }
             }
         } label: {
             Text(chatViewModel.selectedModel.displayName)
@@ -276,15 +261,28 @@ private struct iOS18CreateTopBar: View {
                 .padding(.horizontal, 12)
                 .frame(height: buttonHeight)
                 .background(.ultraThinMaterial, in: Capsule())
-                .overlay(
-                    Capsule()
-                        .strokeBorder(Color.primary.opacity(0.1), lineWidth: 0.5)
-                )
+                .overlay(Capsule().strokeBorder(Color.primary.opacity(0.1), lineWidth: 0.5))
         }
     }
     
+    private var actionButtonGroup: some View {
+        HStack(spacing: 0) {
+            if selectedSubTab != .chat {
+                saveIndicator
+                Divider().frame(height: 18).overlay(Color.border)
+            }
+            
+            visibilityButton
+            Divider().frame(height: 18).overlay(Color.border)
+            settingsButton
+        }
+        .frame(height: buttonHeight)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay(Capsule().strokeBorder(Color.primary.opacity(0.1), lineWidth: 0.5))
+    }
+    
     private var saveIndicator: some View {
-        Button { Task { await workEditor.save() } } label: {
+        Button(action: actions.save) {
             HStack(spacing: 4) {
                 if workEditor.isSaving {
                     ProgressView().scaleEffect(0.6)
@@ -304,15 +302,20 @@ private struct iOS18CreateTopBar: View {
     }
     
     private var visibilityButton: some View {
-        Button {
-            withAnimation(.spring(response: 0.3)) {
-                workEditor.isPublished.toggle()
-                workEditor.isDirty = true
-            }
-        } label: {
+        Button(action: actions.toggleVisibility) {
             Image(systemName: workEditor.isPublished ? "eye" : "eye.slash")
                 .font(.system(size: iconSize - 2, weight: .medium))
                 .foregroundStyle(workEditor.isPublished ? .green : .orange)
+                .frame(width: buttonHeight, height: buttonHeight)
+                .contentShape(Rectangle())
+        }
+    }
+    
+    private var settingsButton: some View {
+        Button { showSettings = true } label: {
+            Image(systemName: "slider.horizontal.3")
+                .font(.system(size: iconSize - 2, weight: .medium))
+                .foregroundStyle(.primary)
                 .frame(width: buttonHeight, height: buttonHeight)
                 .contentShape(Rectangle())
         }

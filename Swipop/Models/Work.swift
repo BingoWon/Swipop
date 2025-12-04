@@ -202,6 +202,9 @@ enum ThumbnailTransform {
 }
 
 extension Work {
+    /// Display title - returns "Untitled" if title is empty
+    var displayTitle: String { title.isEmpty ? "Untitled" : title }
+    
     /// Small thumbnail URL for profile grid (200px)
     var smallThumbnailURL: URL? { ThumbnailTransform.url(from: thumbnailUrl, size: .small) }
     

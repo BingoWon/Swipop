@@ -95,6 +95,8 @@ struct MainTabView: View {
                 .tabItem { Label("Profile", systemImage: "person.fill") }
                 .tag(3)
         }
+        .toolbarBackground(.visible, for: .tabBar)
+        .toolbarBackground(.ultraThinMaterial, for: .tabBar)
         .onChange(of: selectedTab) { oldValue, newValue in
             if newValue == 1 {
                 previousTab = oldValue

@@ -45,7 +45,7 @@ struct WorkAccessoryContent: View {
                 }
             
             VStack(alignment: .leading, spacing: 2) {
-                Text(currentWork?.title.isEmpty == false ? currentWork!.title : "Untitled")
+                Text(currentWork?.displayTitle ?? "Untitled")
                     .font(.system(size: 14, weight: .semibold))
                     .lineLimit(1)
                 

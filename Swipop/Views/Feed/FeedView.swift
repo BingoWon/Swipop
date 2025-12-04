@@ -129,7 +129,7 @@ struct WorkGridCell: View {
             coverImage
             
             VStack(alignment: .leading, spacing: 6) {
-                Text(work.title.isEmpty ? "Untitled" : work.title)
+                Text(work.displayTitle)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(.primary)
                     .lineLimit(2)

@@ -154,7 +154,6 @@ struct ChatEditorView: View {
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
-        .padding(.bottom, 0)
         .background(Color.appBackground.opacity(0.9))
     }
     
