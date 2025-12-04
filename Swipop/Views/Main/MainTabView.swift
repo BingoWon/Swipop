@@ -3,7 +3,7 @@
 //  Swipop
 //
 //  Main tab navigation with iOS 26 and iOS 18 variants
-//  Create page is pushed via navigation for full-screen experience
+//  Create page presented as fullScreenCover for proper isolation
 //
 
 import SwiftUI
@@ -25,15 +25,16 @@ struct MainTabView: View {
     }
     
     var body: some View {
-        NavigationStack {
-            Group {
-                if #available(iOS 26.0, *) {
-                    iOS26Content
-                } else {
-                    iOS18Content
-                }
+        Group {
+            if #available(iOS 26.0, *) {
+                iOS26Content
+            } else {
+                iOS18Content
             }
-            .navigationDestination(isPresented: $showingCreate) {
+        }
+        .tint(.primary)
+        .fullScreenCover(isPresented: $showingCreate) {
+            NavigationStack {
                 CreateView(
                     showLogin: $showLogin,
                     workEditor: workEditor,
@@ -42,8 +43,8 @@ struct MainTabView: View {
                     onBack: closeCreate
                 )
             }
+            .tint(.primary)
         }
-        .tint(.primary)
     }
     
     // MARK: - iOS 26
@@ -70,6 +71,11 @@ struct MainTabView: View {
                 openCreate()
             }
         }
+        .onChange(of: showingCreate) { _, isShowing in
+            if !isShowing && selectedTab == 1 {
+                selectedTab = previousTab
+            }
+        }
     }
     
     // MARK: - iOS 18
@@ -89,12 +95,15 @@ struct MainTabView: View {
                 .tabItem { Label("Profile", systemImage: "person.fill") }
                 .tag(3)
         }
-        .toolbarBackground(.visible, for: .tabBar)
-        .toolbarBackground(.ultraThinMaterial, for: .tabBar)
         .onChange(of: selectedTab) { oldValue, newValue in
             if newValue == 1 {
                 previousTab = oldValue
                 openCreate()
+            }
+        }
+        .onChange(of: showingCreate) { _, isShowing in
+            if !isShowing && selectedTab == 1 {
+                selectedTab = previousTab
             }
         }
     }
@@ -119,7 +128,6 @@ struct MainTabView: View {
             createSubTab = .chat
         }
         showingCreate = false
-        selectedTab = previousTab
     }
     
     private func editWork(_ work: Work) {

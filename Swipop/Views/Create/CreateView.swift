@@ -110,7 +110,7 @@ private struct CreateNavigationModifier: ViewModifier {
     func body(content: Content) -> some View {
         if #available(iOS 26.0, *) {
             content
-                .toolbar { iOS26CreateToolbar(workEditor: workEditor, chatViewModel: chatViewModel, selectedSubTab: selectedSubTab, showSettings: $showSettings) }
+                .toolbar { iOS26CreateToolbar(onBack: onBack, workEditor: workEditor, chatViewModel: chatViewModel, selectedSubTab: selectedSubTab, showSettings: $showSettings) }
                 .toolbarBackground(.hidden, for: .navigationBar)
         } else {
             content
@@ -122,17 +122,22 @@ private struct CreateNavigationModifier: ViewModifier {
     }
 }
 
-// MARK: - iOS 26 Create Toolbar (uses system back button)
+// MARK: - iOS 26 Create Toolbar
 
 @available(iOS 26.0, *)
 private struct iOS26CreateToolbar: ToolbarContent {
+    let onBack: () -> Void
     @Bindable var workEditor: WorkEditorViewModel
     @Bindable var chatViewModel: ChatViewModel
     let selectedSubTab: CreateSubTab
     @Binding var showSettings: Bool
     
     var body: some ToolbarContent {
-        // System back button is provided automatically by NavigationStack
+        ToolbarItem(placement: .topBarLeading) {
+            Button(action: onBack) {
+                Image(systemName: "xmark")
+            }
+        }
         
         if selectedSubTab == .chat {
             ToolbarItem(placement: .topBarLeading) {
@@ -209,9 +214,9 @@ private struct iOS18CreateTopBar: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            // Back button
+            // Close button
             Button(action: onBack) {
-                Image(systemName: "chevron.left")
+                Image(systemName: "xmark")
                     .font(.system(size: iconSize, weight: .semibold))
                     .foregroundStyle(.primary)
                     .frame(width: buttonHeight, height: buttonHeight)

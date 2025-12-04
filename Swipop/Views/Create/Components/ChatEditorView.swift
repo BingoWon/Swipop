@@ -144,7 +144,6 @@ struct ChatEditorView: View {
                 .lineLimit(1...5)
                 .focused($isInputFocused)
                 .tint(Color.brand)
-                .onSubmit { sendMessage() }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
                 .background(Color.secondaryBackground)
@@ -154,15 +153,9 @@ struct ChatEditorView: View {
             sendButton
         }
         .padding(.horizontal, 16)
-        .padding(.top, 12)
-        .padding(.bottom, 8)
+        .padding(.top, 8)
+        .padding(.bottom, 0)
         .background(Color.appBackground.opacity(0.9))
-    }
-    
-    private func sendMessage() {
-        guard !chatViewModel.inputText.isEmpty else { return }
-        chatViewModel.send()
-        isInputFocused = false
     }
     
     private var sendButton: some View {
