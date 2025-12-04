@@ -12,7 +12,6 @@ struct WorkViewerPage: View {
     let initialWork: Work
     @Binding var showLogin: Bool
     
-    @Environment(\.dismiss) private var dismiss
     @State private var interaction: InteractionViewModel
     @State private var showComments = false
     @State private var showShare = false
@@ -44,7 +43,6 @@ struct WorkViewerPage: View {
             // Floating bottom accessory (Liquid Glass style)
             floatingAccessory
         }
-        .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .tabBar)
         .toolbar { toolbarContent }
         .toolbarBackground(.hidden, for: .navigationBar)
@@ -145,15 +143,6 @@ struct WorkViewerPage: View {
     
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        // Back button
-        ToolbarItem(placement: .topBarLeading) {
-            Button { dismiss() } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(.white)
-            }
-        }
-        
         // Action buttons
         ToolbarItemGroup(placement: .topBarTrailing) {
             // Like
