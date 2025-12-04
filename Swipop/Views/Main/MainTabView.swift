@@ -10,9 +10,13 @@ import SwiftUI
 struct MainTabView: View {
     @Binding var showLogin: Bool
     @State private var selectedTab = 0
+    @State private var isViewingWork = false
+    @State private var showWorkDetail = false
     @State private var workEditor: WorkEditorViewModel
     @State private var chatViewModel: ChatViewModel
     @State private var createSubTab: CreateSubTab = .chat
+    
+    private let feed = FeedViewModel.shared
     
     /// Custom binding to detect re-selection of tabs
     private var tabSelection: Binding<Int> {
@@ -45,6 +49,11 @@ struct MainTabView: View {
         }
         .tint(selectedTab == 1 ? .brand : .primary)
         .animation(.easeInOut(duration: 0.25), value: selectedTab)
+        .sheet(isPresented: $showWorkDetail) {
+            if let work = feed.currentWork {
+                WorkDetailSheet(work: work, showLogin: $showLogin)
+            }
+        }
         .onChange(of: selectedTab) { oldValue, newValue in
             if oldValue == 1 && newValue != 1 {
                 Task {
@@ -56,13 +65,13 @@ struct MainTabView: View {
         }
     }
     
-    // MARK: - iOS 26 Tab View
+    // MARK: - iOS 26 Tab View (Native tabViewBottomAccessory)
     
     @available(iOS 26.0, *)
     private var iOS26TabView: some View {
         TabView(selection: tabSelection) {
             Tab("Home", systemImage: "house.fill", value: 0) {
-                FeedView(showLogin: $showLogin)
+                FeedView(showLogin: $showLogin, isViewingWork: $isViewingWork)
             }
             
             Tab("Create", systemImage: "wand.and.stars", value: 1) {
@@ -78,9 +87,9 @@ struct MainTabView: View {
             }
         }
         .tabViewBottomAccessory {
-            // Only show accessory on Create tab
-            if selectedTab == 1 {
-                CreateSubTabContent(selectedTab: $createSubTab)
+            // Only show accessory when viewing work
+            if selectedTab == 0 && isViewingWork {
+                WorkAccessoryContent(showDetail: $showWorkDetail)
             }
         }
     }
@@ -88,29 +97,22 @@ struct MainTabView: View {
     // MARK: - iOS 18 Tab View
     
     private var iOS18TabView: some View {
-        ZStack(alignment: .bottom) {
-            TabView(selection: tabSelection) {
-                FeedView(showLogin: $showLogin)
-                    .tabItem { Label("Home", systemImage: "house.fill") }
-                    .tag(0)
-                
-                CreateView(showLogin: $showLogin, workEditor: workEditor, chatViewModel: chatViewModel, selectedSubTab: $createSubTab)
-                    .tabItem { Label("Create", systemImage: "wand.and.stars") }
-                    .tag(1)
-                
-                InboxView()
-                    .tabItem { Label("Inbox", systemImage: "bell.fill") }
-                    .tag(2)
-                
-                ProfileView(showLogin: $showLogin, editWork: editWork)
-                    .tabItem { Label("Profile", systemImage: "person.fill") }
-                    .tag(3)
-            }
+        TabView(selection: tabSelection) {
+            FeedView(showLogin: $showLogin, isViewingWork: $isViewingWork)
+                .tabItem { Label("Home", systemImage: "house.fill") }
+                .tag(0)
             
-            // Floating Create accessory (iOS 18 only)
-            if selectedTab == 1 {
-                FloatingCreateAccessory(createSubTab: $createSubTab)
-            }
+            CreateView(showLogin: $showLogin, workEditor: workEditor, chatViewModel: chatViewModel, selectedSubTab: $createSubTab)
+                .tabItem { Label("Create", systemImage: "wand.and.stars") }
+                .tag(1)
+            
+            InboxView()
+                .tabItem { Label("Inbox", systemImage: "bell.fill") }
+                .tag(2)
+            
+            ProfileView(showLogin: $showLogin, editWork: editWork)
+                .tabItem { Label("Profile", systemImage: "person.fill") }
+                .tag(3)
         }
     }
     
@@ -131,82 +133,81 @@ struct MainTabView: View {
     }
 }
 
-// MARK: - iOS 26 Create Sub Tab Content
+// MARK: - iOS 26 Work Accessory Content
 
 @available(iOS 26.0, *)
-private struct CreateSubTabContent: View {
-    @Binding var selectedTab: CreateSubTab
+private struct WorkAccessoryContent: View {
+    @Binding var showDetail: Bool
+    
+    private let feed = FeedViewModel.shared
+    private var currentWork: Work? { feed.currentWork }
+    private var creator: Profile? { currentWork?.creator }
     
     var body: some View {
         HStack(spacing: 0) {
-            ForEach(CreateSubTab.allCases) { tab in
-                Button {
-                    selectedTab = tab
-                } label: {
-                    VStack(spacing: 4) {
-                        Image(systemName: tab.icon)
-                            .font(.system(size: 16, weight: .medium))
-                        Text(tab.title)
-                            .font(.system(size: 10, weight: .medium))
-                    }
-                    .foregroundStyle(selectedTab == tab ? tab.color : .secondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6)
-                }
-                .buttonStyle(.plain)
-                
-                if tab != CreateSubTab.allCases.last {
-                    Divider()
-                        .frame(height: 20)
-                        .overlay(Color.border)
-                }
+            Button { showDetail = true } label: {
+                workInfoLabel
             }
+            
+            Spacer(minLength: 0)
+            
+            Divider().frame(height: 28).overlay(Color.border)
+            
+            navigationButtons
         }
+        .foregroundStyle(.primary)
     }
-}
-
-// MARK: - iOS 18 Floating Create Accessory
-
-private struct FloatingCreateAccessory: View {
-    @Binding var createSubTab: CreateSubTab
     
-    var body: some View {
-        HStack(spacing: 0) {
-            ForEach(CreateSubTab.allCases) { tab in
-                Button {
-                    createSubTab = tab
-                } label: {
-                    VStack(spacing: 4) {
-                        Image(systemName: tab.icon)
-                            .font(.system(size: 16, weight: .medium))
-                        Text(tab.title)
-                            .font(.system(size: 10, weight: .medium))
-                    }
-                    .foregroundStyle(createSubTab == tab ? tab.color : .secondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6)
+    private var workInfoLabel: some View {
+        HStack(spacing: 10) {
+            Circle()
+                .fill(Color.brand)
+                .frame(width: 28, height: 28)
+                .overlay {
+                    Text(creator?.initial ?? "?")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(.white)
                 }
-                .buttonStyle(.plain)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(currentWork?.title.isEmpty == false ? currentWork!.title : "Untitled")
+                    .font(.system(size: 14, weight: .semibold))
+                    .lineLimit(1)
                 
-                if tab != CreateSubTab.allCases.last {
-                    Divider()
-                        .frame(height: 20)
-                        .overlay(Color.white.opacity(0.15))
-                }
+                Text("@\(creator?.handle ?? "unknown")")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
         }
-        .frame(height: 52)
-        .background(
-            Capsule()
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    Capsule()
-                        .strokeBorder(Color.white.opacity(0.2), lineWidth: 0.5)
-                )
-        )
-        .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: 4)
-        .padding(.horizontal, 32)
-        .padding(.bottom, 16)
+        .padding(.leading, 12)
+    }
+    
+    private var navigationButtons: some View {
+        HStack(spacing: 0) {
+            Button {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    feed.goToPrevious()
+                }
+            } label: {
+                Image(systemName: "chevron.up")
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(width: 44, height: 36)
+            }
+            .opacity(feed.currentIndex == 0 ? 0.3 : 1)
+            
+            Divider().frame(height: 18).overlay(Color.border)
+            
+            Button {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    feed.goToNext()
+                }
+            } label: {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(width: 44, height: 36)
+            }
+        }
     }
 }
 
