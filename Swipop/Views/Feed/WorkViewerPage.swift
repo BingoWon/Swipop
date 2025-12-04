@@ -2,13 +2,12 @@
 //  WorkViewerPage.swift
 //  Swipop
 //
-//  Independent full-screen work viewer with native navigation
+//  Full-screen work viewer with native navigation
 //
 
 import SwiftUI
 
 struct WorkViewerPage: View {
-    
     let initialWork: Work
     @Binding var showLogin: Bool
     
@@ -29,21 +28,15 @@ struct WorkViewerPage: View {
         feed.currentWork ?? initialWork
     }
     
-    private var creator: Profile? {
-        currentWork.creator
-    }
-    
     var body: some View {
         ZStack(alignment: .bottom) {
-            // Work content
             WorkWebView(work: currentWork)
                 .id(feed.currentIndex)
                 .ignoresSafeArea()
             
-            // Floating bottom accessory (iOS 18 only)
-            // iOS 26 uses native tabViewBottomAccessory from MainTabView
+            // iOS 18: floating accessory | iOS 26: uses native tabViewBottomAccessory
             if #unavailable(iOS 26.0) {
-                floatingAccessory
+                FloatingWorkAccessory(showDetail: $showDetail)
             }
         }
         .toolbar(.hidden, for: .tabBar)
@@ -59,122 +52,33 @@ struct WorkViewerPage: View {
             WorkDetailSheet(work: currentWork, showLogin: $showLogin)
         }
         .onChange(of: feed.currentWork?.id) { _, _ in
-            loadInteraction()
+            reloadInteraction()
         }
         .onAppear {
             feed.setCurrentWork(initialWork)
-            loadInteraction()
+            reloadInteraction()
         }
-    }
-    
-    // MARK: - Floating Accessory (iOS 18 only)
-    
-    private var floatingAccessory: some View {
-        HStack(spacing: 0) {
-            Button { showDetail = true } label: {
-                workInfoLabel
-            }
-            
-            Spacer(minLength: 0)
-            
-            navigationButtons
-        }
-        .foregroundStyle(.primary)
-        .frame(height: 52)
-        .background(
-            Capsule()
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    Capsule()
-                        .strokeBorder(Color.white.opacity(0.2), lineWidth: 0.5)
-                )
-        )
-        .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: 4)
-        .padding(.horizontal, 20)
-        .padding(.bottom, 0)
-    }
-    
-    private var workInfoLabel: some View {
-        HStack(spacing: 10) {
-            Circle()
-                .fill(Color.brand)
-                .frame(width: 32, height: 32)
-                .overlay {
-                    Text(creator?.initial ?? "?")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(.white)
-                }
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(currentWork.title.isEmpty ? "Untitled" : currentWork.title)
-                    .font(.system(size: 14, weight: .semibold))
-                    .lineLimit(1)
-                
-                Text("@\(creator?.handle ?? "unknown")")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-        }
-        .padding(.leading, 14)
-    }
-    
-    private var navigationButtons: some View {
-        HStack(spacing: 0) {
-            Button {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                    feed.goToPrevious()
-                }
-            } label: {
-                Image(systemName: "chevron.up")
-                    .font(.system(size: 15, weight: .semibold))
-                    .frame(width: 44, height: 44)
-            }
-            .opacity(feed.currentIndex == 0 ? 0.3 : 1)
-            
-            Button {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                    feed.goToNext()
-                }
-            } label: {
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 15, weight: .semibold))
-                    .frame(width: 44, height: 44)
-            }
-        }
-        .padding(.trailing, 4)
     }
     
     // MARK: - Toolbar
     
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        // Action buttons
         ToolbarItemGroup(placement: .topBarTrailing) {
-            // Like
             Button(action: handleLike) {
-                Label(
-                    "\(interaction.likeCount)",
-                    systemImage: interaction.isLiked ? "heart.fill" : "heart"
-                )
+                Label("\(interaction.likeCount)", systemImage: interaction.isLiked ? "heart.fill" : "heart")
             }
             .tint(interaction.isLiked ? .red : .primary)
             
-            // Comment
             Button { showComments = true } label: {
                 Label("\(currentWork.commentCount)", systemImage: "bubble.right")
             }
             
-            // Collect
             Button(action: handleCollect) {
-                Label(
-                    "\(interaction.collectCount)",
-                    systemImage: interaction.isCollected ? "bookmark.fill" : "bookmark"
-                )
+                Label("\(interaction.collectCount)", systemImage: interaction.isCollected ? "bookmark.fill" : "bookmark")
             }
             .tint(interaction.isCollected ? .yellow : .primary)
             
-            // Share
             Button { showShare = true } label: {
                 Image(systemName: "square.and.arrow.up")
             }
@@ -183,7 +87,7 @@ struct WorkViewerPage: View {
     
     // MARK: - Actions
     
-    private func loadInteraction() {
+    private func reloadInteraction() {
         interaction = InteractionViewModel(work: currentWork)
         Task { await interaction.loadState() }
     }
