@@ -78,14 +78,26 @@ struct WorkViewerPage: View {
         }
         .foregroundStyle(.primary)
         .frame(height: 52)
-        .background(.ultraThinMaterial, in: Capsule())
-        .overlay(
-            Capsule()
-                .strokeBorder(Color.white.opacity(0.2), lineWidth: 0.5)
-        )
+        .background { glassBackground }
         .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: 4)
         .padding(.horizontal, 20)
         .padding(.bottom, 16)
+    }
+    
+    @ViewBuilder
+    private var glassBackground: some View {
+        if #available(iOS 26.0, *) {
+            Capsule()
+                .fill(.clear)
+                .glassEffect(.regular, in: .capsule)
+        } else {
+            Capsule()
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    Capsule()
+                        .strokeBorder(Color.white.opacity(0.2), lineWidth: 0.5)
+                )
+        }
     }
     
     private var workInfoLabel: some View {

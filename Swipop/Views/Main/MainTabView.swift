@@ -2,7 +2,7 @@
 //  MainTabView.swift
 //  Swipop
 //
-//  iOS 26 liquid glass tab bar with iOS 18 fallback
+//  Main tab navigation with floating accessory
 //
 
 import SwiftUI
@@ -36,58 +36,6 @@ struct MainTabView: View {
     }
     
     var body: some View {
-        Group {
-            if #available(iOS 26.0, *) {
-                iOS26TabView
-            } else {
-                iOS18TabView
-            }
-        }
-        .tint(selectedTab == 1 ? .brand : .primary)
-        .animation(.easeInOut(duration: 0.25), value: selectedTab)
-        .onChange(of: selectedTab) { oldValue, newValue in
-            if oldValue == 1 && newValue != 1 {
-                Task {
-                    await workEditor.saveAndReset()
-                    chatViewModel.clear()
-                    createSubTab = .chat
-                }
-            }
-        }
-    }
-    
-    // MARK: - iOS 26 Tab View
-    
-    @available(iOS 26.0, *)
-    private var iOS26TabView: some View {
-        TabView(selection: tabSelection) {
-            Tab("Home", systemImage: "house.fill", value: 0) {
-                FeedView(showLogin: $showLogin)
-            }
-            
-            Tab("Create", systemImage: "wand.and.stars", value: 1) {
-                CreateView(showLogin: $showLogin, workEditor: workEditor, chatViewModel: chatViewModel, selectedSubTab: $createSubTab)
-            }
-            
-            Tab("Inbox", systemImage: "bell.fill", value: 2) {
-                InboxView()
-            }
-            
-            Tab("Profile", systemImage: "person.fill", value: 3) {
-                ProfileView(showLogin: $showLogin, editWork: editWork)
-            }
-        }
-        .tabViewBottomAccessory {
-            if selectedTab == 1 {
-                CreateSubTabBar(selectedTab: $createSubTab)
-            }
-        }
-        .tabBarMinimizeBehavior(.onScrollDown)
-    }
-    
-    // MARK: - iOS 18 Tab View (Fallback)
-    
-    private var iOS18TabView: some View {
         ZStack(alignment: .bottom) {
             TabView(selection: tabSelection) {
                 FeedView(showLogin: $showLogin)
@@ -107,9 +55,20 @@ struct MainTabView: View {
                     .tag(3)
             }
             
-            // Floating Create accessory for iOS 18
+            // Floating Create accessory
             if selectedTab == 1 {
-                iOS18CreateAccessory(createSubTab: $createSubTab)
+                FloatingCreateAccessory(createSubTab: $createSubTab)
+            }
+        }
+        .tint(selectedTab == 1 ? .brand : .primary)
+        .animation(.easeInOut(duration: 0.25), value: selectedTab)
+        .onChange(of: selectedTab) { oldValue, newValue in
+            if oldValue == 1 && newValue != 1 {
+                Task {
+                    await workEditor.saveAndReset()
+                    chatViewModel.clear()
+                    createSubTab = .chat
+                }
             }
         }
     }
@@ -131,9 +90,9 @@ struct MainTabView: View {
     }
 }
 
-// MARK: - iOS 18 Create Accessory (Floating Style)
+// MARK: - Floating Create Accessory
 
-private struct iOS18CreateAccessory: View {
+private struct FloatingCreateAccessory: View {
     @Binding var createSubTab: CreateSubTab
     
     var body: some View {
@@ -151,14 +110,26 @@ private struct iOS18CreateAccessory: View {
             }
         }
         .frame(height: 52)
-        .background(.ultraThinMaterial, in: Capsule())
-        .overlay(
-            Capsule()
-                .strokeBorder(Color.white.opacity(0.2), lineWidth: 0.5)
-        )
+        .background { glassBackground }
         .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: 4)
         .padding(.horizontal, 32)
         .padding(.bottom, 16)
+    }
+    
+    @ViewBuilder
+    private var glassBackground: some View {
+        if #available(iOS 26.0, *) {
+            Capsule()
+                .fill(.clear)
+                .glassEffect(.regular, in: .capsule)
+        } else {
+            Capsule()
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    Capsule()
+                        .strokeBorder(Color.white.opacity(0.2), lineWidth: 0.5)
+                )
+        }
     }
 }
 
