@@ -13,9 +13,6 @@ struct MainTabView: View {
     @State private var workEditor: WorkEditorViewModel
     @State private var chatViewModel: ChatViewModel
     @State private var createSubTab: CreateSubTab = .chat
-    @State private var showWorkDetail = false
-    
-    private let feed = FeedViewModel.shared
     
     /// Custom binding to detect re-selection of tabs
     private var tabSelection: Binding<Int> {
@@ -48,11 +45,6 @@ struct MainTabView: View {
         }
         .tint(selectedTab == 1 ? .brand : .primary)
         .animation(.easeInOut(duration: 0.25), value: selectedTab)
-        .sheet(isPresented: $showWorkDetail) {
-            if let work = feed.currentWork {
-                WorkDetailSheet(work: work, showLogin: $showLogin)
-            }
-        }
         .onChange(of: selectedTab) { oldValue, newValue in
             if oldValue == 1 && newValue != 1 {
                 Task {
@@ -64,7 +56,7 @@ struct MainTabView: View {
         }
     }
     
-    // MARK: - iOS 26 Tab View (Native tabViewBottomAccessory)
+    // MARK: - iOS 26 Tab View
     
     @available(iOS 26.0, *)
     private var iOS26TabView: some View {
@@ -86,15 +78,14 @@ struct MainTabView: View {
             }
         }
         .tabViewBottomAccessory {
-            iOS26BottomAccessory(
-                selectedTab: selectedTab,
-                createSubTab: $createSubTab,
-                showWorkDetail: $showWorkDetail
-            )
+            // Only show accessory on Create tab
+            if selectedTab == 1 {
+                CreateSubTabContent(selectedTab: $createSubTab)
+            }
         }
     }
     
-    // MARK: - iOS 18 Tab View (Manual floating accessory)
+    // MARK: - iOS 18 Tab View
     
     private var iOS18TabView: some View {
         ZStack(alignment: .bottom) {
@@ -140,20 +131,7 @@ struct MainTabView: View {
     }
 }
 
-// MARK: - iOS 26 Bottom Accessory
-
-@available(iOS 26.0, *)
-private struct iOS26BottomAccessory: View {
-    let selectedTab: Int
-    @Binding var createSubTab: CreateSubTab
-    @Binding var showWorkDetail: Bool
-    
-    var body: some View {
-        if selectedTab == 1 {
-            CreateSubTabContent(selectedTab: $createSubTab)
-        }
-    }
-}
+// MARK: - iOS 26 Create Sub Tab Content
 
 @available(iOS 26.0, *)
 private struct CreateSubTabContent: View {

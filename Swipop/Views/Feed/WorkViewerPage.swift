@@ -40,10 +40,9 @@ struct WorkViewerPage: View {
                 .id(feed.currentIndex)
                 .ignoresSafeArea()
             
-            // Floating bottom accessory (iOS 18 only)
-            if #unavailable(iOS 26.0) {
-                floatingAccessory
-            }
+            // Floating bottom accessory (all iOS versions)
+            // tabViewBottomAccessory cannot work across NavigationStack push
+            floatingAccessory
         }
         .toolbar(.hidden, for: .tabBar)
         .toolbar { toolbarContent }
@@ -66,7 +65,7 @@ struct WorkViewerPage: View {
         }
     }
     
-    // MARK: - Floating Accessory (iOS 18 only)
+    // MARK: - Floating Accessory
     
     private var floatingAccessory: some View {
         HStack(spacing: 0) {
@@ -80,17 +79,26 @@ struct WorkViewerPage: View {
         }
         .foregroundStyle(.primary)
         .frame(height: 52)
-        .background(
+        .background { glassBackground }
+        .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: 4)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 0)
+    }
+    
+    @ViewBuilder
+    private var glassBackground: some View {
+        if #available(iOS 26.0, *) {
+            Capsule()
+                .fill(.clear)
+                .glassEffect(.regular, in: .capsule)
+        } else {
             Capsule()
                 .fill(.ultraThinMaterial)
                 .overlay(
                     Capsule()
                         .strokeBorder(Color.white.opacity(0.2), lineWidth: 0.5)
                 )
-        )
-        .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: 4)
-        .padding(.horizontal, 20)
-        .padding(.bottom, 0)
+        }
     }
     
     private var workInfoLabel: some View {
