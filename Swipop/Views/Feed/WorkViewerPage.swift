@@ -40,8 +40,10 @@ struct WorkViewerPage: View {
                 .id(feed.currentIndex)
                 .ignoresSafeArea()
             
-            // Floating bottom accessory (Liquid Glass style)
-            floatingAccessory
+            // Floating bottom accessory (iOS 18 only)
+            if #unavailable(iOS 26.0) {
+                floatingAccessory
+            }
         }
         .toolbar(.hidden, for: .tabBar)
         .toolbar { toolbarContent }
@@ -64,7 +66,7 @@ struct WorkViewerPage: View {
         }
     }
     
-    // MARK: - Floating Accessory
+    // MARK: - Floating Accessory (iOS 18 only)
     
     private var floatingAccessory: some View {
         HStack(spacing: 0) {
@@ -78,26 +80,17 @@ struct WorkViewerPage: View {
         }
         .foregroundStyle(.primary)
         .frame(height: 52)
-        .background { glassBackground }
-        .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: 4)
-        .padding(.horizontal, 20)
-        .padding(.bottom, 16)
-    }
-    
-    @ViewBuilder
-    private var glassBackground: some View {
-        if #available(iOS 26.0, *) {
-            Capsule()
-                .fill(.clear)
-                .glassEffect(.regular, in: .capsule)
-        } else {
+        .background(
             Capsule()
                 .fill(.ultraThinMaterial)
                 .overlay(
                     Capsule()
                         .strokeBorder(Color.white.opacity(0.2), lineWidth: 0.5)
                 )
-        }
+        )
+        .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: 4)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 0)
     }
     
     private var workInfoLabel: some View {
@@ -216,4 +209,3 @@ struct WorkViewerPage: View {
         WorkViewerPage(work: .sample, showLogin: .constant(false))
     }
 }
-
