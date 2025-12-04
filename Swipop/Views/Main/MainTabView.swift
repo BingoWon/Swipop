@@ -11,6 +11,7 @@ import SwiftUI
 struct MainTabView: View {
     @Binding var showLogin: Bool
     @State private var selectedTab = 0
+    @State private var previousTab = 0
     @State private var workEditor: WorkEditorViewModel
     @State private var chatViewModel: ChatViewModel
     @State private var createSubTab: CreateSubTab = .chat
@@ -63,8 +64,9 @@ struct MainTabView: View {
                 ProfileView(showLogin: $showLogin, editWork: editWork)
             }
         }
-        .onChange(of: selectedTab) { _, newValue in
+        .onChange(of: selectedTab) { oldValue, newValue in
             if newValue == 1 {
+                previousTab = oldValue
                 openCreate()
             }
         }
@@ -87,8 +89,11 @@ struct MainTabView: View {
                 .tabItem { Label("Profile", systemImage: "person.fill") }
                 .tag(3)
         }
-        .onChange(of: selectedTab) { _, newValue in
+        .toolbarBackground(.visible, for: .tabBar)
+        .toolbarBackground(.ultraThinMaterial, for: .tabBar)
+        .onChange(of: selectedTab) { oldValue, newValue in
             if newValue == 1 {
+                previousTab = oldValue
                 openCreate()
             }
         }
@@ -114,7 +119,7 @@ struct MainTabView: View {
             createSubTab = .chat
         }
         showingCreate = false
-        selectedTab = 0
+        selectedTab = previousTab
     }
     
     private func editWork(_ work: Work) {
