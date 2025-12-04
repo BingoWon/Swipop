@@ -38,11 +38,6 @@ struct MainTabView: View {
         )
     }
     
-    /// Whether to show bottom accessory
-    private var showBottomAccessory: Bool {
-        selectedTab == 1 || (selectedTab == 0 && isViewingWork)
-    }
-    
     init(showLogin: Binding<Bool>) {
         self._showLogin = showLogin
         let editor = WorkEditorViewModel()
@@ -98,14 +93,12 @@ struct MainTabView: View {
             }
         }
         .tabViewBottomAccessory {
-            if showBottomAccessory {
-                BottomAccessoryContent(
-                    selectedTab: selectedTab,
-                    isViewingWork: isViewingWork,
-                    createSubTab: $createSubTab,
-                    showWorkDetail: $showWorkDetail
-                )
-            }
+            iOS26BottomAccessory(
+                selectedTab: selectedTab,
+                isViewingWork: isViewingWork,
+                createSubTab: $createSubTab,
+                showWorkDetail: $showWorkDetail
+            )
         }
         .tabBarMinimizeBehavior(.onScrollDown)
     }
@@ -118,6 +111,7 @@ struct MainTabView: View {
                 FeedView(showLogin: $showLogin, isViewingWork: $isViewingWork)
                     .tabItem { Label("Home", systemImage: "house.fill") }
                     .tag(0)
+                    .toolbar(isViewingWork ? .hidden : .visible, for: .tabBar)
                 
                 CreateView(showLogin: $showLogin, workEditor: workEditor, chatViewModel: chatViewModel, selectedSubTab: $createSubTab)
                     .tabItem { Label("Create", systemImage: "wand.and.stars") }
@@ -132,14 +126,11 @@ struct MainTabView: View {
                     .tag(3)
             }
             
-            // Manual bottom accessory for iOS 18
-            if showBottomAccessory {
-                iOS18BottomAccessory(
-                    selectedTab: selectedTab,
-                    isViewingWork: isViewingWork,
-                    createSubTab: $createSubTab,
-                    showWorkDetail: $showWorkDetail
-                )
+            // Floating accessory for iOS 18
+            if selectedTab == 1 {
+                iOS18CreateAccessory(createSubTab: $createSubTab)
+            } else if selectedTab == 0 && isViewingWork {
+                iOS18WorkAccessory(showDetail: $showWorkDetail)
             }
         }
     }
@@ -161,10 +152,10 @@ struct MainTabView: View {
     }
 }
 
-// MARK: - Bottom Accessory Content (iOS 26)
+// MARK: - iOS 26 Bottom Accessory
 
 @available(iOS 26.0, *)
-private struct BottomAccessoryContent: View {
+private struct iOS26BottomAccessory: View {
     let selectedTab: Int
     let isViewingWork: Bool
     @Binding var createSubTab: CreateSubTab
@@ -174,122 +165,15 @@ private struct BottomAccessoryContent: View {
         if selectedTab == 1 {
             CreateSubTabBar(selectedTab: $createSubTab)
         } else if selectedTab == 0 && isViewingWork {
-            WorkModeAccessory(showDetail: $showWorkDetail)
+            iOS26WorkAccessory(showDetail: $showWorkDetail)
         }
     }
 }
 
-// MARK: - iOS 18 Bottom Accessory (Manual Implementation)
-
-private struct iOS18BottomAccessory: View {
-    let selectedTab: Int
-    let isViewingWork: Bool
-    @Binding var createSubTab: CreateSubTab
-    @Binding var showWorkDetail: Bool
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            Divider()
-            
-            Group {
-                if selectedTab == 1 {
-                    CreateSubTabBar(selectedTab: $createSubTab)
-                } else if selectedTab == 0 && isViewingWork {
-                    iOS18WorkModeAccessory(showDetail: $showWorkDetail)
-                }
-            }
-            .frame(height: 52)
-            .background(.regularMaterial)
-        }
-        .padding(.bottom, 49) // TabBar height offset
-    }
-}
-
-// MARK: - iOS 18 Work Mode Accessory
-
-private struct iOS18WorkModeAccessory: View {
-    @Binding var showDetail: Bool
-    
-    private let feed = FeedViewModel.shared
-    private var currentWork: Work? { feed.currentWork }
-    private var creator: Profile? { currentWork?.creator }
-    
-    var body: some View {
-        HStack(spacing: 0) {
-            Button { showDetail = true } label: {
-                workInfoLabel
-            }
-            
-            Spacer(minLength: 0)
-            
-            Divider().frame(height: 28).overlay(Color.border)
-            
-            navigationButtons
-        }
-        .foregroundStyle(.primary)
-    }
-    
-    private var workInfoLabel: some View {
-        HStack(spacing: 10) {
-            Circle()
-                .fill(Color.brand)
-                .frame(width: 28, height: 28)
-                .overlay {
-                    Text(creatorInitial)
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(.white)
-                }
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(currentWork?.title.isEmpty == false ? currentWork!.title : "Untitled")
-                    .font(.system(size: 14, weight: .semibold))
-                    .lineLimit(1)
-                
-                Text("@\(creator?.handle ?? "unknown")")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-        }
-        .padding(.leading, 12)
-    }
-    
-    private var navigationButtons: some View {
-        HStack(spacing: 0) {
-            Button {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                    feed.goToPrevious()
-                }
-            } label: {
-                Image(systemName: "chevron.up")
-                    .font(.system(size: 15, weight: .semibold))
-                    .frame(width: 44, height: 36)
-            }
-            .opacity(feed.currentIndex == 0 ? 0.3 : 1)
-            
-            Divider().frame(height: 18).overlay(Color.border)
-            
-            Button {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                    feed.goToNext()
-                }
-            } label: {
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 15, weight: .semibold))
-                    .frame(width: 44, height: 36)
-            }
-        }
-    }
-    
-    private var creatorInitial: String {
-        creator?.initial ?? "?"
-    }
-}
-
-// MARK: - iOS 26 Work Mode Accessory
+// MARK: - iOS 26 Work Accessory
 
 @available(iOS 26.0, *)
-private struct WorkModeAccessory: View {
+private struct iOS26WorkAccessory: View {
     @Binding var showDetail: Bool
     @Environment(\.tabViewBottomAccessoryPlacement) private var placement
     
@@ -308,11 +192,8 @@ private struct WorkModeAccessory: View {
                 Button { showDetail = true } label: {
                     workInfoLabel
                 }
-                
                 Spacer(minLength: 0)
-                
                 Divider().frame(height: 28).overlay(Color.border)
-                
                 navigationButtons
             }
             .foregroundStyle(.primary)
@@ -325,27 +206,33 @@ private struct WorkModeAccessory: View {
     
     private var workInfoLabel: some View {
         HStack(spacing: 10) {
-            Circle()
-                .fill(Color.brand)
-                .frame(width: 28, height: 28)
-                .overlay {
-                    Text(creatorInitial)
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(.white)
-                }
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(currentWork?.title.isEmpty == false ? currentWork!.title : "Untitled")
-                    .font(.system(size: 14, weight: .semibold))
-                    .lineLimit(1)
-                
-                Text("@\(creator?.handle ?? "unknown")")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
+            creatorAvatar
+            workTitleAndHandle
         }
         .padding(.leading, 12)
+    }
+    
+    private var creatorAvatar: some View {
+        Circle()
+            .fill(Color.brand)
+            .frame(width: 28, height: 28)
+            .overlay {
+                Text(creator?.initial ?? "?")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+    }
+    
+    private var workTitleAndHandle: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(currentWork?.title.isEmpty == false ? currentWork!.title : "Untitled")
+                .font(.system(size: 14, weight: .semibold))
+                .lineLimit(1)
+            Text("@\(creator?.handle ?? "unknown")")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
     }
     
     private var navigationButtons: some View {
@@ -374,9 +261,142 @@ private struct WorkModeAccessory: View {
             }
         }
     }
+}
+
+// MARK: - iOS 18 Floating Accessory (Liquid Glass Style)
+
+private struct iOS18WorkAccessory: View {
+    @Binding var showDetail: Bool
     
-    private var creatorInitial: String {
-        creator?.initial ?? "?"
+    private let feed = FeedViewModel.shared
+    private var currentWork: Work? { feed.currentWork }
+    private var creator: Profile? { currentWork?.creator }
+    
+    var body: some View {
+        HStack(spacing: 0) {
+            Button { showDetail = true } label: {
+                workInfoLabel
+            }
+            
+            Spacer(minLength: 0)
+            
+            navigationButtons
+        }
+        .foregroundStyle(.primary)
+        .frame(height: 52)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay(
+            Capsule()
+                .strokeBorder(Color.white.opacity(0.2), lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: 4)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 16)
+    }
+    
+    private var workInfoLabel: some View {
+        HStack(spacing: 10) {
+            Circle()
+                .fill(Color.brand)
+                .frame(width: 32, height: 32)
+                .overlay {
+                    Text(creator?.initial ?? "?")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(currentWork?.title.isEmpty == false ? currentWork!.title : "Untitled")
+                    .font(.system(size: 14, weight: .semibold))
+                    .lineLimit(1)
+                
+                Text("@\(creator?.handle ?? "unknown")")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.leading, 14)
+    }
+    
+    private var navigationButtons: some View {
+        HStack(spacing: 0) {
+            Button {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    feed.goToPrevious()
+                }
+            } label: {
+                Image(systemName: "chevron.up")
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(width: 44, height: 44)
+            }
+            .opacity(feed.currentIndex == 0 ? 0.3 : 1)
+            
+            Button {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    feed.goToNext()
+                }
+            } label: {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(width: 44, height: 44)
+            }
+        }
+        .padding(.trailing, 4)
+    }
+}
+
+// MARK: - iOS 18 Create Accessory (Floating Style)
+
+private struct iOS18CreateAccessory: View {
+    @Binding var createSubTab: CreateSubTab
+    
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(CreateSubTab.allCases) { tab in
+                TabButton(tab: tab, isSelected: createSubTab == tab) {
+                    createSubTab = tab
+                }
+                
+                if tab != CreateSubTab.allCases.last {
+                    Divider()
+                        .frame(height: 20)
+                        .overlay(Color.white.opacity(0.15))
+                }
+            }
+        }
+        .frame(height: 52)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay(
+            Capsule()
+                .strokeBorder(Color.white.opacity(0.2), lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: 4)
+        .padding(.horizontal, 32)
+        .padding(.bottom, 16)
+    }
+}
+
+private struct TabButton: View {
+    let tab: CreateSubTab
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: tab.icon)
+                    .font(.system(size: 16, weight: .medium))
+                
+                Text(tab.title)
+                    .font(.system(size: 10, weight: .medium))
+            }
+            .foregroundStyle(isSelected ? tab.color : .secondary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 6)
+            .animation(.easeInOut(duration: 0.15), value: isSelected)
+        }
+        .buttonStyle(.plain)
     }
 }
 
