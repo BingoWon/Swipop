@@ -45,6 +45,7 @@ struct WorkViewerPage: View {
             floatingAccessory
         }
         .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .tabBar)
         .toolbar { toolbarContent }
         .toolbarBackground(.hidden, for: .navigationBar)
         .sheet(isPresented: $showComments) {
