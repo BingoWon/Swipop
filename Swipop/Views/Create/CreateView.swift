@@ -53,7 +53,9 @@ struct CreateView: View {
             visibilityButton
         }
         
-        ToolbarSpacer(.fixed, placement: .topBarTrailing)
+        if #available(iOS 26.0, *) {
+            ToolbarSpacer(.fixed, placement: .topBarTrailing)
+        }
         
         ToolbarItem(placement: .topBarTrailing) {
             Button { showSettings = true } label: {

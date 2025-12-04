@@ -168,7 +168,9 @@ struct FeedView: View {
         
         // Search button only in grid mode
         if !isViewingWork {
-            ToolbarSpacer(.fixed, placement: .topBarTrailing)
+            if #available(iOS 26.0, *) {
+                ToolbarSpacer(.fixed, placement: .topBarTrailing)
+            }
             
             ToolbarItem(placement: .topBarTrailing) {
                 Button { showSearch = true } label: {

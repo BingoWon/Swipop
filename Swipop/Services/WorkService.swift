@@ -59,7 +59,7 @@ actor WorkService {
             .from("works")
             .select("*")
             .eq("user_id", value: userId)
-            .order("updated_at", ascending: false)
+            .order("created_at", ascending: false)
             .execute()
             .value
     }

@@ -147,7 +147,7 @@ final class WorkEditorViewModel {
     }
     
     func saveAndReset() async {
-        if hasContent { await save() }
+        if hasContent && isDirty { await save() }
         reset()
     }
     
