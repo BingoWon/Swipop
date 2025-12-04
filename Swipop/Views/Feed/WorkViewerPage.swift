@@ -91,6 +91,8 @@ struct WorkViewerPage: View {
         .padding(.top, 8)
     }
     
+    private let buttonSize: CGFloat = 36
+    
     private var actionButtonsGroup: some View {
         HStack(spacing: 0) {
             glassIconButton(interaction.isLiked ? "heart.fill" : "heart", tint: interaction.isLiked ? .red : .white, action: handleLike)
@@ -98,8 +100,7 @@ struct WorkViewerPage: View {
             glassIconButton(interaction.isCollected ? "bookmark.fill" : "bookmark", tint: interaction.isCollected ? .yellow : .white, action: handleCollect)
             glassIconButton("square.and.arrow.up", action: { showShare = true })
         }
-        .padding(.horizontal, 4)
-        .padding(.vertical, 4)
+        .frame(height: buttonSize)
         .background(.ultraThinMaterial, in: Capsule())
         .overlay(
             Capsule()
@@ -112,7 +113,8 @@ struct WorkViewerPage: View {
             Image(systemName: icon)
                 .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(tint)
-                .frame(width: 36, height: 36)
+                .frame(width: buttonSize, height: buttonSize)
+                .contentShape(Rectangle())
         }
     }
     

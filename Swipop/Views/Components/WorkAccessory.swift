@@ -24,7 +24,11 @@ struct WorkAccessoryContent: View {
             
             Spacer(minLength: 0)
             
+            Divider().frame(height: 18).overlay(Color.border)
+            
             navigationButtons
+            
+            Spacer().frame(width: 4)
         }
         .foregroundStyle(.primary)
     }
