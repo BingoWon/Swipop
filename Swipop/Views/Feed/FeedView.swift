@@ -10,7 +10,6 @@ import SwiftUI
 struct FeedView: View {
     
     @Binding var showLogin: Bool
-    @Binding var isViewingWork: Bool
     
     @State private var showSearch = false
     @State private var selectedWork: Work?
@@ -31,9 +30,6 @@ struct FeedView: View {
         }
         .sheet(isPresented: $showSearch) {
             SearchSheet()
-        }
-        .onChange(of: selectedWork) { _, newValue in
-            isViewingWork = newValue != nil
         }
     }
     
@@ -182,5 +178,5 @@ struct WorkGridCell: View {
 }
 
 #Preview {
-    FeedView(showLogin: .constant(false), isViewingWork: .constant(false))
+    FeedView(showLogin: .constant(false))
 }

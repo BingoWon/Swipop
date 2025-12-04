@@ -2,7 +2,7 @@
 //  WorkAccessory.swift
 //  Swipop
 //
-//  Shared work accessory component for iOS 26 native and iOS 18 floating styles
+//  Floating work accessory with Liquid Glass (iOS 26) / Material (iOS 18)
 //
 
 import SwiftUI
@@ -66,7 +66,7 @@ struct WorkAccessoryContent: View {
                 }
             } label: {
                 Image(systemName: "chevron.up")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 16, weight: .semibold))
                     .frame(width: 44, height: 36)
             }
             .opacity(feed.currentIndex == 0 ? 0.3 : 1)
@@ -79,31 +79,47 @@ struct WorkAccessoryContent: View {
                 }
             } label: {
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 16, weight: .semibold))
                     .frame(width: 44, height: 36)
             }
         }
     }
 }
 
-// MARK: - Floating Work Accessory (iOS 18)
+// MARK: - Floating Work Accessory
 
 struct FloatingWorkAccessory: View {
     @Binding var showDetail: Bool
     
     var body: some View {
         WorkAccessoryContent(showDetail: $showDetail)
-            .frame(height: 52)
-            .background(
-                Capsule()
-                    .fill(.ultraThinMaterial)
-                    .overlay(
-                        Capsule()
-                            .strokeBorder(Color.white.opacity(0.2), lineWidth: 0.5)
-                    )
-            )
-            .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: 4)
+            .frame(height: 48)
+            .modifier(GlassBackgroundModifier())
             .padding(.horizontal, 20)
+    }
+}
+
+// MARK: - Glass Background Modifier
+
+private struct GlassBackgroundModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            // iOS 26: Liquid Glass
+            content
+                .background(Capsule().fill(.clear).glassEffect())
+        } else {
+            // iOS 18: Ultra thin material
+            content
+                .background(
+                    Capsule()
+                        .fill(.ultraThinMaterial)
+                        .overlay(
+                            Capsule()
+                                .strokeBorder(Color.white.opacity(0.2), lineWidth: 0.5)
+                        )
+                )
+                .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: 4)
+        }
     }
 }
 
