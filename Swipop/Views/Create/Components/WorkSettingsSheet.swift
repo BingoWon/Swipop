@@ -51,6 +51,15 @@ struct WorkSettingsSheet: View {
                     Label("Visibility", systemImage: "eye")
                 }
                 
+                // AI Model
+                if let chat = chatViewModel {
+                    Section {
+                        modelPicker(chat: chat)
+                    } header: {
+                        Label("AI Model", systemImage: "cpu")
+                    }
+                }
+                
                 // Context Window
                 if let chat = chatViewModel {
                     Section {
@@ -243,6 +252,21 @@ struct WorkSettingsSheet: View {
         }
         
         selectedPhoto = nil
+    }
+    
+    // MARK: - AI Model Picker
+    
+    private func modelPicker(chat: ChatViewModel) -> some View {
+        Picker("Model", selection: Binding(
+            get: { chat.selectedModel },
+            set: { chat.selectedModel = $0 }
+        )) {
+            ForEach(AIModel.allCases) { model in
+                Text(model.displayName).tag(model)
+            }
+        }
+        .pickerStyle(.menu)
+        .listRowBackground(Color.secondaryBackground.opacity(0.5))
     }
     
     // MARK: - Context Window

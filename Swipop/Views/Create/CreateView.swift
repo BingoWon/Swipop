@@ -39,7 +39,6 @@ struct CreateView: View {
         .modifier(CreateNavigationModifier(
             onBack: onBack,
             workEditor: workEditor,
-            chatViewModel: chatViewModel,
             selectedSubTab: selectedSubTab,
             showSettings: $showSettings
         ))
@@ -102,20 +101,19 @@ struct CreateView: View {
 private struct CreateNavigationModifier: ViewModifier {
     let onBack: () -> Void
     @Bindable var workEditor: WorkEditorViewModel
-    @Bindable var chatViewModel: ChatViewModel
     let selectedSubTab: CreateSubTab
     @Binding var showSettings: Bool
     
     func body(content: Content) -> some View {
         if #available(iOS 26.0, *) {
             content
-                .toolbar { iOS26CreateToolbar(onBack: onBack, workEditor: workEditor, chatViewModel: chatViewModel, selectedSubTab: selectedSubTab, showSettings: $showSettings) }
+                .toolbar { iOS26CreateToolbar(onBack: onBack, workEditor: workEditor, selectedSubTab: selectedSubTab, showSettings: $showSettings) }
                 .toolbarBackground(.hidden, for: .navigationBar)
         } else {
             content
                 .toolbar(.hidden, for: .navigationBar)
                 .safeAreaInset(edge: .top) {
-                    iOS18CreateTopBar(onBack: onBack, workEditor: workEditor, chatViewModel: chatViewModel, selectedSubTab: selectedSubTab, showSettings: $showSettings)
+                    iOS18CreateTopBar(onBack: onBack, workEditor: workEditor, selectedSubTab: selectedSubTab, showSettings: $showSettings)
                 }
         }
     }
@@ -125,7 +123,6 @@ private struct CreateNavigationModifier: ViewModifier {
 
 private struct CreateToolbarActions {
     @Bindable var workEditor: WorkEditorViewModel
-    @Bindable var chatViewModel: ChatViewModel
     
     func toggleVisibility() {
         withAnimation(.spring(response: 0.3)) {
@@ -137,10 +134,6 @@ private struct CreateToolbarActions {
     func save() {
         Task { await workEditor.save() }
     }
-    
-    func selectModel(_ model: AIModel) {
-        chatViewModel.selectedModel = model
-    }
 }
 
 // MARK: - iOS 26 Create Toolbar
@@ -149,31 +142,17 @@ private struct CreateToolbarActions {
 private struct iOS26CreateToolbar: ToolbarContent {
     let onBack: () -> Void
     @Bindable var workEditor: WorkEditorViewModel
-    @Bindable var chatViewModel: ChatViewModel
     let selectedSubTab: CreateSubTab
     @Binding var showSettings: Bool
     
     private var actions: CreateToolbarActions {
-        CreateToolbarActions(workEditor: workEditor, chatViewModel: chatViewModel)
+        CreateToolbarActions(workEditor: workEditor)
     }
     
     var body: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
             Button(action: onBack) {
                 Image(systemName: "xmark")
-            }
-        }
-        
-        if selectedSubTab == .chat {
-            ToolbarItem(placement: .topBarLeading) {
-                Menu {
-                    ForEach(AIModel.allCases) { model in
-                        Button(model.displayName) { actions.selectModel(model) }
-                    }
-                } label: {
-                    Text(chatViewModel.selectedModel.displayName)
-                        .font(.system(size: 13, weight: .medium))
-                }
             }
         }
         
@@ -212,7 +191,6 @@ private struct iOS26CreateToolbar: ToolbarContent {
 private struct iOS18CreateTopBar: View {
     let onBack: () -> Void
     @Bindable var workEditor: WorkEditorViewModel
-    @Bindable var chatViewModel: ChatViewModel
     let selectedSubTab: CreateSubTab
     @Binding var showSettings: Bool
     
@@ -220,16 +198,12 @@ private struct iOS18CreateTopBar: View {
     private let iconSize: CGFloat = 20
     
     private var actions: CreateToolbarActions {
-        CreateToolbarActions(workEditor: workEditor, chatViewModel: chatViewModel)
+        CreateToolbarActions(workEditor: workEditor)
     }
     
     var body: some View {
         HStack(spacing: 12) {
             glassCircleButton("xmark", action: onBack)
-            
-            if selectedSubTab == .chat {
-                modelSelector
-            }
             
             Spacer()
             
@@ -246,22 +220,6 @@ private struct iOS18CreateTopBar: View {
                 .frame(width: buttonHeight, height: buttonHeight)
                 .background(.ultraThinMaterial, in: Circle())
                 .overlay(Circle().strokeBorder(Color.primary.opacity(0.1), lineWidth: 0.5))
-        }
-    }
-    
-    private var modelSelector: some View {
-        Menu {
-            ForEach(AIModel.allCases) { model in
-                Button(model.displayName) { actions.selectModel(model) }
-            }
-        } label: {
-            Text(chatViewModel.selectedModel.displayName)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.primary)
-                .padding(.horizontal, 12)
-                .frame(height: buttonHeight)
-                .background(.ultraThinMaterial, in: Capsule())
-                .overlay(Capsule().strokeBorder(Color.primary.opacity(0.1), lineWidth: 0.5))
         }
     }
     

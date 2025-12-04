@@ -78,9 +78,8 @@ extension CachedThumbnail {
 struct WorkThumbnailPlaceholder: View {
     let title: String
     
-    private var displayText: String {
-        if !title.isEmpty { return String(title.prefix(2)).uppercased() }
-        return "?"
+    private var displayTitle: String {
+        title.isEmpty ? "Untitled" : title
     }
     
     var body: some View {
@@ -91,9 +90,12 @@ struct WorkThumbnailPlaceholder: View {
                 endPoint: .bottomTrailing
             )
             
-            Text(displayText)
-                .font(.system(size: 24, weight: .bold))
-                .foregroundStyle(.white.opacity(0.3))
+            Text(displayTitle)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.6))
+                .multilineTextAlignment(.center)
+                .lineLimit(3)
+                .padding(8)
         }
     }
 }
