@@ -2,7 +2,7 @@
 //  FeedView.swift
 //  Swipop
 //
-//  Xiaohongshu-style masonry grid discover page with inline work viewer
+//  Xiaohongshu-style masonry grid discover page with native navigation
 //
 
 import SwiftUI
@@ -10,13 +10,9 @@ import SwiftUI
 struct FeedView: View {
     
     @Binding var showLogin: Bool
-    @Binding var isViewingWork: Bool
     
     @State private var showSearch = false
-    @State private var showComments = false
-    @State private var showShare = false
-    @State private var showDetail = false
-    @State private var interaction: InteractionViewModel?
+    @State private var selectedWork: Work?
     
     private let feed = FeedViewModel.shared
     
@@ -24,39 +20,16 @@ struct FeedView: View {
         NavigationStack {
             ZStack {
                 Color.appBackground.ignoresSafeArea()
-                
-                if isViewingWork {
-                    // Fullscreen work viewer (inline, not fullScreenCover)
-                    workViewer
-                } else {
-                    // Grid discover view
-                    gridView
-                }
+                gridView
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbarContent }
-            .toolbarBackground(.hidden, for: .navigationBar)
-        }
-        .sheet(isPresented: $showComments) {
-            if let work = feed.currentWork {
-                CommentSheet(work: work, showLogin: $showLogin)
-            }
-        }
-        .sheet(isPresented: $showShare) {
-            if let work = feed.currentWork {
-                ShareSheet(work: work)
-            }
-        }
-        .sheet(isPresented: $showDetail) {
-            if let work = feed.currentWork {
-                WorkDetailSheet(work: work, showLogin: $showLogin)
+            .navigationDestination(item: $selectedWork) { work in
+                WorkViewerPage(work: work, showLogin: $showLogin)
             }
         }
         .sheet(isPresented: $showSearch) {
             SearchSheet()
-        }
-        .onChange(of: feed.currentWork?.id) { _, _ in
-            loadInteraction()
         }
     }
     
@@ -75,11 +48,7 @@ struct FeedView: View {
                     MasonryGrid(works: feed.works, columnWidth: columnWidth, spacing: 4) { work in
                         WorkGridCell(work: work, columnWidth: columnWidth)
                             .onTapGesture {
-                                feed.setCurrentWork(work)
-                                loadInteraction()
-                                withAnimation(.easeInOut(duration: 0.25)) {
-                                    isViewingWork = true
-                                }
+                                selectedWork = work
                             }
                     }
                     .padding(.top, 4)
@@ -89,120 +58,26 @@ struct FeedView: View {
         }
     }
     
-    // MARK: - Work Viewer (Inline)
-    
-    private var workViewer: some View {
-        Group {
-            if let work = feed.currentWork {
-                WorkCardView(work: work)
-                    .id(feed.currentIndex)
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .bottom),
-                        removal: .move(edge: .top)
-                    ))
-            }
-        }
-        .ignoresSafeArea()
-    }
-    
     // MARK: - Toolbar
     
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        // Leading: Back button when viewing work
-        if isViewingWork {
-            ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.25)) {
-                        isViewingWork = false
-                    }
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(.white)
-                }
-            }
+        ToolbarItem(placement: .principal) {
+            Text("Discover")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(.primary)
         }
         
-        // Title (only in grid mode)
-        if !isViewingWork {
-            ToolbarItem(placement: .principal) {
-                Text("Discover")
-                    .font(.system(size: 18, weight: .bold))
+        if #available(iOS 26.0, *) {
+            ToolbarSpacer(.fixed, placement: .topBarTrailing)
+        }
+        
+        ToolbarItem(placement: .topBarTrailing) {
+            Button { showSearch = true } label: {
+                Image(systemName: "magnifyingglass")
                     .foregroundStyle(.primary)
             }
         }
-        
-        // Trailing: Actions
-        ToolbarItemGroup(placement: .topBarTrailing) {
-            if isViewingWork, let work = feed.currentWork {
-                // Like
-                Button(action: handleLike) {
-                    Label(
-                        "\(interaction?.likeCount ?? work.likeCount)",
-                        systemImage: interaction?.isLiked == true ? "heart.fill" : "heart"
-                    )
-                }
-                .tint(interaction?.isLiked == true ? .red : .primary)
-                
-                // Comment
-                Button { showComments = true } label: {
-                    Label("\(work.commentCount)", systemImage: "bubble.right")
-                }
-                
-                // Collect
-                Button(action: handleCollect) {
-                    Label(
-                        "\(interaction?.collectCount ?? work.collectCount)",
-                        systemImage: interaction?.isCollected == true ? "bookmark.fill" : "bookmark"
-                    )
-                }
-                .tint(interaction?.isCollected == true ? .yellow : .primary)
-                
-                // Share
-                Button { showShare = true } label: {
-                    Image(systemName: "square.and.arrow.up")
-                }
-            }
-        }
-        
-        // Search button only in grid mode
-        if !isViewingWork {
-            if #available(iOS 26.0, *) {
-                ToolbarSpacer(.fixed, placement: .topBarTrailing)
-            }
-            
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { showSearch = true } label: {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.primary)
-                }
-            }
-        }
-    }
-    
-    // MARK: - Actions
-    
-    private func loadInteraction() {
-        guard let work = feed.currentWork else { return }
-        interaction = InteractionViewModel(work: work)
-        Task { await interaction?.loadState() }
-    }
-    
-    private func handleLike() {
-        guard AuthService.shared.isAuthenticated else {
-            showLogin = true
-            return
-        }
-        Task { await interaction?.toggleLike() }
-    }
-    
-    private func handleCollect() {
-        guard AuthService.shared.isAuthenticated else {
-            showLogin = true
-            return
-        }
-        Task { await interaction?.toggleCollect() }
     }
     
     // MARK: - States
@@ -303,5 +178,5 @@ struct WorkGridCell: View {
 }
 
 #Preview {
-    FeedView(showLogin: .constant(false), isViewingWork: .constant(false))
+    FeedView(showLogin: .constant(false))
 }

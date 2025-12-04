@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Work: Identifiable, Equatable {
+struct Work: Identifiable, Equatable, Hashable {
     let id: UUID
     let userId: UUID
     var title: String
@@ -42,6 +42,10 @@ struct Work: Identifiable, Equatable {
         lhs.cssContent == rhs.cssContent &&
         lhs.jsContent == rhs.jsContent &&
         lhs.isPublished == rhs.isPublished
+    }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
     }
     
     // MARK: - Coding Keys
