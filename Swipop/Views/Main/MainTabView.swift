@@ -67,19 +67,6 @@ struct MainTabView: View {
     
     @available(iOS 26.0, *)
     private var iOS26Content: some View {
-        Group {
-            if selectedTab == 0 && isViewingWork {
-                tabView.tabViewBottomAccessory {
-                    WorkAccessoryContent(showDetail: $showWorkDetail)
-                }
-            } else {
-                tabView
-            }
-        }
-    }
-    
-    @available(iOS 26.0, *)
-    private var tabView: some View {
         TabView(selection: tabSelection) {
             Tab("Home", systemImage: "house.fill", value: 0) {
                 FeedView(showLogin: $showLogin, isViewingWork: $isViewingWork)
@@ -92,6 +79,12 @@ struct MainTabView: View {
             }
             Tab("Profile", systemImage: "person.fill", value: 3) {
                 ProfileView(showLogin: $showLogin, editWork: editWork)
+            }
+        }
+        .tabViewBottomAccessory {
+            // Content only shows when viewing work
+            if selectedTab == 0 && isViewingWork {
+                WorkAccessoryContent(showDetail: $showWorkDetail)
             }
         }
     }
