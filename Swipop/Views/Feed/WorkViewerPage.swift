@@ -42,7 +42,7 @@ struct WorkViewerPage: View {
         .toolbar(.hidden, for: .tabBar)
         .toolbar { toolbarContent }
         .toolbarBackground(.hidden, for: .navigationBar)
-        .minimalBackButton()
+        .glassBackButton()
         .sheet(isPresented: $showComments) {
             CommentSheet(work: currentWork, showLogin: $showLogin)
         }
