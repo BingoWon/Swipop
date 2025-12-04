@@ -55,6 +55,7 @@ struct WorkPreviewView: View {
                 .font(.system(size: 14))
                 .foregroundStyle(.tertiary)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

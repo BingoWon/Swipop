@@ -64,13 +64,13 @@ struct CreateView: View {
             WorkPreviewView(workEditor: workEditor)
         case .html:
             RunestoneCodeView(language: .html, code: $workEditor.html, isEditable: true)
-                .ignoresSafeArea()
+                .ignoresSafeArea(edges: .bottom)
         case .css:
             RunestoneCodeView(language: .css, code: $workEditor.css, isEditable: true)
-                .ignoresSafeArea()
+                .ignoresSafeArea(edges: .bottom)
         case .javascript:
             RunestoneCodeView(language: .javascript, code: $workEditor.javascript, isEditable: true)
-                .ignoresSafeArea()
+                .ignoresSafeArea(edges: .bottom)
         }
     }
     
@@ -110,7 +110,7 @@ private struct CreateNavigationModifier: ViewModifier {
     func body(content: Content) -> some View {
         if #available(iOS 26.0, *) {
             content
-                .toolbar { iOS26CreateToolbar(onBack: onBack, workEditor: workEditor, chatViewModel: chatViewModel, selectedSubTab: selectedSubTab, showSettings: $showSettings) }
+                .toolbar { iOS26CreateToolbar(workEditor: workEditor, chatViewModel: chatViewModel, selectedSubTab: selectedSubTab, showSettings: $showSettings) }
                 .toolbarBackground(.hidden, for: .navigationBar)
         } else {
             content
@@ -122,22 +122,17 @@ private struct CreateNavigationModifier: ViewModifier {
     }
 }
 
-// MARK: - iOS 26 Create Toolbar
+// MARK: - iOS 26 Create Toolbar (uses system back button)
 
 @available(iOS 26.0, *)
 private struct iOS26CreateToolbar: ToolbarContent {
-    let onBack: () -> Void
     @Bindable var workEditor: WorkEditorViewModel
     @Bindable var chatViewModel: ChatViewModel
     let selectedSubTab: CreateSubTab
     @Binding var showSettings: Bool
     
     var body: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            Button(action: onBack) {
-                Image(systemName: "chevron.left")
-            }
-        }
+        // System back button is provided automatically by NavigationStack
         
         if selectedSubTab == .chat {
             ToolbarItem(placement: .topBarLeading) {
