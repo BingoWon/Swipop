@@ -2,6 +2,10 @@
 //  CreateView.swift
 //  Swipop
 //
+//  Work creation/editing view with platform-specific UI
+//  - iOS 26: Native toolbar with Liquid Glass
+//  - iOS 18: Custom glass-style top bar
+//
 
 import SwiftUI
 
@@ -10,24 +14,36 @@ struct CreateView: View {
     @Bindable var workEditor: WorkEditorViewModel
     @Bindable var chatViewModel: ChatViewModel
     @Binding var selectedSubTab: CreateSubTab
+    let onBack: () -> Void
+    
     @State private var showSettings = false
     @FocusState private var isInputFocused: Bool
     
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.appBackground.ignoresSafeArea()
-                
-                if AuthService.shared.isAuthenticated {
-                    content
-                } else {
-                    signInPrompt
-                }
+        ZStack(alignment: .bottom) {
+            Color.appBackground.ignoresSafeArea()
+            
+            if AuthService.shared.isAuthenticated {
+                content
+                    .safeAreaInset(edge: .bottom) {
+                        Spacer().frame(height: 60)
+                    }
+            } else {
+                signInPrompt
             }
-            .toolbar { toolbarContent }
-            .toolbarBackground(.hidden, for: .navigationBar)
+            
+            if AuthService.shared.isAuthenticated {
+                FloatingCreateAccessory(selectedSubTab: $selectedSubTab)
+            }
         }
-        .tint(.primary)
+        .toolbar(.hidden, for: .tabBar)
+        .modifier(CreateNavigationModifier(
+            onBack: onBack,
+            workEditor: workEditor,
+            chatViewModel: chatViewModel,
+            selectedSubTab: selectedSubTab,
+            showSettings: $showSettings
+        ))
         .sheet(isPresented: $showSettings) {
             WorkSettingsSheet(workEditor: workEditor, chatViewModel: chatViewModel) {
                 workEditor.reset()
@@ -36,75 +52,6 @@ struct CreateView: View {
         }
     }
     
-    // MARK: - Toolbar
-    
-    @ToolbarContentBuilder
-    private var toolbarContent: some ToolbarContent {
-        if selectedSubTab == .chat {
-            ToolbarItem(placement: .topBarLeading) {
-                modelSelector
-            }
-        }
-        
-        ToolbarItemGroup(placement: .topBarTrailing) {
-            if selectedSubTab != .chat {
-                saveButton
-            }
-            visibilityButton
-        }
-        
-        if #available(iOS 26.0, *) {
-            ToolbarSpacer(.fixed, placement: .topBarTrailing)
-        }
-        
-        ToolbarItem(placement: .topBarTrailing) {
-            Button { showSettings = true } label: {
-                Image(systemName: "slider.horizontal.3")
-            }
-        }
-    }
-    
-    private var modelSelector: some View {
-        Menu {
-            ForEach(AIModel.allCases) { model in
-                Button(model.displayName) {
-                    chatViewModel.selectedModel = model
-                }
-            }
-        } label: {
-            Text(chatViewModel.selectedModel.displayName)
-                .font(.system(size: 13, weight: .medium))
-        }
-    }
-    
-    private var saveButton: some View {
-        Button { Task { await workEditor.save() } } label: {
-            HStack(spacing: 4) {
-                if workEditor.isSaving {
-                    ProgressView().scaleEffect(0.7)
-                } else {
-                    Image(systemName: workEditor.isDirty ? "circle.fill" : "checkmark")
-                        .font(.system(size: 10))
-                }
-                Text(workEditor.isSaving ? "Saving" : workEditor.isDirty ? "Save" : "Saved")
-                    .font(.system(size: 13, weight: .medium))
-            }
-            .foregroundStyle(workEditor.isDirty ? .orange : .green)
-        }
-        .disabled(workEditor.isSaving || !workEditor.isDirty)
-    }
-    
-    private var visibilityButton: some View {
-        Button {
-            withAnimation(.spring(response: 0.3)) {
-                workEditor.isPublished.toggle()
-                workEditor.isDirty = true
-            }
-        } label: {
-            Image(systemName: workEditor.isPublished ? "eye" : "eye.slash")
-        }
-        .tint(workEditor.isPublished ? .green : .orange)
-    }
     
     // MARK: - Content
     
@@ -151,6 +98,227 @@ struct CreateView: View {
     }
 }
 
+// MARK: - Create Navigation Modifier
+
+private struct CreateNavigationModifier: ViewModifier {
+    let onBack: () -> Void
+    @Bindable var workEditor: WorkEditorViewModel
+    @Bindable var chatViewModel: ChatViewModel
+    let selectedSubTab: CreateSubTab
+    @Binding var showSettings: Bool
+    
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content
+                .toolbar { iOS26CreateToolbar(onBack: onBack, workEditor: workEditor, chatViewModel: chatViewModel, selectedSubTab: selectedSubTab, showSettings: $showSettings) }
+                .toolbarBackground(.hidden, for: .navigationBar)
+        } else {
+            content
+                .toolbar(.hidden, for: .navigationBar)
+                .safeAreaInset(edge: .top) {
+                    iOS18CreateTopBar(onBack: onBack, workEditor: workEditor, chatViewModel: chatViewModel, selectedSubTab: selectedSubTab, showSettings: $showSettings)
+                }
+        }
+    }
+}
+
+// MARK: - iOS 26 Create Toolbar
+
+@available(iOS 26.0, *)
+private struct iOS26CreateToolbar: ToolbarContent {
+    let onBack: () -> Void
+    @Bindable var workEditor: WorkEditorViewModel
+    @Bindable var chatViewModel: ChatViewModel
+    let selectedSubTab: CreateSubTab
+    @Binding var showSettings: Bool
+    
+    var body: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            Button(action: onBack) {
+                Image(systemName: "chevron.left")
+            }
+        }
+        
+        if selectedSubTab == .chat {
+            ToolbarItem(placement: .topBarLeading) {
+                modelSelector
+            }
+        }
+        
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            if selectedSubTab != .chat {
+                saveIndicator
+            }
+            visibilityButton
+            
+            Button { showSettings = true } label: {
+                Image(systemName: "slider.horizontal.3")
+            }
+        }
+    }
+    
+    private var modelSelector: some View {
+        Menu {
+            ForEach(AIModel.allCases) { model in
+                Button(model.displayName) {
+                    chatViewModel.selectedModel = model
+                }
+            }
+        } label: {
+            Text(chatViewModel.selectedModel.displayName)
+                .font(.system(size: 13, weight: .medium))
+        }
+    }
+    
+    private var saveIndicator: some View {
+        Button { Task { await workEditor.save() } } label: {
+            HStack(spacing: 4) {
+                if workEditor.isSaving {
+                    ProgressView().scaleEffect(0.7)
+                } else {
+                    Image(systemName: workEditor.isDirty ? "circle.fill" : "checkmark")
+                        .font(.system(size: 10))
+                }
+                Text(workEditor.isSaving ? "Saving" : workEditor.isDirty ? "Save" : "Saved")
+                    .font(.system(size: 13, weight: .medium))
+            }
+            .foregroundStyle(workEditor.isDirty ? .orange : .green)
+        }
+        .disabled(workEditor.isSaving || !workEditor.isDirty)
+    }
+    
+    private var visibilityButton: some View {
+        Button {
+            withAnimation(.spring(response: 0.3)) {
+                workEditor.isPublished.toggle()
+                workEditor.isDirty = true
+            }
+        } label: {
+            Image(systemName: workEditor.isPublished ? "eye" : "eye.slash")
+        }
+        .tint(workEditor.isPublished ? .green : .orange)
+    }
+}
+
+// MARK: - iOS 18 Create Top Bar
+
+private struct iOS18CreateTopBar: View {
+    let onBack: () -> Void
+    @Bindable var workEditor: WorkEditorViewModel
+    @Bindable var chatViewModel: ChatViewModel
+    let selectedSubTab: CreateSubTab
+    @Binding var showSettings: Bool
+    
+    private let buttonHeight: CGFloat = 44
+    private let iconSize: CGFloat = 20
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Back button
+            Button(action: onBack) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: iconSize, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .frame(width: buttonHeight, height: buttonHeight)
+                    .background(.ultraThinMaterial, in: Circle())
+                    .overlay(
+                        Circle()
+                            .strokeBorder(Color.primary.opacity(0.1), lineWidth: 0.5)
+                    )
+            }
+            
+            // Model selector (chat mode only)
+            if selectedSubTab == .chat {
+                modelSelector
+            }
+            
+            Spacer()
+            
+            // Right action buttons group
+            HStack(spacing: 0) {
+                if selectedSubTab != .chat {
+                    saveIndicator
+                    Divider().frame(height: 18).overlay(Color.border)
+                }
+                
+                visibilityButton
+                Divider().frame(height: 18).overlay(Color.border)
+                
+                Button { showSettings = true } label: {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: iconSize - 2, weight: .medium))
+                        .foregroundStyle(.primary)
+                        .frame(width: buttonHeight, height: buttonHeight)
+                        .contentShape(Rectangle())
+                }
+            }
+            .frame(height: buttonHeight)
+            .background(.ultraThinMaterial, in: Capsule())
+            .overlay(
+                Capsule()
+                    .strokeBorder(Color.primary.opacity(0.1), lineWidth: 0.5)
+            )
+        }
+        .padding(.horizontal, 16)
+    }
+    
+    private var modelSelector: some View {
+        Menu {
+            ForEach(AIModel.allCases) { model in
+                Button(model.displayName) {
+                    chatViewModel.selectedModel = model
+                }
+            }
+        } label: {
+            Text(chatViewModel.selectedModel.displayName)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 12)
+                .frame(height: buttonHeight)
+                .background(.ultraThinMaterial, in: Capsule())
+                .overlay(
+                    Capsule()
+                        .strokeBorder(Color.primary.opacity(0.1), lineWidth: 0.5)
+                )
+        }
+    }
+    
+    private var saveIndicator: some View {
+        Button { Task { await workEditor.save() } } label: {
+            HStack(spacing: 4) {
+                if workEditor.isSaving {
+                    ProgressView().scaleEffect(0.6)
+                } else {
+                    Image(systemName: workEditor.isDirty ? "circle.fill" : "checkmark")
+                        .font(.system(size: 8))
+                }
+                Text(workEditor.isSaving ? "Saving" : workEditor.isDirty ? "Save" : "Saved")
+                    .font(.system(size: 12, weight: .medium))
+            }
+            .foregroundStyle(workEditor.isDirty ? .orange : .green)
+            .frame(height: buttonHeight)
+            .padding(.horizontal, 12)
+            .contentShape(Rectangle())
+        }
+        .disabled(workEditor.isSaving || !workEditor.isDirty)
+    }
+    
+    private var visibilityButton: some View {
+        Button {
+            withAnimation(.spring(response: 0.3)) {
+                workEditor.isPublished.toggle()
+                workEditor.isDirty = true
+            }
+        } label: {
+            Image(systemName: workEditor.isPublished ? "eye" : "eye.slash")
+                .font(.system(size: iconSize - 2, weight: .medium))
+                .foregroundStyle(workEditor.isPublished ? .green : .orange)
+                .frame(width: buttonHeight, height: buttonHeight)
+                .contentShape(Rectangle())
+        }
+    }
+}
+
 #Preview {
     CreateViewPreview()
 }
@@ -160,9 +328,9 @@ private struct CreateViewPreview: View {
     @State private var chatViewModel: ChatViewModel?
     
     var body: some View {
-        Group {
+        NavigationStack {
             if let chat = chatViewModel {
-                CreateView(showLogin: .constant(false), workEditor: workEditor, chatViewModel: chat, selectedSubTab: .constant(.chat))
+                CreateView(showLogin: .constant(false), workEditor: workEditor, chatViewModel: chat, selectedSubTab: .constant(.chat), onBack: {})
             }
         }
         .onAppear {

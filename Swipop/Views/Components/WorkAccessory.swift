@@ -123,12 +123,64 @@ private struct GlassBackgroundModifier: ViewModifier {
     }
 }
 
-#Preview("Floating") {
+// MARK: - Floating Create Accessory
+
+struct FloatingCreateAccessory: View {
+    @Binding var selectedSubTab: CreateSubTab
+    
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(CreateSubTab.allCases) { tab in
+                tabButton(for: tab)
+                
+                if tab != CreateSubTab.allCases.last {
+                    Divider()
+                        .frame(height: 18)
+                        .overlay(Color.border)
+                }
+            }
+        }
+        .frame(height: 48)
+        .modifier(GlassBackgroundModifier())
+        .padding(.horizontal, 20)
+    }
+    
+    private func tabButton(for tab: CreateSubTab) -> some View {
+        Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                selectedSubTab = tab
+            }
+        } label: {
+            VStack(spacing: 2) {
+                Image(systemName: tab.icon)
+                    .font(.system(size: 14, weight: .medium))
+                Text(tab.title)
+                    .font(.system(size: 9, weight: .medium))
+            }
+            .foregroundStyle(selectedSubTab == tab ? tab.color : .secondary)
+            .frame(maxWidth: .infinity)
+            .frame(height: 48)
+            .contentShape(Rectangle())
+        }
+    }
+}
+
+#Preview("Work Accessory") {
     ZStack {
         Color.black.ignoresSafeArea()
         VStack {
             Spacer()
             FloatingWorkAccessory(showDetail: .constant(false))
+        }
+    }
+}
+
+#Preview("Create Accessory") {
+    ZStack {
+        Color.black.ignoresSafeArea()
+        VStack {
+            Spacer()
+            FloatingCreateAccessory(selectedSubTab: .constant(.chat))
         }
     }
 }

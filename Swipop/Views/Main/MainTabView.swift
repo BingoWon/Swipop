@@ -3,6 +3,7 @@
 //  Swipop
 //
 //  Main tab navigation with iOS 26 and iOS 18 variants
+//  Create page is pushed via navigation for full-screen experience
 //
 
 import SwiftUI
@@ -13,18 +14,7 @@ struct MainTabView: View {
     @State private var workEditor: WorkEditorViewModel
     @State private var chatViewModel: ChatViewModel
     @State private var createSubTab: CreateSubTab = .chat
-    
-    private var tabSelection: Binding<Int> {
-        Binding(
-            get: { selectedTab },
-            set: { newValue in
-                if newValue == 1 && selectedTab == 1 {
-                    Task { await createNewWork() }
-                }
-                selectedTab = newValue
-            }
-        )
-    }
+    @State private var showingCreate = false
     
     init(showLogin: Binding<Bool>) {
         self._showLogin = showLogin
@@ -34,36 +24,37 @@ struct MainTabView: View {
     }
     
     var body: some View {
-        Group {
-            if #available(iOS 26.0, *) {
-                iOS26Content
-            } else {
-                iOS18Content
-            }
-        }
-        .tint(selectedTab == 1 ? .brand : .primary)
-        .animation(.easeInOut(duration: 0.25), value: selectedTab)
-        .onChange(of: selectedTab) { oldValue, newValue in
-            if oldValue == 1 && newValue != 1 {
-                Task {
-                    await workEditor.saveAndReset()
-                    chatViewModel.clear()
-                    createSubTab = .chat
+        NavigationStack {
+            Group {
+                if #available(iOS 26.0, *) {
+                    iOS26Content
+                } else {
+                    iOS18Content
                 }
             }
+            .navigationDestination(isPresented: $showingCreate) {
+                CreateView(
+                    showLogin: $showLogin,
+                    workEditor: workEditor,
+                    chatViewModel: chatViewModel,
+                    selectedSubTab: $createSubTab,
+                    onBack: closeCreate
+                )
+            }
         }
+        .tint(.primary)
     }
     
     // MARK: - iOS 26
     
     @available(iOS 26.0, *)
     private var iOS26Content: some View {
-        TabView(selection: tabSelection) {
+        TabView(selection: $selectedTab) {
             Tab("Home", systemImage: "house.fill", value: 0) {
                 FeedView(showLogin: $showLogin)
             }
             Tab("Create", systemImage: "wand.and.stars", value: 1) {
-                CreateView(showLogin: $showLogin, workEditor: workEditor, chatViewModel: chatViewModel, selectedSubTab: $createSubTab)
+                createPlaceholder
             }
             Tab("Inbox", systemImage: "bell.fill", value: 2) {
                 InboxView()
@@ -72,16 +63,21 @@ struct MainTabView: View {
                 ProfileView(showLogin: $showLogin, editWork: editWork)
             }
         }
+        .onChange(of: selectedTab) { _, newValue in
+            if newValue == 1 {
+                openCreate()
+            }
+        }
     }
     
     // MARK: - iOS 18
     
     private var iOS18Content: some View {
-        TabView(selection: tabSelection) {
+        TabView(selection: $selectedTab) {
             FeedView(showLogin: $showLogin)
                 .tabItem { Label("Home", systemImage: "house.fill") }
                 .tag(0)
-            CreateView(showLogin: $showLogin, workEditor: workEditor, chatViewModel: chatViewModel, selectedSubTab: $createSubTab)
+            createPlaceholder
                 .tabItem { Label("Create", systemImage: "wand.and.stars") }
                 .tag(1)
             InboxView()
@@ -91,22 +87,41 @@ struct MainTabView: View {
                 .tabItem { Label("Profile", systemImage: "person.fill") }
                 .tag(3)
         }
+        .onChange(of: selectedTab) { _, newValue in
+            if newValue == 1 {
+                openCreate()
+            }
+        }
+    }
+    
+    // MARK: - Create Placeholder
+    
+    private var createPlaceholder: some View {
+        Color.appBackground
+            .ignoresSafeArea()
     }
     
     // MARK: - Actions
+    
+    private func openCreate() {
+        showingCreate = true
+    }
+    
+    private func closeCreate() {
+        Task {
+            await workEditor.saveAndReset()
+            chatViewModel.clear()
+            createSubTab = .chat
+        }
+        showingCreate = false
+        selectedTab = 0
+    }
     
     private func editWork(_ work: Work) {
         workEditor.load(work: work)
         chatViewModel.loadFromWorkEditor()
         createSubTab = .chat
-        selectedTab = 1
-    }
-    
-    @MainActor
-    private func createNewWork() async {
-        await workEditor.saveAndReset()
-        chatViewModel.clear()
-        createSubTab = .chat
+        showingCreate = true
     }
 }
 
