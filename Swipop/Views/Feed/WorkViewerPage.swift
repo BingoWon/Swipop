@@ -11,6 +11,7 @@ struct WorkViewerPage: View {
     let initialWork: Work
     @Binding var showLogin: Bool
     
+    @Environment(\.dismiss) private var dismiss
     @State private var interaction: InteractionViewModel
     @State private var showComments = false
     @State private var showShare = false
@@ -39,10 +40,13 @@ struct WorkViewerPage: View {
                 FloatingWorkAccessory(showDetail: $showDetail)
             }
         }
+        .safeAreaInset(edge: .top) {
+            topBar
+        }
         .toolbar(.hidden, for: .tabBar)
-        .toolbar { toolbarContent }
-        .toolbarBackground(.hidden, for: .navigationBar)
-        .glassBackButton()
+        .toolbar(.hidden, for: .navigationBar)
+        .navigationBarBackButtonHidden(true)
+        .background(SwipeBackEnabler())
         .sheet(isPresented: $showComments) {
             CommentSheet(work: currentWork, showLogin: $showLogin)
         }
@@ -61,29 +65,70 @@ struct WorkViewerPage: View {
         }
     }
     
-    // MARK: - Toolbar
+    // MARK: - Top Bar
     
-    @ToolbarContentBuilder
-    private var toolbarContent: some ToolbarContent {
-        ToolbarItemGroup(placement: .topBarTrailing) {
-            Button(action: handleLike) {
-                Label("\(interaction.likeCount)", systemImage: interaction.isLiked ? "heart.fill" : "heart")
+    private var topBar: some View {
+        HStack {
+            // Back button
+            Button { dismiss() } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 36, height: 36)
+                    .background(.ultraThinMaterial, in: Circle())
+                    .overlay(
+                        Circle()
+                            .strokeBorder(Color.white.opacity(0.2), lineWidth: 0.5)
+                    )
             }
-            .tint(interaction.isLiked ? .red : .primary)
             
-            Button { showComments = true } label: {
-                Label("\(currentWork.commentCount)", systemImage: "bubble.right")
+            Spacer()
+            
+            // Action buttons group
+            actionButtonsGroup
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+    }
+    
+    private var actionButtonsGroup: some View {
+        HStack(spacing: 2) {
+            GlassActionButton(
+                icon: interaction.isLiked ? "heart.fill" : "heart",
+                count: interaction.likeCount,
+                tint: interaction.isLiked ? .red : .white,
+                action: handleLike
+            )
+            
+            GlassActionButton(
+                icon: "bubble.right",
+                count: currentWork.commentCount,
+                tint: .white
+            ) {
+                showComments = true
             }
             
-            Button(action: handleCollect) {
-                Label("\(interaction.collectCount)", systemImage: interaction.isCollected ? "bookmark.fill" : "bookmark")
-            }
-            .tint(interaction.isCollected ? .yellow : .primary)
+            GlassActionButton(
+                icon: interaction.isCollected ? "bookmark.fill" : "bookmark",
+                count: interaction.collectCount,
+                tint: interaction.isCollected ? .yellow : .white,
+                action: handleCollect
+            )
             
-            Button { showShare = true } label: {
-                Image(systemName: "square.and.arrow.up")
+            GlassActionButton(
+                icon: "square.and.arrow.up",
+                tint: .white
+            ) {
+                showShare = true
             }
         }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay(
+            Capsule()
+                .strokeBorder(Color.white.opacity(0.2), lineWidth: 0.5)
+        )
     }
     
     // MARK: - Actions
@@ -107,6 +152,59 @@ struct WorkViewerPage: View {
             return
         }
         Task { await interaction.toggleCollect() }
+    }
+}
+
+// MARK: - Glass Action Button
+
+private struct GlassActionButton: View {
+    let icon: String
+    var count: Int? = nil
+    let tint: Color
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .medium))
+                
+                if let count = count {
+                    Text("\(count)")
+                        .font(.system(size: 12, weight: .medium))
+                }
+            }
+            .foregroundStyle(tint)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+        }
+    }
+}
+
+// MARK: - Swipe Back Enabler
+
+private struct SwipeBackEnabler: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> UIViewController {
+        SwipeBackEnablerController()
+    }
+    
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
+}
+
+private class SwipeBackEnablerController: UIViewController {
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        
+        if let navigationController = navigationController {
+            navigationController.interactivePopGestureRecognizer?.isEnabled = true
+            navigationController.interactivePopGestureRecognizer?.delegate = self
+        }
+    }
+}
+
+extension SwipeBackEnablerController: UIGestureRecognizerDelegate {
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        return navigationController?.viewControllers.count ?? 0 > 1
     }
 }
 
