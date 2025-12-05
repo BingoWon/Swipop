@@ -60,23 +60,24 @@ struct ProfileContentView: View {
     
     private var userProfile: CurrentUserProfile { CurrentUserProfile.shared }
     @State private var selectedTab = 0
-    @State private var previousTab = 0
+    @State private var dragOffset: CGFloat = 0
     @State private var showSettings = false
     @State private var showEditProfile = false
     
-    private var currentItems: [Work] {
-        switch selectedTab {
+    private let tabCount = 3
+    
+    private func itemsForTab(_ tab: Int) -> [Work] {
+        switch tab {
         case 1: return userProfile.likedWorks
         case 2: return userProfile.collectedWorks
         default: return userProfile.works
         }
     }
     
-    private var showDraftBadge: Bool { selectedTab == 0 }
-    
     var body: some View {
         GeometryReader { geometry in
             let columnWidth = max((geometry.size.width - 8) / 3, 1)
+            let screenWidth = geometry.size.width
             
             ScrollView {
                 VStack(spacing: 8) {
@@ -96,13 +97,8 @@ struct ProfileContentView: View {
                     contentTabs
                         .padding(.top, 8)
                     
-                    // Grid with slide transition
-                    gridContent(columnWidth: columnWidth)
-                        .id(selectedTab)
-                        .transition(.asymmetric(
-                            insertion: .move(edge: selectedTab > previousTab ? .trailing : .leading),
-                            removal: .move(edge: selectedTab > previousTab ? .leading : .trailing)
-                        ))
+                    // Swipeable grid container
+                    swipeableGrids(columnWidth: columnWidth, screenWidth: screenWidth)
                 }
             }
             .refreshable { await userProfile.refresh() }
@@ -113,6 +109,40 @@ struct ProfileContentView: View {
         .task { await userProfile.refresh() }
         .sheet(isPresented: $showSettings) { SettingsView() }
         .sheet(isPresented: $showEditProfile) { EditProfileView(profile: userProfile.profile) }
+    }
+    
+    // MARK: - Swipeable Grids
+    
+    private func swipeableGrids(columnWidth: CGFloat, screenWidth: CGFloat) -> some View {
+        HStack(spacing: 0) {
+            ForEach(0..<tabCount, id: \.self) { tab in
+                gridContent(tab: tab, columnWidth: columnWidth)
+                    .frame(width: screenWidth)
+            }
+        }
+        .offset(x: -CGFloat(selectedTab) * screenWidth + dragOffset)
+        .gesture(
+            DragGesture()
+                .onChanged { value in
+                    dragOffset = value.translation.width
+                }
+                .onEnded { value in
+                    let threshold = screenWidth * 0.25
+                    var newTab = selectedTab
+                    
+                    if value.translation.width < -threshold && selectedTab < tabCount - 1 {
+                        newTab = selectedTab + 1
+                    } else if value.translation.width > threshold && selectedTab > 0 {
+                        newTab = selectedTab - 1
+                    }
+                    
+                    withAnimation(.easeOut(duration: 0.25)) {
+                        selectedTab = newTab
+                        dragOffset = 0
+                    }
+                }
+        )
+        .animation(.easeOut(duration: 0.25), value: selectedTab)
     }
     
     // MARK: - Toolbar
@@ -132,69 +162,63 @@ struct ProfileContentView: View {
     private var contentTabs: some View {
         HStack(spacing: 0) {
             ProfileTabButton(icon: "square.grid.2x2", isSelected: selectedTab == 0) {
-                switchTab(to: 0)
+                withAnimation(.easeOut(duration: 0.25)) { selectedTab = 0 }
             }
             ProfileTabButton(icon: "heart", isSelected: selectedTab == 1) {
-                switchTab(to: 1)
+                withAnimation(.easeOut(duration: 0.25)) { selectedTab = 1 }
             }
             ProfileTabButton(icon: "bookmark", isSelected: selectedTab == 2) {
-                switchTab(to: 2)
+                withAnimation(.easeOut(duration: 0.25)) { selectedTab = 2 }
             }
         }
         .padding(.horizontal, 16)
     }
     
-    private func switchTab(to tab: Int) {
-        guard tab != selectedTab else { return }
-        previousTab = selectedTab
-        withAnimation(.easeInOut(duration: 0.25)) {
-            selectedTab = tab
-        }
-    }
-    
     // MARK: - Grid Content
     
     @ViewBuilder
-    private func gridContent(columnWidth: CGFloat) -> some View {
-        if currentItems.isEmpty {
-            emptyState
+    private func gridContent(tab: Int, columnWidth: CGFloat) -> some View {
+        let items = itemsForTab(tab)
+        let showDraft = tab == 0
+        
+        if items.isEmpty {
+            emptyState(for: tab)
         } else {
-            MasonryGrid(works: currentItems, columnWidth: columnWidth, columns: 3, spacing: 2) { work in
-                ProfileWorkCell(work: work, columnWidth: columnWidth, showDraftBadge: showDraftBadge && !work.isPublished)
+            MasonryGrid(works: items, columnWidth: columnWidth, columns: 3, spacing: 2) { work in
+                ProfileWorkCell(work: work, columnWidth: columnWidth, showDraftBadge: showDraft && !work.isPublished)
                     .onTapGesture { editWork(work) }
             }
             .padding(.top, 2)
         }
     }
     
-    private var emptyState: some View {
-        VStack(spacing: 12) {
-            Image(systemName: emptyStateIcon)
+    private func emptyState(for tab: Int) -> some View {
+        let icon: String
+        let message: String
+        
+        switch tab {
+        case 1:
+            icon = "heart"
+            message = "No liked works yet"
+        case 2:
+            icon = "bookmark"
+            message = "No saved works yet"
+        default:
+            icon = "square.grid.2x2"
+            message = "No works created yet"
+        }
+        
+        return VStack(spacing: 12) {
+            Image(systemName: icon)
                 .font(.system(size: 40))
                 .foregroundStyle(.tertiary)
             
-            Text(emptyStateMessage)
+            Text(message)
                 .font(.system(size: 14))
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 60)
-    }
-    
-    private var emptyStateIcon: String {
-        switch selectedTab {
-        case 1: return "heart"
-        case 2: return "bookmark"
-        default: return "square.grid.2x2"
-        }
-    }
-    
-    private var emptyStateMessage: String {
-        switch selectedTab {
-        case 1: return "No liked works yet"
-        case 2: return "No saved works yet"
-        default: return "No works created yet"
-        }
     }
 }
 

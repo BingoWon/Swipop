@@ -150,7 +150,7 @@ struct WorkGridCell: View {
                     .foregroundStyle(.primary)
                     .lineLimit(2)
                 
-                HStack(spacing: 4) {
+                HStack(spacing: 6) {
                     Circle()
                         .fill(Color.brand)
                         .frame(width: 18, height: 18)
@@ -160,8 +160,8 @@ struct WorkGridCell: View {
                                 .foregroundStyle(.white)
                         }
                     
-                    Text("@\(work.creator?.handle ?? "user")")
-                        .font(.system(size: 11))
+                    Text(work.creator?.displayName ?? work.creator?.handle ?? "User")
+                        .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                     
@@ -171,7 +171,7 @@ struct WorkGridCell: View {
                 }
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 10)
+            .padding(.vertical, 8)
         }
         .frame(width: columnWidth)
         .background(Color.secondaryBackground)
@@ -185,9 +185,9 @@ struct WorkGridCell: View {
         } label: {
             HStack(spacing: 3) {
                 Image(systemName: isLiked ? "heart.fill" : "heart")
-                    .font(.system(size: 12))
+                    .font(.system(size: 13))
                 Text(likeCount.formatted)
-                    .font(.system(size: 12))
+                    .font(.system(size: 13))
             }
             .foregroundStyle(isLiked ? .red : .secondary)
         }
