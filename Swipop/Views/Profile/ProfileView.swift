@@ -111,13 +111,18 @@ struct ProfileContentView: View {
         .sheet(isPresented: $showEditProfile) { EditProfileView(profile: userProfile.profile) }
     }
     
-    // MARK: - Swipeable Grids
+    // MARK: - Swipeable Grids (Lazy: renders current ±1 tabs only)
     
     private func swipeableGrids(columnWidth: CGFloat, screenWidth: CGFloat) -> some View {
         HStack(spacing: 0) {
             ForEach(0..<tabCount, id: \.self) { tab in
-                gridContent(tab: tab, columnWidth: columnWidth)
-                    .frame(width: screenWidth)
+                // Only render current tab and adjacent tabs for performance
+                if abs(tab - selectedTab) <= 1 {
+                    gridContent(tab: tab, columnWidth: columnWidth)
+                        .frame(width: screenWidth)
+                } else {
+                    Color.clear.frame(width: screenWidth)
+                }
             }
         }
         .offset(x: -CGFloat(selectedTab) * screenWidth + dragOffset)
@@ -125,9 +130,7 @@ struct ProfileContentView: View {
         .clipped()
         .gesture(
             DragGesture()
-                .onChanged { value in
-                    dragOffset = value.translation.width
-                }
+                .onChanged { dragOffset = $0.translation.width }
                 .onEnded { value in
                     let threshold = screenWidth * 0.25
                     var newTab = selectedTab
@@ -138,13 +141,13 @@ struct ProfileContentView: View {
                         newTab = selectedTab - 1
                     }
                     
-                    withAnimation(.easeOut(duration: 0.25)) {
+                    withAnimation(.tabSwitch) {
                         selectedTab = newTab
                         dragOffset = 0
                     }
                 }
         )
-        .animation(.easeOut(duration: 0.25), value: selectedTab)
+        .animation(.tabSwitch, value: selectedTab)
     }
     
     // MARK: - Toolbar
@@ -164,13 +167,13 @@ struct ProfileContentView: View {
     private var contentTabs: some View {
         HStack(spacing: 0) {
             ProfileTabButton(icon: "square.grid.2x2", isSelected: selectedTab == 0) {
-                withAnimation(.easeOut(duration: 0.25)) { selectedTab = 0 }
+                withAnimation(.tabSwitch) { selectedTab = 0 }
             }
             ProfileTabButton(icon: "heart", isSelected: selectedTab == 1) {
-                withAnimation(.easeOut(duration: 0.25)) { selectedTab = 1 }
+                withAnimation(.tabSwitch) { selectedTab = 1 }
             }
             ProfileTabButton(icon: "bookmark", isSelected: selectedTab == 2) {
-                withAnimation(.easeOut(duration: 0.25)) { selectedTab = 2 }
+                withAnimation(.tabSwitch) { selectedTab = 2 }
             }
         }
         .padding(.horizontal, 16)

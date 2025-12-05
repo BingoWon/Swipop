@@ -121,18 +121,12 @@ struct WorkGridCell: View {
     let work: Work
     let columnWidth: CGFloat
     
-    @State private var isLiked: Bool
-    @State private var likeCount: Int
-    
-    private let cache = InteractionCache.shared
-    private let auth = AuthService.shared
+    @State private var viewModel: InteractionViewModel
     
     init(work: Work, columnWidth: CGFloat) {
         self.work = work
         self.columnWidth = columnWidth
-        // Initialize from cache
-        _isLiked = State(initialValue: InteractionCache.shared.isLiked(work.id))
-        _likeCount = State(initialValue: work.likeCount)
+        _viewModel = State(initialValue: InteractionViewModel(work: work))
     }
     
     private var imageHeight: CGFloat {
@@ -142,7 +136,7 @@ struct WorkGridCell: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            coverImage
+            CachedThumbnail(work: work, transform: .medium, size: CGSize(width: columnWidth, height: imageHeight))
             
             VStack(alignment: .leading, spacing: 6) {
                 Text(work.displayTitle)
@@ -155,7 +149,7 @@ struct WorkGridCell: View {
                         .fill(Color.brand)
                         .frame(width: 18, height: 18)
                         .overlay {
-                            Text(creatorInitial)
+                            Text(work.creator?.initial ?? "U")
                                 .font(.system(size: 8, weight: .bold))
                                 .foregroundStyle(.white)
                         }
@@ -167,7 +161,7 @@ struct WorkGridCell: View {
                     
                     Spacer()
                     
-                    likeButton
+                    LikeButton(viewModel: viewModel, size: .compact)
                 }
             }
             .padding(.horizontal, 10)
@@ -176,63 +170,48 @@ struct WorkGridCell: View {
         .frame(width: columnWidth)
         .background(Color.secondaryBackground)
         .clipShape(RoundedRectangle(cornerRadius: 12))
-        .onAppear { syncFromCache() }
+    }
+}
+
+// MARK: - Reusable Like Button
+
+struct LikeButton: View {
+    let viewModel: InteractionViewModel
+    var size: Size = .regular
+    
+    enum Size {
+        case compact, regular
+        
+        var iconSize: CGFloat {
+            switch self {
+            case .compact: return 13
+            case .regular: return 16
+            }
+        }
+        
+        var textSize: CGFloat {
+            switch self {
+            case .compact: return 13
+            case .regular: return 14
+            }
+        }
     }
     
-    private var likeButton: some View {
+    var body: some View {
         Button {
-            Task { await toggleLike() }
+            Task { await viewModel.toggleLike() }
         } label: {
             HStack(spacing: 3) {
-                Image(systemName: isLiked ? "heart.fill" : "heart")
-                    .font(.system(size: 13))
-                Text(likeCount.formatted)
-                    .font(.system(size: 13))
+                Image(systemName: viewModel.isLiked ? "heart.fill" : "heart")
+                    .font(.system(size: size.iconSize))
+                Text(viewModel.likeCount.formatted)
+                    .font(.system(size: size.textSize))
             }
-            .foregroundStyle(isLiked ? .red : .secondary)
+            .foregroundStyle(viewModel.isLiked ? .red : .secondary)
         }
         .buttonStyle(.plain)
         .contentShape(Rectangle())
         .frame(minWidth: 44, minHeight: 28)
-    }
-    
-    private var coverImage: some View {
-        CachedThumbnail(work: work, transform: .medium, size: CGSize(width: columnWidth, height: imageHeight))
-    }
-    
-    private var creatorInitial: String {
-        work.creator?.initial ?? "U"
-    }
-    
-    // MARK: - Sync & Interaction
-    
-    private func syncFromCache() {
-        isLiked = cache.isLiked(work.id)
-    }
-    
-    @MainActor
-    private func toggleLike() async {
-        guard let userId = auth.currentUser?.id else { return }
-        
-        // Optimistic update
-        let wasLiked = isLiked
-        isLiked.toggle()
-        likeCount += isLiked ? 1 : -1
-        cache.setLiked(work.id, isLiked)
-        
-        do {
-            let service = InteractionService.shared
-            if isLiked {
-                try await service.like(workId: work.id, userId: userId)
-            } else {
-                try await service.unlike(workId: work.id, userId: userId)
-            }
-        } catch {
-            // Revert
-            isLiked = wasLiked
-            likeCount += wasLiked ? 1 : -1
-            cache.setLiked(work.id, wasLiked)
-        }
     }
 }
 
