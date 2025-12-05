@@ -1,13 +1,12 @@
 -- ============================================
--- RPC Functions (Client-callable)
--- Current state as of 2024
+-- Fix Feed RPC Type Mismatch
+-- Version: 014
 -- ============================================
+-- Error: "structure of query does not match function result type"
+-- Cause: thumbnail_aspect_ratio is REAL in table but DOUBLE PRECISION in function
 
--- ===================
--- FEED WITH INTERACTIONS
--- ===================
--- Returns feed with current user's like/collect states in single query
--- Eliminates N+1 problem: was 1 feed + 2N interaction checks, now just 1 query
+-- Drop and recreate with explicit type casting
+DROP FUNCTION IF EXISTS get_feed_with_interactions;
 
 CREATE OR REPLACE FUNCTION get_feed_with_interactions(
     p_user_id UUID DEFAULT NULL,
@@ -15,7 +14,6 @@ CREATE OR REPLACE FUNCTION get_feed_with_interactions(
     p_offset INTEGER DEFAULT 0
 )
 RETURNS TABLE (
-    -- Work fields
     id UUID,
     user_id UUID,
     title TEXT,
@@ -24,7 +22,7 @@ RETURNS TABLE (
     css_content TEXT,
     js_content TEXT,
     thumbnail_url TEXT,
-    thumbnail_aspect_ratio REAL,  -- Must match works table type (REAL, not DOUBLE PRECISION)
+    thumbnail_aspect_ratio REAL,  -- Match works table type
     tags TEXT[],
     chat_messages JSONB,
     is_published BOOLEAN,
@@ -35,10 +33,8 @@ RETURNS TABLE (
     share_count INTEGER,
     created_at TIMESTAMPTZ,
     updated_at TIMESTAMPTZ,
-    -- User interaction states
     is_liked BOOLEAN,
     is_collected BOOLEAN,
-    -- Creator info (flattened for efficiency)
     creator_id UUID,
     creator_username TEXT,
     creator_display_name TEXT,
@@ -67,7 +63,6 @@ BEGIN
         w.share_count,
         w.created_at,
         w.updated_at,
-        -- Check if current user liked/collected (false if no user)
         COALESCE(
             p_user_id IS NOT NULL AND EXISTS(
                 SELECT 1 FROM likes l WHERE l.work_id = w.id AND l.user_id = p_user_id
@@ -80,7 +75,6 @@ BEGIN
             ),
             FALSE
         ) AS is_collected,
-        -- Creator info
         u.id AS creator_id,
         u.username AS creator_username,
         u.display_name AS creator_display_name,
@@ -95,15 +89,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE;
 
--- Grant execute to both authenticated and anonymous users
 GRANT EXECUTE ON FUNCTION get_feed_with_interactions TO authenticated;
 GRANT EXECUTE ON FUNCTION get_feed_with_interactions TO anon;
-
--- ===================
--- FUTURE RPC FUNCTIONS
--- ===================
--- Add more client-callable functions here as needed:
--- - get_user_profile_with_stats(user_id)
--- - search_works(query, tags, limit, offset)
--- - get_trending_works(time_range, limit)
 
