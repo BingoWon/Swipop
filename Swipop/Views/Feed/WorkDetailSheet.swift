@@ -51,7 +51,7 @@ struct WorkDetailSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(Color.appBackground)
+        .glassSheetBackground()
         .task {
             await interaction.loadState()
         }

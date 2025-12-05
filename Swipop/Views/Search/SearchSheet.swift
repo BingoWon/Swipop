@@ -44,7 +44,7 @@ struct SearchSheet: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(Color.appBackground)
+        .glassSheetBackground()
     }
     
     // MARK: - Trending Section

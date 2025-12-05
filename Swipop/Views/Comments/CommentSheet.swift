@@ -54,7 +54,7 @@ struct CommentSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(Color.appBackground)
+        .glassSheetBackground()
         .task {
             await loadComments()
         }

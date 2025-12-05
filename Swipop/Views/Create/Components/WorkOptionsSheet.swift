@@ -145,7 +145,7 @@ struct WorkOptionsSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(Color.sheetBackground)
+        .glassSheetBackground()
     }
     
     // MARK: - Thumbnail Editor

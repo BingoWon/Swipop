@@ -58,6 +58,7 @@ struct LoginView: View {
         .sheet(isPresented: $showResetPassword) {
             ResetPasswordSheet(email: email, emailSent: $resetEmailSent)
                 .presentationDetents([.height(320)])
+                .glassSheetBackground()
         }
         .onChange(of: auth.isAuthenticated) { _, isAuth in
             if isAuth { isPresented = false }
@@ -458,7 +459,6 @@ private struct ResetPasswordSheet: View {
                 ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } }
             }
         }
-        .presentationBackground(Color.sheetBackground)
     }
 }
 
