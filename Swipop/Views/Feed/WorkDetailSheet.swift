@@ -215,14 +215,16 @@ struct WorkDetailSheet: View {
                 .animation(.easeInOut(duration: 0.2), value: codeCopied)
             }
             
-            // Code view (taller, edge-to-edge)
-            RunestoneCodeView(language: selectedLanguage, code: currentCode)
-                .frame(height: 320)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.border, lineWidth: 1)
-                )
+            // Code view (2/3 screen height)
+            GeometryReader { geo in
+                RunestoneCodeView(language: selectedLanguage, code: currentCode)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.border, lineWidth: 1)
+                    )
+            }
+            .frame(height: UIScreen.main.bounds.height * 2 / 3)
         }
     }
     
