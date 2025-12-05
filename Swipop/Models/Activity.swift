@@ -2,22 +2,39 @@
 //  Activity.swift
 //  Swipop
 //
-//  Notification activity model
+//  Activity notification model
 //
 
 import SwiftUI
 
-struct Activity: Identifiable {
+struct Activity: Identifiable, Codable {
     let id: UUID
-    let type: ActivityType
     let userId: UUID
-    let userName: String
-    let userAvatar: String?
+    let actorId: UUID
+    let type: ActivityType
     let workId: UUID?
-    let workTitle: String?
+    let commentId: UUID?
+    let isRead: Bool
     let createdAt: Date
     
+    // Joined data
+    let actor: Profile?
+    let work: Work?
+    
     var timeAgo: String { createdAt.timeAgo }
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case actorId = "actor_id"
+        case type
+        case workId = "work_id"
+        case commentId = "comment_id"
+        case isRead = "is_read"
+        case createdAt = "created_at"
+        case actor
+        case work
+    }
 }
 
 enum ActivityType: String, Codable {
@@ -44,28 +61,36 @@ enum ActivityType: String, Codable {
         }
     }
     
-    func message(userName: String, workTitle: String?) -> String {
+    func message(actorName: String, workTitle: String?) -> AttributedString {
+        var result: AttributedString
+        
         switch self {
         case .like:
-            "**\(userName)** liked \"\(workTitle ?? "")\""
+            result = AttributedString("\(actorName) liked your work")
+            if let title = workTitle, !title.isEmpty {
+                result += AttributedString(" \"\(title)\"")
+            }
         case .comment:
-            "**\(userName)** commented on \"\(workTitle ?? "")\""
+            result = AttributedString("\(actorName) commented on")
+            if let title = workTitle, !title.isEmpty {
+                result += AttributedString(" \"\(title)\"")
+            } else {
+                result += AttributedString(" your work")
+            }
         case .follow:
-            "**\(userName)** started following you"
+            result = AttributedString("\(actorName) started following you")
         case .collect:
-            "**\(userName)** saved \"\(workTitle ?? "")\""
+            result = AttributedString("\(actorName) saved your work")
+            if let title = workTitle, !title.isEmpty {
+                result += AttributedString(" \"\(title)\"")
+            }
         }
+        
+        // Bold the actor name
+        if let range = result.range(of: actorName) {
+            result[range].font = .system(size: 14, weight: .semibold)
+        }
+        
+        return result
     }
 }
-
-// MARK: - Sample Data
-
-extension Activity {
-    static let samples: [Activity] = [
-        Activity(id: UUID(), type: .like, userId: UUID(), userName: "alice", userAvatar: nil, workId: UUID(), workTitle: "Neon Pulse", createdAt: Date().addingTimeInterval(-120)),
-        Activity(id: UUID(), type: .comment, userId: UUID(), userName: "bob", userAvatar: nil, workId: UUID(), workTitle: "Particle Storm", createdAt: Date().addingTimeInterval(-900)),
-        Activity(id: UUID(), type: .follow, userId: UUID(), userName: "charlie", userAvatar: nil, workId: nil, workTitle: nil, createdAt: Date().addingTimeInterval(-3600)),
-        Activity(id: UUID(), type: .collect, userId: UUID(), userName: "diana", userAvatar: nil, workId: UUID(), workTitle: "Gradient Wave", createdAt: Date().addingTimeInterval(-10800)),
-    ]
-}
-

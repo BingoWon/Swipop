@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import Auth
 
 struct MainTabView: View {
     @Binding var showLogin: Bool
@@ -16,6 +17,7 @@ struct MainTabView: View {
     @State private var chatViewModel: ChatViewModel
     @State private var createSubTab: CreateSubTab = .chat
     @State private var showingCreate = false
+    @State private var unreadCount = 0
     
     init(showLogin: Binding<Bool>) {
         self._showLogin = showLogin
@@ -45,6 +47,9 @@ struct MainTabView: View {
             }
             .tint(.primary)
         }
+        .task {
+            await loadUnreadCount()
+        }
     }
     
     // MARK: - iOS 26
@@ -61,6 +66,7 @@ struct MainTabView: View {
             Tab("Inbox", systemImage: "bell.fill", value: 2) {
                 InboxView()
             }
+            .badge(unreadCount)
             Tab("Profile", systemImage: "person.fill", value: 3) {
                 ProfileView(showLogin: $showLogin, editWork: editWork)
             }
@@ -69,6 +75,10 @@ struct MainTabView: View {
             if newValue == 1 {
                 previousTab = oldValue
                 openCreate()
+            }
+            if newValue == 2 {
+                // Refresh unread count when entering inbox
+                Task { await loadUnreadCount() }
             }
         }
         .onChange(of: showingCreate) { _, isShowing in
@@ -91,6 +101,7 @@ struct MainTabView: View {
             InboxView()
                 .tabItem { Label("Inbox", systemImage: "bell.fill") }
                 .tag(2)
+                .badge(unreadCount)
             ProfileView(showLogin: $showLogin, editWork: editWork)
                 .tabItem { Label("Profile", systemImage: "person.fill") }
                 .tag(3)
@@ -101,6 +112,9 @@ struct MainTabView: View {
             if newValue == 1 {
                 previousTab = oldValue
                 openCreate()
+            }
+            if newValue == 2 {
+                Task { await loadUnreadCount() }
             }
         }
         .onChange(of: showingCreate) { _, isShowing in
@@ -137,6 +151,19 @@ struct MainTabView: View {
         chatViewModel.loadFromWorkEditor()
         createSubTab = .chat
         showingCreate = true
+    }
+    
+    private func loadUnreadCount() async {
+        guard let userId = AuthService.shared.currentUser?.id else {
+            unreadCount = 0
+            return
+        }
+        
+        do {
+            unreadCount = try await ActivityService.shared.fetchUnreadCount(userId: userId)
+        } catch {
+            print("Failed to load unread count: \(error)")
+        }
     }
 }
 

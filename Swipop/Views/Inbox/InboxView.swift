@@ -2,35 +2,54 @@
 //  InboxView.swift
 //  Swipop
 //
-//  Notifications and messages center
+//  Activity notifications center
 //
 
 import SwiftUI
+import Auth
 
 struct InboxView: View {
     
-    @State private var selectedSegment = 0
+    @State private var viewModel = InboxViewModel()
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                Picker("", selection: $selectedSegment) {
-                    Text("Activity").tag(0)
-                    Text("Messages").tag(1)
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
+            ZStack {
+                Color.appBackground.ignoresSafeArea()
                 
-                if selectedSegment == 0 {
-                    activityList
+                if viewModel.isLoading && viewModel.activities.isEmpty {
+                    ProgressView().tint(.primary)
+                } else if viewModel.activities.isEmpty {
+                    emptyState
                 } else {
-                    messagesList
+                    activityList
                 }
             }
-            .background(Color.appBackground)
-            .navigationTitle("Inbox")
+            .navigationTitle("Activity")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                if viewModel.hasUnread {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Mark all read") {
+                            Task { await viewModel.markAllAsRead() }
+                        }
+                        .font(.system(size: 14))
+                    }
+                }
+            }
+        }
+        .task {
+            await viewModel.loadActivities()
+        }
+    }
+    
+    // MARK: - Empty State
+    
+    private var emptyState: some View {
+        ContentUnavailableView {
+            Label("No Activity", systemImage: "bell.slash")
+        } description: {
+            Text("When someone interacts with your works, you'll see it here.")
         }
     }
     
@@ -39,51 +58,39 @@ struct InboxView: View {
     private var activityList: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
-                ForEach(Activity.samples) { activity in
-                    ActivityRow(activity: activity)
-                    Divider().overlay(Color.border)
+                ForEach(viewModel.groupedActivities, id: \.title) { group in
+                    Section {
+                        ForEach(group.activities) { activity in
+                            ActivityRow(activity: activity)
+                                .onTapGesture {
+                                    Task { await viewModel.markAsRead(activity) }
+                                }
+                            
+                            if activity.id != group.activities.last?.id {
+                                Divider().overlay(Color.border).padding(.leading, 68)
+                            }
+                        }
+                    } header: {
+                        sectionHeader(group.title)
+                    }
                 }
             }
         }
         .refreshable {
-            // TODO: Implement activity refresh
-            try? await Task.sleep(for: .milliseconds(500))
-        }
-        .overlay {
-            if Activity.samples.isEmpty {
-                ContentUnavailableView {
-                    Label("No Activity", systemImage: "bell.slash")
-                } description: {
-                    Text("When someone interacts with your works, you'll see it here.")
-                }
-            }
+            await viewModel.loadActivities()
         }
     }
     
-    // MARK: - Messages List
-    
-    private var messagesList: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                ForEach(Conversation.samples) { conversation in
-                    ConversationRow(conversation: conversation)
-                    Divider().overlay(Color.border)
-                }
-            }
+    private func sectionHeader(_ title: String) -> some View {
+        HStack {
+            Text(title)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.secondary)
+            Spacer()
         }
-        .refreshable {
-            // TODO: Implement messages refresh
-            try? await Task.sleep(for: .milliseconds(500))
-        }
-        .overlay {
-            if Conversation.samples.isEmpty {
-                ContentUnavailableView {
-                    Label("No Messages", systemImage: "message.slash")
-                } description: {
-                    Text("Direct messages from other creators will appear here.")
-                }
-            }
-        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(Color.appBackground)
     }
 }
 
@@ -94,86 +101,181 @@ private struct ActivityRow: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            ZStack {
+            // Actor avatar with type indicator
+            ZStack(alignment: .bottomTrailing) {
                 Circle()
-                    .fill(activity.type.color.opacity(0.2))
+                    .fill(Color.brand)
                     .frame(width: 44, height: 44)
+                    .overlay(
+                        Text(activity.actor?.initial ?? "?")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(.white)
+                    )
                 
-                Image(systemName: activity.type.icon)
-                    .font(.system(size: 18))
-                    .foregroundStyle(activity.type.color)
+                Circle()
+                    .fill(activity.type.color)
+                    .frame(width: 18, height: 18)
+                    .overlay(
+                        Image(systemName: activity.type.icon)
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(.white)
+                    )
+                    .offset(x: 2, y: 2)
             }
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(activity.type.message(userName: activity.userName, workTitle: activity.workTitle))
-                    .font(.system(size: 14))
-                    .foregroundStyle(.primary)
-                    .lineLimit(2)
+                Text(activity.type.message(
+                    actorName: activity.actor?.handle ?? "Someone",
+                    workTitle: activity.work?.title
+                ))
+                .font(.system(size: 14))
+                .foregroundStyle(.primary)
+                .lineLimit(2)
                 
                 Text(activity.timeAgo)
                     .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.tertiary)
             }
             
             Spacer()
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-    }
-}
-
-// MARK: - Conversation Row
-
-private struct ConversationRow: View {
-    let conversation: Conversation
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            Circle()
-                .fill(Color.brand)
-                .frame(width: 50, height: 50)
-                .overlay(
-                    Text(conversation.recipientName.prefix(1).uppercased())
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(.white)
-                )
             
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text("@\(conversation.recipientName)")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.primary)
-                    
-                    Spacer()
-                    
-                    Text(conversation.timeAgo)
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
-                }
-                
-                HStack {
-                    Text(conversation.lastMessage)
-                        .font(.system(size: 14))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                    
-                    Spacer()
-                    
-                    if conversation.unreadCount > 0 {
-                        Text("\(conversation.unreadCount)")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.brand)
-                            .clipShape(Capsule())
-                    }
-                }
+            // Unread indicator
+            if !activity.isRead {
+                Circle()
+                    .fill(Color.brand)
+                    .frame(width: 8, height: 8)
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
+        .background(activity.isRead ? Color.clear : Color.brand.opacity(0.05))
     }
+}
+
+// MARK: - ViewModel
+
+@Observable
+final class InboxViewModel {
+    
+    private(set) var activities: [Activity] = []
+    private(set) var isLoading = false
+    
+    var hasUnread: Bool { activities.contains { !$0.isRead } }
+    var unreadCount: Int { activities.filter { !$0.isRead }.count }
+    
+    var groupedActivities: [ActivityGroup] {
+        let calendar = Calendar.current
+        let now = Date()
+        
+        var today: [Activity] = []
+        var yesterday: [Activity] = []
+        var thisWeek: [Activity] = []
+        var earlier: [Activity] = []
+        
+        for activity in activities {
+            if calendar.isDateInToday(activity.createdAt) {
+                today.append(activity)
+            } else if calendar.isDateInYesterday(activity.createdAt) {
+                yesterday.append(activity)
+            } else if let weekAgo = calendar.date(byAdding: .day, value: -7, to: now),
+                      activity.createdAt > weekAgo {
+                thisWeek.append(activity)
+            } else {
+                earlier.append(activity)
+            }
+        }
+        
+        var groups: [ActivityGroup] = []
+        if !today.isEmpty { groups.append(ActivityGroup(title: "Today", activities: today)) }
+        if !yesterday.isEmpty { groups.append(ActivityGroup(title: "Yesterday", activities: yesterday)) }
+        if !thisWeek.isEmpty { groups.append(ActivityGroup(title: "This Week", activities: thisWeek)) }
+        if !earlier.isEmpty { groups.append(ActivityGroup(title: "Earlier", activities: earlier)) }
+        
+        return groups
+    }
+    
+    private let service = ActivityService.shared
+    private let auth = AuthService.shared
+    
+    @MainActor
+    func loadActivities() async {
+        guard let userId = auth.currentUser?.id else {
+            activities = []
+            return
+        }
+        
+        isLoading = true
+        defer { isLoading = false }
+        
+        do {
+            activities = try await service.fetchActivities(userId: userId)
+        } catch {
+            print("Failed to load activities: \(error)")
+        }
+    }
+    
+    @MainActor
+    func markAsRead(_ activity: Activity) async {
+        guard !activity.isRead else { return }
+        
+        // Optimistic update
+        if let index = activities.firstIndex(where: { $0.id == activity.id }) {
+            var updated = activities[index]
+            updated = Activity(
+                id: updated.id,
+                userId: updated.userId,
+                actorId: updated.actorId,
+                type: updated.type,
+                workId: updated.workId,
+                commentId: updated.commentId,
+                isRead: true,
+                createdAt: updated.createdAt,
+                actor: updated.actor,
+                work: updated.work
+            )
+            activities[index] = updated
+        }
+        
+        do {
+            try await service.markAsRead(activityId: activity.id)
+        } catch {
+            print("Failed to mark as read: \(error)")
+        }
+    }
+    
+    @MainActor
+    func markAllAsRead() async {
+        guard let userId = auth.currentUser?.id else { return }
+        
+        // Optimistic update
+        activities = activities.map { activity in
+            Activity(
+                id: activity.id,
+                userId: activity.userId,
+                actorId: activity.actorId,
+                type: activity.type,
+                workId: activity.workId,
+                commentId: activity.commentId,
+                isRead: true,
+                createdAt: activity.createdAt,
+                actor: activity.actor,
+                work: activity.work
+            )
+        }
+        
+        do {
+            try await service.markAllAsRead(userId: userId)
+        } catch {
+            print("Failed to mark all as read: \(error)")
+        }
+    }
+}
+
+// MARK: - Activity Group
+
+struct ActivityGroup {
+    let title: String
+    let activities: [Activity]
 }
 
 #Preview {
