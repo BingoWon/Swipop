@@ -12,15 +12,60 @@ import WebKit
 @Observable
 final class WorkEditorViewModel {
     
+    // MARK: - Default Templates
+    
+    static let defaultHTML = """
+    <div class="container">
+      <h1>Hello, World!</h1>
+      <p>Start creating your masterpiece</p>
+    </div>
+    """
+    
+    static let defaultCSS = """
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .container {
+      text-align: center;
+      color: white;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    p {
+      opacity: 0.7;
+    }
+    """
+    
+    static let defaultJS = """
+    // Add interactivity here
+    // Example: document.querySelector('h1').addEventListener('click', () => { ... })
+    """
+    
     // MARK: - Identity
     
     var workId: UUID?
     
     // MARK: - Content
     
-    var html = "" { didSet { if html != oldValue { isDirty = true } } }
-    var css = "" { didSet { if css != oldValue { isDirty = true } } }
-    var javascript = "" { didSet { if javascript != oldValue { isDirty = true } } }
+    var html = defaultHTML { didSet { if html != oldValue { isDirty = true } } }
+    var css = defaultCSS { didSet { if css != oldValue { isDirty = true } } }
+    var javascript = defaultJS { didSet { if javascript != oldValue { isDirty = true } } }
     
     // MARK: - Chat
     
@@ -155,9 +200,9 @@ final class WorkEditorViewModel {
     
     func reset() {
         workId = nil
-        html = ""
-        css = ""
-        javascript = ""
+        html = Self.defaultHTML
+        css = Self.defaultCSS
+        javascript = Self.defaultJS
         chatMessages = []
         title = ""
         description = ""

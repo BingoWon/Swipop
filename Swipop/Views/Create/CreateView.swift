@@ -158,7 +158,8 @@ private struct iOS26CreateToolbar: ToolbarContent {
         }
         
         ToolbarItemGroup(placement: .topBarTrailing) {
-            if selectedSubTab != .chat {
+            // Only show save button for code tabs (HTML, CSS, JS)
+            if selectedSubTab.isCodeTab {
                 Button(action: actions.save) {
                     HStack(spacing: 4) {
                         if workEditor.isSaving {
@@ -222,7 +223,8 @@ private struct iOS18CreateTopBar: View {
             
             // Action buttons group (matching WorkViewerPage style)
             HStack(spacing: 0) {
-                if selectedSubTab != .chat {
+                // Only show save button for code tabs
+                if selectedSubTab.isCodeTab {
                     saveIndicator
                 }
                 glassIconButton(workEditor.isPublished ? "eye" : "eye.slash", tint: workEditor.isPublished ? .green : .orange, action: actions.toggleVisibility)

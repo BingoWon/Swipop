@@ -43,5 +43,12 @@ enum CreateSubTab: String, CaseIterable, Identifiable {
         case .javascript: .yellow
         }
     }
+    
+    var isCodeTab: Bool {
+        switch self {
+        case .html, .css, .javascript: true
+        case .chat, .preview: false
+        }
+    }
 }
 

@@ -128,10 +128,26 @@ struct ProfileContentView: View {
         .offset(x: -CGFloat(selectedTab) * screenWidth + dragOffset)
         .frame(width: screenWidth, alignment: .leading)
         .clipped()
-        .gesture(
-            DragGesture()
-                .onChanged { dragOffset = $0.translation.width }
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 20)
+                .onChanged { value in
+                    // Only respond to horizontal swipes (ignore vertical scrolling)
+                    let horizontal = abs(value.translation.width)
+                    let vertical = abs(value.translation.height)
+                    if horizontal > vertical {
+                        dragOffset = value.translation.width
+                    }
+                }
                 .onEnded { value in
+                    let horizontal = abs(value.translation.width)
+                    let vertical = abs(value.translation.height)
+                    
+                    // Only switch tabs for horizontal swipes
+                    guard horizontal > vertical else {
+                        withAnimation(.tabSwitch) { dragOffset = 0 }
+                        return
+                    }
+                    
                     let threshold = screenWidth * 0.25
                     var newTab = selectedTab
                     
