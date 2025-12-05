@@ -10,6 +10,15 @@ import AuthenticationServices
 import GoogleSignIn
 import Supabase
 
+// MARK: - Sign Up Result
+
+enum SignUpResult {
+    case success
+    case confirmationRequired(email: String)
+}
+
+// MARK: - Auth Service
+
 @Observable
 final class AuthService {
     
@@ -53,18 +62,20 @@ final class AuthService {
     
     // MARK: - Email Authentication
     
-    func signUp(email: String, password: String) async throws {
+    @discardableResult
+    func signUp(email: String, password: String) async throws -> SignUpResult {
         isLoading = true
         defer { isLoading = false }
         
         let response = try await supabase.auth.signUp(email: email, password: password)
         
-        // If session exists, user is confirmed and signed in
         if response.session != nil {
             currentUser = response.user
             await preloadUserData()
+            return .success
         }
-        // Otherwise, email confirmation is required
+        
+        return .confirmationRequired(email: email)
     }
     
     func signIn(email: String, password: String) async throws {
@@ -173,13 +184,11 @@ final class AuthService {
 enum AuthError: LocalizedError {
     case invalidCredential
     case signInFailed
-    case emailNotConfirmed
     
     var errorDescription: String? {
         switch self {
         case .invalidCredential: return "Invalid authentication credential"
         case .signInFailed: return "Sign in failed. Please try again."
-        case .emailNotConfirmed: return "Please check your email to confirm your account."
         }
     }
 }

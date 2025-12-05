@@ -21,6 +21,7 @@ struct LoginView: View {
     @State private var errorMessage: String?
     @State private var showResetPassword = false
     @State private var resetEmailSent = false
+    @State private var confirmationEmail: String?
     
     @FocusState private var focusedField: Field?
     
@@ -40,18 +41,22 @@ struct LoginView: View {
         ZStack {
             Color.appBackground.ignoresSafeArea()
             
-            ScrollView {
-                VStack(spacing: 24) {
-                    header
-                    socialButtons
-                    divider
-                    emailForm
-                    switchModeButton
+            if let email = confirmationEmail {
+                emailConfirmationView(email: email)
+            } else {
+                ScrollView {
+                    VStack(spacing: 24) {
+                        header
+                        socialButtons
+                        divider
+                        emailForm
+                        switchModeButton
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 32)
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 32)
+                .scrollDismissesKeyboard(.interactively)
             }
-            .scrollDismissesKeyboard(.interactively)
             
             if auth.isLoading { loadingOverlay }
         }
@@ -62,6 +67,61 @@ struct LoginView: View {
         }
         .onChange(of: auth.isAuthenticated) { _, isAuth in
             if isAuth { isPresented = false }
+        }
+    }
+    
+    // MARK: - Email Confirmation View
+    
+    private func emailConfirmationView(email: String) -> some View {
+        VStack(spacing: 24) {
+            Spacer()
+            
+            Image(systemName: "envelope.badge.fill")
+                .font(.system(size: 64))
+                .foregroundStyle(.green)
+            
+            VStack(spacing: 12) {
+                Text("Check your inbox")
+                    .font(.system(size: 24, weight: .bold))
+                
+                Text("We sent a confirmation link to")
+                    .font(.system(size: 15))
+                    .foregroundStyle(.secondary)
+                
+                Text(email)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color.brand)
+            }
+            
+            Text("Click the link in the email to activate your account, then return here to sign in.")
+                .font(.system(size: 14))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+            
+            Spacer()
+            
+            VStack(spacing: 12) {
+                Button {
+                    confirmationEmail = nil
+                    mode = .signIn
+                } label: {
+                    Text("Back to Sign In")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(Color.brand, in: RoundedRectangle(cornerRadius: 12))
+                }
+                
+                Button { isPresented = false } label: {
+                    Text("Close")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 32)
         }
     }
     
@@ -100,14 +160,12 @@ struct LoginView: View {
     
     private var socialButtons: some View {
         VStack(spacing: 12) {
-            // Apple - Custom button to match style
+            // Apple
             SocialLoginButton(
                 icon: Image(systemName: "apple.logo"),
                 title: "Continue with Apple",
                 style: colorScheme == .dark ? .light : .dark
-            ) {
-                // Trigger hidden Apple Sign In button
-            }
+            ) { }
             .overlay {
                 SignInWithAppleButton(.continue) { request in
                     request.requestedScopes = [.fullName, .email]
@@ -284,7 +342,10 @@ struct LoginView: View {
         Task {
             do {
                 if mode == .signUp {
-                    try await auth.signUp(email: email, password: password)
+                    let result = try await auth.signUp(email: email, password: password)
+                    if case .confirmationRequired(let email) = result {
+                        confirmationEmail = email
+                    }
                 } else {
                     try await auth.signIn(email: email, password: password)
                 }
