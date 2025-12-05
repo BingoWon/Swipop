@@ -18,8 +18,8 @@ struct SettingsView: View {
         
         NavigationStack {
             List {
-                // Appearance Section
-                Section("Appearance") {
+                // Appearance
+                Section {
                     Picker(selection: $appearance.mode) {
                         ForEach(AppearanceMode.allCases) { mode in
                             Label(mode.displayName, systemImage: mode.icon)
@@ -28,44 +28,69 @@ struct SettingsView: View {
                     } label: {
                         Label("Theme", systemImage: "paintbrush")
                     }
+                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
+                } header: {
+                    Label("Appearance", systemImage: "paintbrush.pointed")
                 }
                 
-                // Account Section
-                Section("Account") {
+                // Account
+                Section {
                     NavigationLink {
                         AccountSettingsView()
                     } label: {
                         Label("Account Settings", systemImage: "person.circle")
                     }
+                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
                     
                     NavigationLink {
                         NotificationSettingsView()
                     } label: {
                         Label("Notifications", systemImage: "bell")
                     }
+                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
                     
                     NavigationLink {
                         PrivacySettingsView()
                     } label: {
                         Label("Privacy", systemImage: "lock")
                     }
+                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
+                } header: {
+                    Label("Account", systemImage: "person")
                 }
                 
-                // About Section
-                Section("About") {
+                // About
+                Section {
                     NavigationLink {
                         AboutView()
                     } label: {
                         Label("About Swipop", systemImage: "info.circle")
                     }
+                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
                     
                     Link(destination: URL(string: "https://swipop.app/terms")!) {
-                        Label("Terms of Service", systemImage: "doc.text")
+                        HStack {
+                            Label("Terms of Service", systemImage: "doc.text")
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .font(.system(size: 12))
+                                .foregroundStyle(.tertiary)
+                        }
                     }
+                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
                     
                     Link(destination: URL(string: "https://swipop.app/privacy")!) {
-                        Label("Privacy Policy", systemImage: "hand.raised")
+                        HStack {
+                            Label("Privacy Policy", systemImage: "hand.raised")
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .font(.system(size: 12))
+                                .foregroundStyle(.tertiary)
+                        }
                     }
+                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
+                } header: {
+                    Label("About", systemImage: "info.circle")
                 }
                 
                 // Sign Out
@@ -75,6 +100,7 @@ struct SettingsView: View {
                     } label: {
                         Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
                     }
+                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
                 }
             }
             .scrollContentBackground(.hidden)
@@ -85,6 +111,8 @@ struct SettingsView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { dismiss() } label: {
                         Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 22))
+                            .symbolRenderingMode(.hierarchical)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -103,6 +131,7 @@ struct SettingsView: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
+        .glassSheetBackground()
     }
 }
 
@@ -111,9 +140,16 @@ struct SettingsView: View {
 struct AccountSettingsView: View {
     var body: some View {
         List {
-            Section("Email") {
-                Text(AuthService.shared.currentUser?.email ?? "Not set")
-                    .foregroundStyle(.secondary)
+            Section {
+                HStack {
+                    Text("Email")
+                    Spacer()
+                    Text(AuthService.shared.currentUser?.email ?? "Not set")
+                        .foregroundStyle(.secondary)
+                }
+                .listRowBackground(Color.secondaryBackground.opacity(0.5))
+            } header: {
+                Label("Email", systemImage: "envelope")
             }
         }
         .scrollContentBackground(.hidden)
@@ -133,8 +169,13 @@ struct NotificationSettingsView: View {
         List {
             Section {
                 Toggle("Likes", isOn: $likesEnabled)
+                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
                 Toggle("Comments", isOn: $commentsEnabled)
+                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
                 Toggle("New Followers", isOn: $followsEnabled)
+                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
+            } header: {
+                Label("Push Notifications", systemImage: "bell.badge")
             }
         }
         .scrollContentBackground(.hidden)
@@ -152,6 +193,9 @@ struct PrivacySettingsView: View {
         List {
             Section {
                 Toggle("Private Account", isOn: $privateAccount)
+                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
+            } header: {
+                Label("Account Visibility", systemImage: "eye")
             } footer: {
                 Text("When enabled, only approved followers can see your works.")
             }
@@ -171,21 +215,26 @@ struct AboutView: View {
                 HStack {
                     Text("Version")
                     Spacer()
-                    Text("1.0.0")
+                    Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0")
                         .foregroundStyle(.secondary)
                 }
+                .listRowBackground(Color.secondaryBackground.opacity(0.5))
                 
                 HStack {
                     Text("Build")
                     Spacer()
-                    Text("1")
+                    Text(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1")
                         .foregroundStyle(.secondary)
                 }
+                .listRowBackground(Color.secondaryBackground.opacity(0.5))
+            } header: {
+                Label("App Info", systemImage: "app.badge")
             }
             
             Section {
                 Text("Swipop is a platform for discovering and sharing creative frontend works. Built with SwiftUI and Supabase.")
                     .foregroundStyle(.secondary)
+                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
             }
         }
         .scrollContentBackground(.hidden)

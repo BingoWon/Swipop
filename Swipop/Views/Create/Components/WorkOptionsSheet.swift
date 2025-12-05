@@ -21,89 +21,14 @@ struct WorkOptionsSheet: View {
     
     var body: some View {
         NavigationStack {
-            Form {
-                // Thumbnail
-                Section {
-                    thumbnailEditor
-                } header: {
-                    Label("Thumbnail", systemImage: "photo")
-                }
-                
-                // Details
-                Section {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Title")
-                            .font(.system(size: 13))
-                            .foregroundStyle(.secondary)
-                        TextField("Enter title", text: $workEditor.title)
-                            .font(.system(size: 16))
-                    }
-                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
-                    
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Description")
-                            .font(.system(size: 13))
-                            .foregroundStyle(.secondary)
-                        TextField("Enter description", text: $workEditor.description, axis: .vertical)
-                            .font(.system(size: 16))
-                            .lineLimit(3...6)
-                    }
-                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
-                } header: {
-                    Label("Details", systemImage: "doc.text")
-                }
-                
-                // Tags
-                Section {
-                    tagsEditor
-                } header: {
-                    Label("Tags", systemImage: "tag")
-                }
-                
-                // Visibility
-                Section {
-                    visibilityPicker
-                } header: {
-                    Label("Visibility", systemImage: "eye")
-                }
-                
-                // AI Model
-                Section {
-                    modelPicker
-                } header: {
-                    Label("AI Model", systemImage: "cpu")
-                }
-                
-                // Context Window
-                Section {
-                    contextWindowView
-                } header: {
-                    Label("Context", systemImage: "brain")
-                } footer: {
-                    Text("Auto-summarize is always enabled. When context reaches capacity, conversation will be automatically compacted to continue.")
-                        .font(.system(size: 12))
-                }
-                
-                // Danger Zone
-                Section {
-                    Button(role: .destructive) {
-                        showDeleteConfirmation = true
-                    } label: {
-                        HStack {
-                            Image(systemName: "trash")
-                            Text("Delete Work")
-                        }
-                    }
-                }
-            }
-            .scrollContentBackground(.hidden)
-            .background(Color.appBackground)
-            .navigationTitle("Work Options")
-            .navigationBarTitleDisplayMode(.inline)
+            formContent
+                .scrollContentBackground(.hidden)
+                .background(Color.appBackground)
+                .navigationTitle("Work Options")
+                .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { dismiss() }
-                        .foregroundStyle(.secondary)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -120,6 +45,7 @@ struct WorkOptionsSheet: View {
                         } else {
                             Text("Save")
                                 .fontWeight(.semibold)
+                                .foregroundStyle(Color.brand)
                         }
                     }
                     .disabled(isSaving)
@@ -147,6 +73,101 @@ struct WorkOptionsSheet: View {
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
         .glassSheetBackground()
+    }
+    
+    // MARK: - Form Content
+    
+    private var formContent: some View {
+        Form {
+            thumbnailSection
+            detailsSection
+            tagsSection
+            visibilitySection
+            modelSection
+            contextSection
+            dangerSection
+        }
+    }
+    
+    private var thumbnailSection: some View {
+        Section {
+            thumbnailEditor
+        } header: {
+            Label("Thumbnail", systemImage: "photo")
+        }
+    }
+    
+    private var detailsSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Title")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+                TextField("Enter title", text: $workEditor.title)
+                    .font(.system(size: 16))
+            }
+            .listRowBackground(Color.secondaryBackground.opacity(0.5))
+            
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Description")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+                TextField("Enter description", text: $workEditor.description, axis: .vertical)
+                    .font(.system(size: 16))
+                    .lineLimit(3...6)
+            }
+            .listRowBackground(Color.secondaryBackground.opacity(0.5))
+        } header: {
+            Label("Details", systemImage: "doc.text")
+        }
+    }
+    
+    private var tagsSection: some View {
+        Section {
+            tagsEditor
+        } header: {
+            Label("Tags", systemImage: "tag")
+        }
+    }
+    
+    private var visibilitySection: some View {
+        Section {
+            visibilityPicker
+        } header: {
+            Label("Visibility", systemImage: "eye")
+        }
+    }
+    
+    private var modelSection: some View {
+        Section {
+            modelPicker
+        } header: {
+            Label("AI Model", systemImage: "cpu")
+        }
+    }
+    
+    private var contextSection: some View {
+        Section {
+            contextWindowView
+        } header: {
+            Label("Context", systemImage: "brain")
+        } footer: {
+            Text("Auto-summarize is always enabled. When context reaches capacity, conversation will be automatically compacted to continue.")
+                .font(.system(size: 12))
+        }
+    }
+    
+    private var dangerSection: some View {
+        Section {
+            Button(role: .destructive) {
+                showDeleteConfirmation = true
+            } label: {
+                HStack {
+                    Image(systemName: "trash")
+                    Text("Delete Work")
+                }
+            }
+        }
     }
     
     // MARK: - Thumbnail Editor

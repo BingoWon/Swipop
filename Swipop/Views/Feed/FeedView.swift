@@ -30,7 +30,7 @@ struct FeedView: View {
             }
         }
         .sheet(isPresented: $showSearch) {
-            SearchSheet()
+            SearchSheet(showLogin: $showLogin)
         }
     }
     
