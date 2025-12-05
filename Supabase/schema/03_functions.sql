@@ -65,17 +65,32 @@ $$ LANGUAGE plpgsql;
 -- ===================
 
 -- Auto-create public.users record when auth.users is created
--- Uses UPSERT to handle race conditions
+-- Generates username from display_name, uses UPSERT for race conditions
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+    user_display_name TEXT;
+    user_username TEXT;
 BEGIN
-    INSERT INTO public.users (id, display_name, avatar_url)
+    -- Extract display name from OAuth metadata
+    user_display_name := COALESCE(
+        NEW.raw_user_meta_data->>'full_name',
+        NEW.raw_user_meta_data->>'name',
+        'User'
+    );
+    
+    -- Generate unique username
+    user_username := generate_username(user_display_name);
+    
+    INSERT INTO public.users (id, username, display_name, avatar_url)
     VALUES (
         NEW.id,
-        COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', 'User'),
+        user_username,
+        user_display_name,
         COALESCE(NEW.raw_user_meta_data->>'avatar_url', NEW.raw_user_meta_data->>'picture', NULL)
     )
     ON CONFLICT (id) DO UPDATE SET
+        username = COALESCE(public.users.username, EXCLUDED.username),
         display_name = COALESCE(EXCLUDED.display_name, public.users.display_name),
         avatar_url = COALESCE(EXCLUDED.avatar_url, public.users.avatar_url),
         updated_at = NOW();

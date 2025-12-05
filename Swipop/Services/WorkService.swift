@@ -177,8 +177,30 @@ actor WorkService {
         thumbnailUrl: String?,
         thumbnailAspectRatio: CGFloat?
     ) -> [String: AnyJSON] {
-        let chatJson = (try? JSONSerialization.data(withJSONObject: chatMessages))
-            .flatMap { String(data: $0, encoding: .utf8) }
+        // Convert chat messages to native AnyJSON array (not string!)
+        let chatJsonArray: AnyJSON = .array(chatMessages.map { messageDict -> AnyJSON in
+            .object(messageDict.compactMapValues { value -> AnyJSON? in
+                if let string = value as? String { return .string(string) }
+                if let int = value as? Int { return .integer(int) }
+                if let double = value as? Double { return .double(double) }
+                if let bool = value as? Bool { return .bool(bool) }
+                if let array = value as? [Any] {
+                    // Handle nested arrays (like tool_calls)
+                    if let data = try? JSONSerialization.data(withJSONObject: array),
+                       let json = try? JSONDecoder().decode(AnyJSON.self, from: data) {
+                        return json
+                    }
+                }
+                if let dict = value as? [String: Any] {
+                    // Handle nested dictionaries
+                    if let data = try? JSONSerialization.data(withJSONObject: dict),
+                       let json = try? JSONDecoder().decode(AnyJSON.self, from: data) {
+                        return json
+                    }
+                }
+                return nil
+            })
+        })
         
         var payload: [String: AnyJSON] = [
             "title": .string(title),
@@ -187,7 +209,7 @@ actor WorkService {
             "html_content": .string(html),
             "css_content": .string(css),
             "js_content": .string(javascript),
-            "chat_messages": chatJson.map { .string($0) } ?? .null,
+            "chat_messages": chatJsonArray,
             "is_published": .bool(isPublished)
         ]
         
