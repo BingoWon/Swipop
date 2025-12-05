@@ -62,6 +62,7 @@ final class FeedViewModel {
         
         isLoading = true
         error = nil
+        defer { isLoading = false }
         
         do {
             works = try await WorkService.shared.fetchFeed(limit: pageSize, offset: 0)
@@ -69,13 +70,17 @@ final class FeedViewModel {
             currentIndex = 0
         } catch {
             self.error = error.localizedDescription
+            print("Failed to load feed: \(error)")
         }
-        
-        isLoading = false
     }
     
     func refresh() async {
+        // Reset state before refresh
         hasMorePages = true
+        error = nil
+        
+        // Force reload even if already loading (user explicitly requested)
+        isLoading = false
         await loadFeed()
     }
     

@@ -149,7 +149,7 @@ struct MainTabView: View {
     private func editWork(_ work: Work) {
         workEditor.load(work: work)
         chatViewModel.loadFromWorkEditor()
-        createSubTab = .chat
+        createSubTab = .preview  // Show preview when editing existing work
         showingCreate = true
     }
     
