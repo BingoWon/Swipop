@@ -137,19 +137,15 @@ final class InteractionStore {
     
     // MARK: - Update from Profile Data
     
-    func updateFromLikedWorks(_ works: [Work]) {
-        for work in works {
+    func updateFromProfileData(liked: [Work], collected: [Work]) {
+        for work in liked {
             var state = states[work.id] ?? InteractionState()
             state.isLiked = true
             state.likeCount = work.likeCount
             state.collectCount = work.collectCount
             states[work.id] = state
         }
-        saveToDisk()
-    }
-    
-    func updateFromCollectedWorks(_ works: [Work]) {
-        for work in works {
+        for work in collected {
             var state = states[work.id] ?? InteractionState()
             state.isCollected = true
             state.likeCount = work.likeCount

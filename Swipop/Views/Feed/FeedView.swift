@@ -129,8 +129,6 @@ struct WorkGridCell: View {
     let work: Work
     let columnWidth: CGFloat
     
-    private let store = InteractionStore.shared
-    
     private var imageHeight: CGFloat {
         let ratio = max(work.thumbnailAspectRatio ?? 0.75, 0.1)
         return max(columnWidth / ratio, 1)

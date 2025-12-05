@@ -104,8 +104,7 @@ final class CurrentUserProfile {
             collectedWorks = c
             
             // Update interaction store with liked/collected states
-            InteractionStore.shared.updateFromLikedWorks(l)
-            InteractionStore.shared.updateFromCollectedWorks(c)
+            InteractionStore.shared.updateFromProfileData(liked: l, collected: c)
         } catch {
             print("Failed to load profile: \(error)")
         }

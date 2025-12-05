@@ -19,7 +19,6 @@ struct WorkViewerPage: View {
     @State private var showDetail = false
     
     private let feed = FeedViewModel.shared
-    private let store = InteractionStore.shared
     
     init(work: Work, showLogin: Binding<Bool>) {
         self.initialWork = work
@@ -68,7 +67,7 @@ struct WorkViewerPage: View {
             showLogin = true
             return
         }
-        Task { await store.toggleLike(workId: currentWork.id) }
+        Task { await InteractionStore.shared.toggleLike(workId: currentWork.id) }
     }
     
     private func handleCollect() {
@@ -76,7 +75,7 @@ struct WorkViewerPage: View {
             showLogin = true
             return
         }
-        Task { await store.toggleCollect(workId: currentWork.id) }
+        Task { await InteractionStore.shared.toggleCollect(workId: currentWork.id) }
     }
 }
 
