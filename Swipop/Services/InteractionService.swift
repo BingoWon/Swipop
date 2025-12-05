@@ -23,13 +23,14 @@ actor InteractionService {
     // MARK: - Likes
     
     func like(workId: UUID, userId: UUID) async throws {
-        // Use upsert to handle race conditions and cache inconsistencies
-        // If like already exists, do nothing (no error)
+        // Use upsert with ignoreDuplicates to handle race conditions
+        // ON CONFLICT DO NOTHING - no UPDATE policy needed
         try await supabase
             .from("likes")
             .upsert(
                 ["work_id": workId.uuidString, "user_id": userId.uuidString],
-                onConflict: "user_id,work_id"
+                onConflict: "user_id,work_id",
+                ignoreDuplicates: true
             )
             .execute()
     }
@@ -58,12 +59,14 @@ actor InteractionService {
     // MARK: - Collections
     
     func collect(workId: UUID, userId: UUID) async throws {
-        // Use upsert to handle race conditions and cache inconsistencies
+        // Use upsert with ignoreDuplicates to handle race conditions
+        // ON CONFLICT DO NOTHING - no UPDATE policy needed
         try await supabase
             .from("collections")
             .upsert(
                 ["work_id": workId.uuidString, "user_id": userId.uuidString],
-                onConflict: "user_id,work_id"
+                onConflict: "user_id,work_id",
+                ignoreDuplicates: true
             )
             .execute()
     }
