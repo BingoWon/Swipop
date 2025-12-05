@@ -14,7 +14,6 @@ struct WorkDetailSheet: View {
     @Binding var showLogin: Bool
     
     @Environment(\.dismiss) private var dismiss
-    @State private var interaction: InteractionViewModel
     @State private var followState = FollowState()
     @State private var showComments = false
     @State private var showShareSheet = false
@@ -22,14 +21,9 @@ struct WorkDetailSheet: View {
     @State private var selectedLanguage: CodeLanguage = .html
     @State private var codeCopied = false
     
+    private let store = InteractionStore.shared
     private var creator: Profile? { work.creator }
     private var isSelf: Bool { AuthService.shared.currentUser?.id == creator?.id }
-    
-    init(work: Work, showLogin: Binding<Bool>) {
-        self.work = work
-        self._showLogin = showLogin
-        self._interaction = State(initialValue: InteractionViewModel(work: work))
-    }
     
     var body: some View {
         NavigationStack {
@@ -67,7 +61,6 @@ struct WorkDetailSheet: View {
         .presentationDragIndicator(.visible)
         .glassSheetBackground()
         .task {
-            await interaction.loadState()
             await loadFollowState()
         }
         .sheet(isPresented: $showComments) {
@@ -156,11 +149,11 @@ struct WorkDetailSheet: View {
             StatActionTile(icon: "eye", count: work.viewCount, tint: .primary)
             
             StatActionTile(
-                icon: interaction.isLiked ? "heart.fill" : "heart",
-                count: interaction.likeCount,
-                tint: interaction.isLiked ? .red : .primary
+                icon: store.isLiked(work.id) ? "heart.fill" : "heart",
+                count: store.likeCount(work.id),
+                tint: store.isLiked(work.id) ? .red : .primary
             ) {
-                requireLogin { Task { await interaction.toggleLike() } }
+                requireLogin { Task { await store.toggleLike(workId: work.id) } }
             }
             
             StatActionTile(icon: "bubble.right", count: work.commentCount, tint: .primary) {
@@ -168,11 +161,11 @@ struct WorkDetailSheet: View {
             }
             
             StatActionTile(
-                icon: interaction.isCollected ? "bookmark.fill" : "bookmark",
-                count: interaction.collectCount,
-                tint: interaction.isCollected ? .yellow : .primary
+                icon: store.isCollected(work.id) ? "bookmark.fill" : "bookmark",
+                count: store.collectCount(work.id),
+                tint: store.isCollected(work.id) ? .yellow : .primary
             ) {
-                requireLogin { Task { await interaction.toggleCollect() } }
+                requireLogin { Task { await store.toggleCollect(workId: work.id) } }
             }
             
             StatActionTile(icon: "square.and.arrow.up", count: work.shareCount, tint: .primary) {

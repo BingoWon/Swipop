@@ -14,6 +14,7 @@ struct FeedView: View {
     
     @State private var showSearch = false
     @State private var selectedWork: Work?
+    @State private var isInitializing = true
     
     private let feed = FeedViewModel.shared
     
@@ -32,6 +33,13 @@ struct FeedView: View {
         .sheet(isPresented: $showSearch) {
             SearchSheet(showLogin: $showLogin)
         }
+        .task {
+            // Wait for auth session to be restored before loading feed
+            // This ensures we have userId for correct isLiked states
+            await AuthService.shared.waitForSession()
+            isInitializing = false
+            feed.loadInitial()
+        }
     }
     
     // MARK: - Grid View
@@ -41,7 +49,7 @@ struct FeedView: View {
             let columnWidth = max((geometry.size.width - 12) / 2, 1)
             
             ScrollView {
-                if feed.isLoading && feed.works.isEmpty {
+                if isInitializing || (feed.isLoading && feed.works.isEmpty) {
                     loadingState
                 } else if feed.isEmpty {
                     emptyState
@@ -121,13 +129,7 @@ struct WorkGridCell: View {
     let work: Work
     let columnWidth: CGFloat
     
-    @State private var viewModel: InteractionViewModel
-    
-    init(work: Work, columnWidth: CGFloat) {
-        self.work = work
-        self.columnWidth = columnWidth
-        _viewModel = State(initialValue: InteractionViewModel(work: work))
-    }
+    private let store = InteractionStore.shared
     
     private var imageHeight: CGFloat {
         let ratio = max(work.thumbnailAspectRatio ?? 0.75, 0.1)
@@ -161,7 +163,7 @@ struct WorkGridCell: View {
                     
                     Spacer()
                     
-                    LikeButton(viewModel: viewModel, size: .compact)
+                    LikeButton(workId: work.id, size: .compact)
                 }
             }
             .padding(.horizontal, 10)
@@ -171,15 +173,16 @@ struct WorkGridCell: View {
         .frame(width: columnWidth)
         .background(Color.secondaryBackground)
         .clipShape(RoundedRectangle(cornerRadius: 12))
-        // No .task needed - interaction state preloaded from feed query
     }
 }
 
-// MARK: - Reusable Like Button
+// MARK: - Reusable Like Button (Uses InteractionStore)
 
 struct LikeButton: View {
-    let viewModel: InteractionViewModel
+    let workId: UUID
     var size: Size = .regular
+    
+    private let store = InteractionStore.shared
     
     enum Size {
         case compact, regular
@@ -201,15 +204,15 @@ struct LikeButton: View {
     
     var body: some View {
         Button {
-            Task { await viewModel.toggleLike() }
+            Task { await store.toggleLike(workId: workId) }
         } label: {
             HStack(spacing: 3) {
-                Image(systemName: viewModel.isLiked ? "heart.fill" : "heart")
+                Image(systemName: store.isLiked(workId) ? "heart.fill" : "heart")
                     .font(.system(size: size.iconSize))
-                Text(viewModel.likeCount.formatted)
+                Text(store.likeCount(workId).formatted)
                     .font(.system(size: size.textSize))
             }
-            .foregroundStyle(viewModel.isLiked ? .red : .secondary)
+            .foregroundStyle(store.isLiked(workId) ? .red : .secondary)
         }
         .buttonStyle(.plain)
         .contentShape(Rectangle())

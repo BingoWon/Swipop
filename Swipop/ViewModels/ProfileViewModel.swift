@@ -103,9 +103,9 @@ final class CurrentUserProfile {
             likedWorks = l
             collectedWorks = c
             
-            // Merge into interaction cache to prevent UI flash
-            InteractionCache.shared.mergeFromLikedWorks(l)
-            InteractionCache.shared.mergeFromCollectedWorks(c)
+            // Update interaction store with liked/collected states
+            InteractionStore.shared.updateFromLikedWorks(l)
+            InteractionStore.shared.updateFromCollectedWorks(c)
         } catch {
             print("Failed to load profile: \(error)")
         }

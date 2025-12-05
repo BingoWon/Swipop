@@ -23,16 +23,14 @@ actor InteractionService {
     // MARK: - Likes
     
     func like(workId: UUID, userId: UUID) async throws {
-        // Use upsert with ignoreDuplicates to handle race conditions
-        // ON CONFLICT DO NOTHING - no UPDATE policy needed
-        try await supabase
-            .from("likes")
-            .upsert(
-                ["work_id": workId.uuidString, "user_id": userId.uuidString],
-                onConflict: "user_id,work_id",
-                ignoreDuplicates: true
-            )
-            .execute()
+        do {
+            try await supabase
+                .from("likes")
+                .insert(["work_id": workId.uuidString, "user_id": userId.uuidString])
+                .execute()
+        } catch let error as PostgrestError where error.code == "23505" {
+            // Duplicate key - already liked, ignore
+        }
     }
     
     func unlike(workId: UUID, userId: UUID) async throws {
@@ -59,16 +57,14 @@ actor InteractionService {
     // MARK: - Collections
     
     func collect(workId: UUID, userId: UUID) async throws {
-        // Use upsert with ignoreDuplicates to handle race conditions
-        // ON CONFLICT DO NOTHING - no UPDATE policy needed
-        try await supabase
-            .from("collections")
-            .upsert(
-                ["work_id": workId.uuidString, "user_id": userId.uuidString],
-                onConflict: "user_id,work_id",
-                ignoreDuplicates: true
-            )
-            .execute()
+        do {
+            try await supabase
+                .from("collections")
+                .insert(["work_id": workId.uuidString, "user_id": userId.uuidString])
+                .execute()
+        } catch let error as PostgrestError where error.code == "23505" {
+            // Duplicate key - already collected, ignore
+        }
     }
     
     func uncollect(workId: UUID, userId: UUID) async throws {

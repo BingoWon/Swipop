@@ -14,17 +14,16 @@ struct WorkViewerPage: View {
     @Binding var showLogin: Bool
     
     @Environment(\.dismiss) private var dismiss
-    @State private var interaction: InteractionViewModel
     @State private var showComments = false
     @State private var showShare = false
     @State private var showDetail = false
     
     private let feed = FeedViewModel.shared
+    private let store = InteractionStore.shared
     
     init(work: Work, showLogin: Binding<Bool>) {
         self.initialWork = work
         self._showLogin = showLogin
-        self._interaction = State(initialValue: InteractionViewModel(work: work))
     }
     
     private var currentWork: Work {
@@ -42,7 +41,7 @@ struct WorkViewerPage: View {
         .toolbar(.hidden, for: .tabBar)
         .modifier(PlatformNavigationModifier(
             dismiss: dismiss,
-            interaction: interaction,
+            workId: currentWork.id,
             showComments: $showComments,
             showShare: $showShare,
             onLike: handleLike,
@@ -57,28 +56,19 @@ struct WorkViewerPage: View {
         .sheet(isPresented: $showDetail) {
             WorkDetailSheet(work: currentWork, showLogin: $showLogin)
         }
-        .onChange(of: feed.currentWork?.id) { _, _ in
-            reloadInteraction()
-        }
         .onAppear {
             feed.setCurrentWork(initialWork)
-            reloadInteraction()
         }
     }
     
     // MARK: - Actions
-    
-    private func reloadInteraction() {
-        interaction = InteractionViewModel(work: currentWork)
-        Task { await interaction.loadState() }
-    }
     
     private func handleLike() {
         guard AuthService.shared.isAuthenticated else {
             showLogin = true
             return
         }
-        Task { await interaction.toggleLike() }
+        Task { await store.toggleLike(workId: currentWork.id) }
     }
     
     private func handleCollect() {
@@ -86,7 +76,7 @@ struct WorkViewerPage: View {
             showLogin = true
             return
         }
-        Task { await interaction.toggleCollect() }
+        Task { await store.toggleCollect(workId: currentWork.id) }
     }
 }
 
@@ -94,7 +84,7 @@ struct WorkViewerPage: View {
 
 private struct PlatformNavigationModifier: ViewModifier {
     let dismiss: DismissAction
-    let interaction: InteractionViewModel
+    let workId: UUID
     @Binding var showComments: Bool
     @Binding var showShare: Bool
     let onLike: () -> Void
@@ -102,18 +92,16 @@ private struct PlatformNavigationModifier: ViewModifier {
     
     func body(content: Content) -> some View {
         if #available(iOS 26.0, *) {
-            // iOS 26: Use native navigation bar (Liquid Glass)
             content
-                .toolbar { iOS26ToolbarContent(interaction: interaction, showComments: $showComments, showShare: $showShare, onLike: onLike, onCollect: onCollect) }
+                .toolbar { iOS26ToolbarContent(workId: workId, showComments: $showComments, showShare: $showShare, onLike: onLike, onCollect: onCollect) }
                 .toolbarBackground(.hidden, for: .navigationBar)
         } else {
-            // iOS 18: Custom glass-style top bar
             content
                 .toolbar(.hidden, for: .navigationBar)
                 .navigationBarBackButtonHidden(true)
                 .background(SwipeBackEnabler())
                 .safeAreaInset(edge: .top) {
-                    iOS18TopBar(dismiss: dismiss, interaction: interaction, showComments: $showComments, showShare: $showShare, onLike: onLike, onCollect: onCollect)
+                    iOS18TopBar(dismiss: dismiss, workId: workId, showComments: $showComments, showShare: $showShare, onLike: onLike, onCollect: onCollect)
                 }
         }
     }
@@ -123,27 +111,29 @@ private struct PlatformNavigationModifier: ViewModifier {
 
 @available(iOS 26.0, *)
 private struct iOS26ToolbarContent: ToolbarContent {
-    let interaction: InteractionViewModel
+    let workId: UUID
     @Binding var showComments: Bool
     @Binding var showShare: Bool
     let onLike: () -> Void
     let onCollect: () -> Void
     
+    private let store = InteractionStore.shared
+    
     var body: some ToolbarContent {
         ToolbarItemGroup(placement: .topBarTrailing) {
             Button(action: onLike) {
-                Image(systemName: interaction.isLiked ? "heart.fill" : "heart")
+                Image(systemName: store.isLiked(workId) ? "heart.fill" : "heart")
             }
-            .tint(interaction.isLiked ? .red : .primary)
+            .tint(store.isLiked(workId) ? .red : .primary)
             
             Button { showComments = true } label: {
                 Image(systemName: "bubble.right")
             }
             
             Button(action: onCollect) {
-                Image(systemName: interaction.isCollected ? "bookmark.fill" : "bookmark")
+                Image(systemName: store.isCollected(workId) ? "bookmark.fill" : "bookmark")
             }
-            .tint(interaction.isCollected ? .yellow : .primary)
+            .tint(store.isCollected(workId) ? .yellow : .primary)
             
             Button { showShare = true } label: {
                 Image(systemName: "square.and.arrow.up")
@@ -156,19 +146,19 @@ private struct iOS26ToolbarContent: ToolbarContent {
 
 private struct iOS18TopBar: View {
     let dismiss: DismissAction
-    let interaction: InteractionViewModel
+    let workId: UUID
     @Binding var showComments: Bool
     @Binding var showShare: Bool
     let onLike: () -> Void
     let onCollect: () -> Void
     
+    private let store = InteractionStore.shared
     private let buttonWidth: CGFloat = 48
     private let buttonHeight: CGFloat = 44
     private let iconSize: CGFloat = 20
     
     var body: some View {
         HStack {
-            // Back button (circular, use height as diameter)
             Button { dismiss() } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: iconSize, weight: .semibold))
@@ -183,11 +173,10 @@ private struct iOS18TopBar: View {
             
             Spacer()
             
-            // Action buttons group
             HStack(spacing: 0) {
-                glassIconButton(interaction.isLiked ? "heart.fill" : "heart", tint: interaction.isLiked ? .red : .white, action: onLike)
+                glassIconButton(store.isLiked(workId) ? "heart.fill" : "heart", tint: store.isLiked(workId) ? .red : .white, action: onLike)
                 glassIconButton("bubble.right", action: { showComments = true })
-                glassIconButton(interaction.isCollected ? "bookmark.fill" : "bookmark", tint: interaction.isCollected ? .yellow : .white, action: onCollect)
+                glassIconButton(store.isCollected(workId) ? "bookmark.fill" : "bookmark", tint: store.isCollected(workId) ? .yellow : .white, action: onCollect)
                 glassIconButton("square.and.arrow.up", action: { showShare = true })
             }
             .frame(height: buttonHeight)

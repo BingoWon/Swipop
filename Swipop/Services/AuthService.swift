@@ -30,12 +30,14 @@ final class AuthService {
     
     private(set) var currentUser: User?
     private(set) var isLoading = false
+    private(set) var sessionChecked = false
     
     var isAuthenticated: Bool { currentUser != nil }
     
     // MARK: - Private
     
     private let supabase = SupabaseService.shared.client
+    private var sessionContinuation: CheckedContinuation<Void, Never>?
     
     private init() {
         Task { await checkSession() }
@@ -43,23 +45,42 @@ final class AuthService {
     
     // MARK: - Session Management
     
+    /// Wait for initial session check to complete
+    func waitForSession() async {
+        if sessionChecked { return }
+        
+        await withCheckedContinuation { continuation in
+            if sessionChecked {
+                continuation.resume()
+            } else {
+                sessionContinuation = continuation
+            }
+        }
+    }
+    
     func checkSession() async {
+        print("[Auth] checkSession started")
         do {
             let session = try await supabase.auth.session
             currentUser = session.user
+            print("[Auth] checkSession: userId = \(currentUser?.id.uuidString ?? "nil")")
             if currentUser != nil {
                 await preloadUserData()
             }
         } catch {
             currentUser = nil
+            print("[Auth] checkSession: no session")
         }
+        
+        sessionChecked = true
+        sessionContinuation?.resume()
+        sessionContinuation = nil
+        print("[Auth] checkSession completed")
     }
     
     @MainActor
     private func preloadUserData() async {
         await CurrentUserProfile.shared.preload()
-        // Refresh feed to get correct interaction states for logged-in user
-        await FeedViewModel.shared.refresh()
     }
     
     // MARK: - Email Authentication
@@ -178,7 +199,7 @@ final class AuthService {
         try await supabase.auth.signOut()
         currentUser = nil
         CurrentUserProfile.shared.reset()
-        InteractionCache.shared.reset()
+        InteractionStore.shared.reset()
     }
 }
 
