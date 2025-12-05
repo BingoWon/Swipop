@@ -19,7 +19,7 @@ actor CommentService {
     func fetchComments(workId: UUID, limit: Int = 20, offset: Int = 0) async throws -> [Comment] {
         let comments: [Comment] = try await supabase
             .from("comments")
-            .select("*, user:profiles(*)")
+            .select("*, user:users!user_id(*)")
             .eq("work_id", value: workId)
             .is("parent_id", value: nil)
             .order("created_at", ascending: false)
@@ -33,7 +33,7 @@ actor CommentService {
     func fetchReplies(parentId: UUID) async throws -> [Comment] {
         let replies: [Comment] = try await supabase
             .from("comments")
-            .select("*, user:profiles(*)")
+            .select("*, user:users!user_id(*)")
             .eq("parent_id", value: parentId)
             .order("created_at", ascending: true)
             .execute()
@@ -69,7 +69,7 @@ actor CommentService {
         let comment: Comment = try await supabase
             .from("comments")
             .insert(data)
-            .select("*, user:profiles(*)")
+            .select("*, user:users!user_id(*)")
             .single()
             .execute()
             .value
