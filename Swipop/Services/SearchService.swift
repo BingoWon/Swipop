@@ -22,17 +22,51 @@ actor SearchService {
     func searchWorks(query: String, limit: Int = 20) async throws -> [Work] {
         guard !query.isEmpty else { return [] }
         
-        let searchPattern = "%\(query.lowercased())%"
+        // Use wildcards for partial matching
+        let pattern = "%\(query)%"
         
         let works: [Work] = try await supabase
             .from("works")
             .select("*, users(*)")
             .eq("is_published", value: true)
-            .or("title.ilike.\(searchPattern),description.ilike.\(searchPattern)")
+            .ilike("title", pattern: pattern)
             .order("like_count", ascending: false)
             .limit(limit)
             .execute()
             .value
+        
+        return works
+    }
+    
+    /// Search works by title or description
+    func searchWorksByText(query: String, limit: Int = 20) async throws -> [Work] {
+        guard !query.isEmpty else { return [] }
+        
+        let pattern = "%\(query)%"
+        
+        // Search title first, then description as fallback
+        var works: [Work] = try await supabase
+            .from("works")
+            .select("*, users(*)")
+            .eq("is_published", value: true)
+            .ilike("title", pattern: pattern)
+            .order("like_count", ascending: false)
+            .limit(limit)
+            .execute()
+            .value
+        
+        // If no title matches, search description
+        if works.isEmpty {
+            works = try await supabase
+                .from("works")
+                .select("*, users(*)")
+                .eq("is_published", value: true)
+                .ilike("description", pattern: pattern)
+                .order("like_count", ascending: false)
+                .limit(limit)
+                .execute()
+                .value
+        }
         
         return works
     }

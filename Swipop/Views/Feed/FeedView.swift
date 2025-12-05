@@ -138,7 +138,7 @@ struct WorkGridCell: View {
         VStack(alignment: .leading, spacing: 0) {
             CachedThumbnail(work: work, transform: .medium, size: CGSize(width: columnWidth, height: imageHeight))
             
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(work.displayTitle)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(.primary)
@@ -165,7 +165,8 @@ struct WorkGridCell: View {
                 }
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 8)
+            .padding(.top, 8)
+            .padding(.bottom, 5)
         }
         .frame(width: columnWidth)
         .background(Color.secondaryBackground)
