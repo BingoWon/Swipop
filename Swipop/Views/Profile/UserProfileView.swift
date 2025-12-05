@@ -59,23 +59,26 @@ struct UserProfileView: View {
     
     // MARK: - Action Buttons
     
+    @ViewBuilder
     private var actionButtons: some View {
-        HStack(spacing: 12) {
-            Button {
-                Task { await viewModel.toggleFollow() }
-            } label: {
-                Text(viewModel.isFollowing ? "Following" : "Follow")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(viewModel.isFollowing ? .primary : .white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 36)
-                    .background(viewModel.isFollowing ? Color.secondaryBackground : Color.brand)
-                    .cornerRadius(8)
+        if !viewModel.isSelf {
+            HStack(spacing: 12) {
+                Button {
+                    Task { await viewModel.toggleFollow() }
+                } label: {
+                    Text(viewModel.isFollowing ? "Following" : "Follow")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(viewModel.isFollowing ? .primary : .white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 36)
+                        .background(viewModel.isFollowing ? Color.secondaryBackground : Color.brand)
+                        .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+                .disabled(viewModel.isLoading)
             }
-            .buttonStyle(.plain)
-            .disabled(viewModel.isLoading)
+            .padding(.horizontal, 16)
         }
-        .padding(.horizontal, 16)
     }
     
     // MARK: - Work Masonry Grid

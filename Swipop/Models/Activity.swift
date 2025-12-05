@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct Activity: Identifiable, Codable {
+struct Activity: Identifiable, Codable, Hashable {
     let id: UUID
     let userId: UUID
     let actorId: UUID
@@ -22,6 +22,15 @@ struct Activity: Identifiable, Codable {
     let work: Work?
     
     var timeAgo: String { createdAt.timeAgo }
+    
+    // Hashable - only use id for equality/hashing
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+    
+    static func == (lhs: Activity, rhs: Activity) -> Bool {
+        lhs.id == rhs.id
+    }
     
     enum CodingKeys: String, CodingKey {
         case id

@@ -127,6 +127,11 @@ final class OtherUserProfileViewModel {
     
     private(set) var isLoading = true
     
+    /// True if viewing own profile (should not show Follow button)
+    var isSelf: Bool {
+        AuthService.shared.currentUser?.id == userId
+    }
+    
     private let userService = UserService.shared
     private let workService = WorkService.shared
     private let interactionService = InteractionService.shared
@@ -158,7 +163,8 @@ final class OtherUserProfileViewModel {
             likeCount = lc
             works = w
             
-            if let currentUserId = AuthService.shared.currentUser?.id {
+            // Only check follow status if not viewing self
+            if let currentUserId = AuthService.shared.currentUser?.id, currentUserId != userId {
                 isFollowing = try await userService.isFollowing(followerId: currentUserId, followingId: userId)
             }
         } catch {
@@ -167,7 +173,8 @@ final class OtherUserProfileViewModel {
     }
     
     func toggleFollow() async {
-        guard let currentUserId = AuthService.shared.currentUser?.id else { return }
+        guard let currentUserId = AuthService.shared.currentUser?.id,
+              currentUserId != userId else { return } // Prevent self-follow
         
         let wasFollowing = isFollowing
         isFollowing.toggle()

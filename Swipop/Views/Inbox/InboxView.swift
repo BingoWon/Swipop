@@ -2,7 +2,7 @@
 //  InboxView.swift
 //  Swipop
 //
-//  Activity notifications center
+//  Activity notifications center with navigation to works/profiles
 //
 
 import SwiftUI
@@ -11,6 +11,8 @@ import Auth
 struct InboxView: View {
     
     @State private var viewModel = InboxViewModel()
+    @State private var selectedActivity: Activity?
+    @State private var showLogin = false
     
     var body: some View {
         NavigationStack {
@@ -37,9 +39,15 @@ struct InboxView: View {
                     }
                 }
             }
+            .navigationDestination(item: $selectedActivity) { activity in
+                destinationView(for: activity)
+            }
         }
         .task {
             await viewModel.loadActivities()
+        }
+        .sheet(isPresented: $showLogin) {
+            LoginView(isPresented: $showLogin)
         }
     }
     
@@ -62,8 +70,9 @@ struct InboxView: View {
                     Section {
                         ForEach(group.activities) { activity in
                             ActivityRow(activity: activity)
+                                .contentShape(Rectangle())
                                 .onTapGesture {
-                                    Task { await viewModel.markAsRead(activity) }
+                                    handleActivityTap(activity)
                                 }
                             
                             if activity.id != group.activities.last?.id {
@@ -91,6 +100,30 @@ struct InboxView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
         .background(Color.appBackground)
+    }
+    
+    // MARK: - Navigation
+    
+    private func handleActivityTap(_ activity: Activity) {
+        Task { await viewModel.markAsRead(activity) }
+        selectedActivity = activity
+    }
+    
+    @ViewBuilder
+    private func destinationView(for activity: Activity) -> some View {
+        switch activity.type {
+        case .follow:
+            // Navigate to the actor's profile (who followed you)
+            UserProfileView(userId: activity.actorId, showLogin: $showLogin)
+        case .like, .comment, .collect:
+            // Navigate to the work
+            if let work = activity.work {
+                WorkViewerPage(work: work, showLogin: $showLogin)
+            } else {
+                // Fallback: show actor's profile
+                UserProfileView(userId: activity.actorId, showLogin: $showLogin)
+            }
+        }
     }
 }
 
@@ -138,6 +171,11 @@ private struct ActivityRow: View {
             }
             
             Spacer()
+            
+            // Right chevron for navigation hint
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.tertiary)
             
             // Unread indicator
             if !activity.isRead {
