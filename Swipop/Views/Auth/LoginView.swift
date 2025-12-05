@@ -2,7 +2,7 @@
 //  LoginView.swift
 //  Swipop
 //
-//  Modern authentication view with Email, GitHub, Apple, and Google sign-in
+//  Modern authentication view with social login and email sign-in
 //
 
 import SwiftUI
@@ -71,9 +71,9 @@ struct LoginView: View {
                     header
                     
                     VStack(spacing: 24) {
-                        emailForm
-                        socialDivider
                         socialButtons
+                        emailDivider
+                        emailForm
                         switchModeButton
                     }
                     .padding(.horizontal, 24)
@@ -101,7 +101,6 @@ struct LoginView: View {
         ZStack {
             Color.appBackground.ignoresSafeArea()
             
-            // Subtle gradient orbs
             Circle()
                 .fill(Color.brand.opacity(0.15))
                 .frame(width: 300, height: 300)
@@ -149,7 +148,55 @@ struct LoginView: View {
                     .foregroundStyle(.secondary)
             }
             .padding(.top, 40)
-            .padding(.bottom, 40)
+            .padding(.bottom, 32)
+        }
+    }
+    
+    // MARK: - Social Buttons (Compact Row)
+    
+    private var socialButtons: some View {
+        HStack(spacing: 12) {
+            // Apple
+            CompactSocialButton(provider: .apple, colorScheme: colorScheme) {
+                // Apple Sign In handled via SignInWithAppleButton
+            }
+            .overlay {
+                SignInWithAppleButton(.signIn) { request in
+                    request.requestedScopes = [.fullName, .email]
+                } onCompletion: { result in
+                    Task { await handleApple(result) }
+                }
+                .blendMode(.destinationOver)
+                .opacity(0.02)
+            }
+            
+            // Google
+            CompactSocialButton(provider: .google, colorScheme: colorScheme) {
+                Task { await handleGoogle() }
+            }
+            
+            // GitHub
+            CompactSocialButton(provider: .github, colorScheme: colorScheme) {
+                Task { await handleGitHub() }
+            }
+        }
+    }
+    
+    // MARK: - Email Divider
+    
+    private var emailDivider: some View {
+        HStack(spacing: 16) {
+            Rectangle()
+                .fill(Color.primary.opacity(0.1))
+                .frame(height: 1)
+            
+            Text("or with email")
+                .font(.system(size: 13))
+                .foregroundStyle(.tertiary)
+            
+            Rectangle()
+                .fill(Color.primary.opacity(0.1))
+                .frame(height: 1)
         }
     }
     
@@ -275,58 +322,6 @@ struct LoginView: View {
         .animation(.easeInOut(duration: 0.2), value: errorMessage)
     }
     
-    // MARK: - Social Divider
-    
-    private var socialDivider: some View {
-        HStack(spacing: 16) {
-            Rectangle()
-                .fill(Color.primary.opacity(0.1))
-                .frame(height: 1)
-            
-            Text("or continue with")
-                .font(.system(size: 13))
-                .foregroundStyle(.tertiary)
-            
-            Rectangle()
-                .fill(Color.primary.opacity(0.1))
-                .frame(height: 1)
-        }
-    }
-    
-    // MARK: - Social Buttons
-    
-    private var socialButtons: some View {
-        VStack(spacing: 12) {
-            // GitHub
-            SocialButton(
-                icon: .github,
-                title: "Continue with GitHub",
-                style: .dark
-            ) {
-                Task { await handleGitHub() }
-            }
-            
-            // Apple
-            SignInWithAppleButton(.continue) { request in
-                request.requestedScopes = [.fullName, .email]
-            } onCompletion: { result in
-                Task { await handleApple(result) }
-            }
-            .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
-            .frame(height: 52)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            
-            // Google
-            SocialButton(
-                icon: .google,
-                title: "Continue with Google",
-                style: .outline
-            ) {
-                Task { await handleGoogle() }
-            }
-        }
-    }
-    
     // MARK: - Switch Mode
     
     private var switchModeButton: some View {
@@ -427,7 +422,7 @@ struct LoginView: View {
             try await auth.signInWithGoogle()
         } catch {
             let nsError = error as NSError
-            if nsError.code != -5 { // User cancelled
+            if nsError.code != -5 {
                 errorMessage = mapError(error)
             }
         }
@@ -459,66 +454,56 @@ struct LoginView: View {
     }
 }
 
-// MARK: - Social Button
+// MARK: - Compact Social Button
 
-private struct SocialButton: View {
-    let icon: SocialIcon
-    let title: String
-    let style: Style
+private struct CompactSocialButton: View {
+    let provider: Provider
+    let colorScheme: ColorScheme
     let action: () -> Void
     
-    @Environment(\.colorScheme) private var colorScheme
-    
-    enum Style { case dark, outline }
-    enum SocialIcon { case github, google }
+    enum Provider {
+        case apple, google, github
+        
+        var name: String {
+            switch self {
+            case .apple: return "Apple"
+            case .google: return "Google"
+            case .github: return "GitHub"
+            }
+        }
+    }
     
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 12) {
+            VStack(spacing: 8) {
                 iconView
-                    .frame(width: 20, height: 20)
+                    .frame(width: 24, height: 24)
                 
-                Text(title)
-                    .font(.system(size: 16, weight: .medium))
+                Text(provider.name)
+                    .font(.system(size: 12, weight: .medium))
             }
-            .foregroundStyle(foregroundColor)
+            .foregroundStyle(.primary)
             .frame(maxWidth: .infinity)
-            .frame(height: 52)
-            .background(backgroundColor, in: RoundedRectangle(cornerRadius: 12))
-            .overlay {
-                if style == .outline {
-                    RoundedRectangle(cornerRadius: 12)
-                        .strokeBorder(Color.primary.opacity(0.15), lineWidth: 1)
-                }
-            }
+            .frame(height: 72)
+            .background(Color.secondaryBackground, in: RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1)
+            )
         }
     }
     
     @ViewBuilder
     private var iconView: some View {
-        switch icon {
-        case .github:
-            GitHubLogo()
+        switch provider {
+        case .apple:
+            Image(systemName: "apple.logo")
+                .resizable()
+                .scaledToFit()
         case .google:
             GoogleLogo()
-        }
-    }
-    
-    private var foregroundColor: Color {
-        switch style {
-        case .dark:
-            return colorScheme == .dark ? .black : .white
-        case .outline:
-            return .primary
-        }
-    }
-    
-    private var backgroundColor: Color {
-        switch style {
-        case .dark:
-            return colorScheme == .dark ? .white : .black
-        case .outline:
-            return Color.secondaryBackground
+        case .github:
+            GitHubLogo()
         }
     }
 }
@@ -526,13 +511,11 @@ private struct SocialButton: View {
 // MARK: - GitHub Logo
 
 private struct GitHubLogo: View {
-    @Environment(\.colorScheme) private var colorScheme
-    
     var body: some View {
-        Image(systemName: "cat.circle.fill")
+        Image(systemName: "chevron.left.forwardslash.chevron.right")
             .resizable()
             .scaledToFit()
-            .symbolRenderingMode(.monochrome)
+            .fontWeight(.semibold)
     }
 }
 
