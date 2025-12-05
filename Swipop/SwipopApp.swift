@@ -11,12 +11,7 @@ struct SwipopApp: App {
     @State private var appearance = AppearanceSettings.shared
     
     init() {
-        // Configure Google Sign-In
-        GIDSignIn.sharedInstance.configuration = GIDConfiguration(
-            clientID: Secrets.googleIOSClientID
-        )
-        
-        // Configure thumbnail cache
+        GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: Secrets.googleIOSClientID)
         ThumbnailCache.configure()
     }
     
@@ -25,6 +20,17 @@ struct SwipopApp: App {
             RootView()
                 .preferredColorScheme(appearance.colorScheme)
                 .environment(appearance)
+                .onOpenURL { url in
+                    // Handle Google Sign-In callback
+                    if GIDSignIn.sharedInstance.handle(url) { return }
+                    
+                    // Handle Supabase OAuth callback (GitHub)
+                    if url.scheme == "swipop" {
+                        Task {
+                            try? await AuthService.shared.handleOAuthCallback(url)
+                        }
+                    }
+                }
         }
     }
 }

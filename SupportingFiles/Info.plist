@@ -16,6 +16,16 @@
 				<string>com.googleusercontent.apps.643990942728-t9e5b0gtbi7af9qj9ok6v65kvas4l4aj</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>Supabase Auth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>swipop</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>

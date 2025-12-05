@@ -2,7 +2,7 @@
 //  AuthService.swift
 //  Swipop
 //
-//  Authentication service managing user sessions
+//  Authentication service with Email, GitHub, Apple, and Google providers
 //
 
 import Foundation
@@ -22,18 +22,14 @@ final class AuthService {
     private(set) var currentUser: User?
     private(set) var isLoading = false
     
-    var isAuthenticated: Bool {
-        currentUser != nil
-    }
+    var isAuthenticated: Bool { currentUser != nil }
     
     // MARK: - Private
     
     private let supabase = SupabaseService.shared.client
     
     private init() {
-        Task {
-            await checkSession()
-        }
+        Task { await checkSession() }
     }
     
     // MARK: - Session Management
@@ -42,8 +38,6 @@ final class AuthService {
         do {
             let session = try await supabase.auth.session
             currentUser = session.user
-            
-            // Preload profile if authenticated
             if currentUser != nil {
                 await preloadUserData()
             }
@@ -52,10 +46,63 @@ final class AuthService {
         }
     }
     
-    /// Preload user data after authentication
     @MainActor
     private func preloadUserData() async {
         await CurrentUserProfile.shared.preload()
+    }
+    
+    // MARK: - Email Authentication
+    
+    func signUp(email: String, password: String) async throws {
+        isLoading = true
+        defer { isLoading = false }
+        
+        let response = try await supabase.auth.signUp(email: email, password: password)
+        
+        // If session exists, user is confirmed and signed in
+        if response.session != nil {
+            currentUser = response.user
+            await preloadUserData()
+        }
+        // Otherwise, email confirmation is required
+    }
+    
+    func signIn(email: String, password: String) async throws {
+        isLoading = true
+        defer { isLoading = false }
+        
+        let session = try await supabase.auth.signIn(email: email, password: password)
+        currentUser = session.user
+        await preloadUserData()
+    }
+    
+    func resetPassword(email: String) async throws {
+        try await supabase.auth.resetPasswordForEmail(email)
+    }
+    
+    // MARK: - GitHub OAuth
+    
+    @MainActor
+    func signInWithGitHub() async throws {
+        isLoading = true
+        defer { isLoading = false }
+        
+        let url = try await supabase.auth.getOAuthSignInURL(
+            provider: .github,
+            redirectTo: SupabaseService.redirectURL
+        )
+        
+        _ = await UIApplication.shared.open(url)
+    }
+    
+    @MainActor
+    func handleOAuthCallback(_ url: URL) async throws {
+        isLoading = true
+        defer { isLoading = false }
+        
+        let session = try await supabase.auth.session(from: url)
+        currentUser = session.user
+        await preloadUserData()
     }
     
     // MARK: - Apple Sign In
@@ -70,15 +117,10 @@ final class AuthService {
         defer { isLoading = false }
         
         let session = try await supabase.auth.signInWithIdToken(
-            credentials: .init(
-                provider: .apple,
-                idToken: tokenString
-            )
+            credentials: .init(provider: .apple, idToken: tokenString)
         )
         
         currentUser = session.user
-        
-        // Preload profile after sign in
         await preloadUserData()
     }
     
@@ -94,27 +136,21 @@ final class AuthService {
         isLoading = true
         defer { isLoading = false }
         
-        let result = try await GIDSignIn.sharedInstance.signIn(
-            withPresenting: rootViewController
-        )
+        let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController)
         
         guard let idToken = result.user.idToken?.tokenString else {
             throw AuthError.invalidCredential
         }
         
-        let accessToken = result.user.accessToken.tokenString
-        
         let session = try await supabase.auth.signInWithIdToken(
             credentials: .init(
                 provider: .google,
                 idToken: idToken,
-                accessToken: accessToken
+                accessToken: result.user.accessToken.tokenString
             )
         )
         
         currentUser = session.user
-        
-        // Preload profile after sign in
         await preloadUserData()
     }
     
@@ -128,8 +164,6 @@ final class AuthService {
         GIDSignIn.sharedInstance.signOut()
         try await supabase.auth.signOut()
         currentUser = nil
-        
-        // Reset cached profile data
         CurrentUserProfile.shared.reset()
     }
 }
@@ -139,13 +173,13 @@ final class AuthService {
 enum AuthError: LocalizedError {
     case invalidCredential
     case signInFailed
+    case emailNotConfirmed
     
     var errorDescription: String? {
         switch self {
-        case .invalidCredential:
-            return "Invalid authentication credential"
-        case .signInFailed:
-            return "Sign in failed. Please try again."
+        case .invalidCredential: return "Invalid authentication credential"
+        case .signInFailed: return "Sign in failed. Please try again."
+        case .emailNotConfirmed: return "Please check your email to confirm your account."
         }
     }
 }

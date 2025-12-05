@@ -11,6 +11,8 @@ import Supabase
 final class SupabaseService {
     static let shared = SupabaseService()
     
+    static let redirectURL = URL(string: "swipop://auth/callback")!
+    
     let client: SupabaseClient
     
     private init() {
@@ -19,8 +21,8 @@ final class SupabaseService {
             supabaseKey: Secrets.supabaseAnonKey,
             options: SupabaseClientOptions(
                 auth: SupabaseClientOptions.AuthOptions(
-                    flowType: .pkce,
-                    emitLocalSessionAsInitialSession: true
+                    redirectToURL: Self.redirectURL,
+                    flowType: .pkce
                 )
             )
         )
