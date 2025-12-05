@@ -77,8 +77,9 @@ extension MasonryGrid where Item == Work {
             spacing: spacing,
             content: content,
             heightProvider: { work in
-                let ratio = work.thumbnailAspectRatio ?? Self.defaultAspectRatio
-                let imageHeight = columnWidth / ratio
+                let ratio = max(work.thumbnailAspectRatio ?? Self.defaultAspectRatio, 0.1)
+                let safeColumnWidth = max(columnWidth, 1)
+                let imageHeight = safeColumnWidth / ratio
                 let infoHeight: CGFloat = 60 // Title + creator info
                 return imageHeight + infoHeight
             }
@@ -99,8 +100,9 @@ extension MasonryGrid where Item == Work {
             spacing: spacing,
             content: content,
             heightProvider: { work in
-                let ratio = work.thumbnailAspectRatio ?? Self.defaultAspectRatio
-                return columnWidth / ratio
+                let ratio = max(work.thumbnailAspectRatio ?? Self.defaultAspectRatio, 0.1)
+                let safeColumnWidth = max(columnWidth, 1)
+                return safeColumnWidth / ratio
             }
         )
     }

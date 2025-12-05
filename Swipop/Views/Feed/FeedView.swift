@@ -37,7 +37,7 @@ struct FeedView: View {
     
     private var gridView: some View {
         GeometryReader { geometry in
-            let columnWidth = (geometry.size.width - 12) / 2
+            let columnWidth = max((geometry.size.width - 12) / 2, 1)
             
             ScrollView {
                 if feed.isLoading && feed.works.isEmpty {
@@ -121,7 +121,8 @@ struct WorkGridCell: View {
     let columnWidth: CGFloat
     
     private var imageHeight: CGFloat {
-        columnWidth / (work.thumbnailAspectRatio ?? 0.75)
+        let ratio = max(work.thumbnailAspectRatio ?? 0.75, 0.1)
+        return max(columnWidth / ratio, 1)
     }
     
     var body: some View {

@@ -77,9 +77,14 @@ extension CachedThumbnail {
 
 struct WorkThumbnailPlaceholder: View {
     let title: String
+    @Environment(\.colorScheme) private var colorScheme
     
     private var displayTitle: String {
         title.isEmpty ? "Untitled" : title
+    }
+    
+    private var textColor: Color {
+        colorScheme == .dark ? .white.opacity(0.6) : .primary.opacity(0.5)
     }
     
     var body: some View {
@@ -92,7 +97,7 @@ struct WorkThumbnailPlaceholder: View {
             
             Text(displayTitle)
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.6))
+                .foregroundStyle(textColor)
                 .multilineTextAlignment(.center)
                 .lineLimit(3)
                 .padding(8)

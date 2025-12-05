@@ -14,11 +14,10 @@ final class ChatViewModel {
     var messages: [ChatMessage] = []
     var inputText = ""
     var isLoading = false
-    var selectedModel: AIModel {
-        get { AIModel(rawValue: selectedModelRaw) ?? .chat }
-        set {
-            selectedModelRaw = newValue.rawValue
-            AIService.shared.currentModel = newValue
+    var selectedModel: AIModel = .chat {
+        didSet {
+            UserDefaults.standard.set(selectedModel.rawValue, forKey: "selectedAIModel")
+            AIService.shared.currentModel = selectedModel
         }
     }
     
@@ -42,9 +41,6 @@ final class ChatViewModel {
     }
     
     private var pendingSummarizeRequest: String?
-    
-    @ObservationIgnored
-    @AppStorage("selectedAIModel") private var selectedModelRaw: String = AIModel.chat.rawValue
     
     weak var workEditor: WorkEditorViewModel?
     
@@ -96,6 +92,13 @@ final class ChatViewModel {
     
     init(workEditor: WorkEditorViewModel? = nil) {
         self.workEditor = workEditor
+        
+        // Load saved model from UserDefaults
+        if let savedRaw = UserDefaults.standard.string(forKey: "selectedAIModel"),
+           let savedModel = AIModel(rawValue: savedRaw) {
+            self.selectedModel = savedModel
+        }
+        
         history.append(["role": "system", "content": systemPrompt])
         AIService.shared.currentModel = selectedModel
     }

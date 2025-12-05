@@ -1,5 +1,5 @@
 //
-//  WorkSettingsSheet.swift
+//  WorkOptionsSheet.swift
 //  Swipop
 //
 //  Sheet for editing work metadata and visibility
@@ -8,9 +8,9 @@
 import SwiftUI
 import PhotosUI
 
-struct WorkSettingsSheet: View {
+struct WorkOptionsSheet: View {
     @Bindable var workEditor: WorkEditorViewModel
-    var chatViewModel: ChatViewModel?
+    @Bindable var chatViewModel: ChatViewModel
     var onDelete: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
     @State private var tagInput = ""
@@ -30,9 +30,24 @@ struct WorkSettingsSheet: View {
                 
                 // Details
                 Section {
-                    TextField("Title", text: $workEditor.title)
-                    TextField("Description", text: $workEditor.description, axis: .vertical)
-                        .lineLimit(3...6)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Title")
+                            .font(.system(size: 13))
+                            .foregroundStyle(.secondary)
+                        TextField("Enter title", text: $workEditor.title)
+                            .font(.system(size: 16))
+                    }
+                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
+                    
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Description")
+                            .font(.system(size: 13))
+                            .foregroundStyle(.secondary)
+                        TextField("Enter description", text: $workEditor.description, axis: .vertical)
+                            .font(.system(size: 16))
+                            .lineLimit(3...6)
+                    }
+                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
                 } header: {
                     Label("Details", systemImage: "doc.text")
                 }
@@ -52,24 +67,20 @@ struct WorkSettingsSheet: View {
                 }
                 
                 // AI Model
-                if let chat = chatViewModel {
-                    Section {
-                        modelPicker(chat: chat)
-                    } header: {
-                        Label("AI Model", systemImage: "cpu")
-                    }
+                Section {
+                    modelPicker
+                } header: {
+                    Label("AI Model", systemImage: "cpu")
                 }
                 
                 // Context Window
-                if let chat = chatViewModel {
-                    Section {
-                        contextWindowView(chat: chat)
-                    } header: {
-                        Label("Context", systemImage: "brain")
-                    } footer: {
-                        Text("Auto-summarize is always enabled. When context reaches capacity, conversation will be automatically compacted to continue.")
-                            .font(.system(size: 12))
-                    }
+                Section {
+                    contextWindowView
+                } header: {
+                    Label("Context", systemImage: "brain")
+                } footer: {
+                    Text("Auto-summarize is always enabled. When context reaches capacity, conversation will be automatically compacted to continue.")
+                        .font(.system(size: 12))
                 }
                 
                 // Danger Zone
@@ -256,11 +267,8 @@ struct WorkSettingsSheet: View {
     
     // MARK: - AI Model Picker
     
-    private func modelPicker(chat: ChatViewModel) -> some View {
-        Picker("Model", selection: Binding(
-            get: { chat.selectedModel },
-            set: { chat.selectedModel = $0 }
-        )) {
+    private var modelPicker: some View {
+        Picker("Model", selection: $chatViewModel.selectedModel) {
             ForEach(AIModel.allCases) { model in
                 Text(model.displayName).tag(model)
             }
@@ -271,11 +279,11 @@ struct WorkSettingsSheet: View {
     
     // MARK: - Context Window
     
-    private func contextWindowView(chat: ChatViewModel) -> some View {
+    private var contextWindowView: some View {
         VStack(spacing: 12) {
             // Progress bar with segments
             GeometryReader { geo in
-                let usedWidth = geo.size.width * min(chat.usagePercentage, 1.0)
+                let usedWidth = geo.size.width * min(chatViewModel.usagePercentage, 1.0)
                 let bufferStart = geo.size.width * (Double(ChatViewModel.usableLimit) / Double(ChatViewModel.contextLimit))
                 
                 ZStack(alignment: .leading) {
@@ -291,7 +299,7 @@ struct WorkSettingsSheet: View {
                     
                     // Used portion
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(contextColor(for: chat.usagePercentage))
+                        .fill(contextColor(for: chatViewModel.usagePercentage))
                         .frame(width: max(usedWidth, 0))
                 }
             }
@@ -301,8 +309,8 @@ struct WorkSettingsSheet: View {
             HStack(spacing: 0) {
                 statItem(
                     label: "Used",
-                    value: formatTokens(chat.promptTokens),
-                    color: contextColor(for: chat.usagePercentage)
+                    value: formatTokens(chatViewModel.promptTokens),
+                    color: contextColor(for: chatViewModel.usagePercentage)
                 )
                 
                 Divider()
@@ -311,7 +319,7 @@ struct WorkSettingsSheet: View {
                 
                 statItem(
                     label: "Available",
-                    value: formatTokens(ChatViewModel.usableLimit - chat.promptTokens),
+                    value: formatTokens(ChatViewModel.usableLimit - chatViewModel.promptTokens),
                     color: .primary
                 )
                 
@@ -368,73 +376,17 @@ struct WorkSettingsSheet: View {
     // MARK: - Visibility
     
     private var visibilityPicker: some View {
-        VStack(spacing: 12) {
-            visibilityOption(
-                isSelected: !workEditor.isPublished,
-                icon: "eye.slash",
-                title: "Draft",
-                subtitle: "Only you can see this work",
-                color: .orange
-            ) {
-                workEditor.isPublished = false
-            }
-            
-            visibilityOption(
-                isSelected: workEditor.isPublished,
-                icon: "eye",
-                title: "Published",
-                subtitle: "Everyone can see this work",
-                color: .green
-            ) {
-                workEditor.isPublished = true
+        Toggle(isOn: $workEditor.isPublished) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(workEditor.isPublished ? "Published" : "Draft")
+                    .font(.system(size: 16, weight: .medium))
+                Text(workEditor.isPublished ? "Everyone can see this work" : "Only you can see this work")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
             }
         }
-        .listRowBackground(Color.clear)
-        .listRowInsets(EdgeInsets())
-    }
-    
-    private func visibilityOption(
-        isSelected: Bool,
-        icon: String,
-        title: String,
-        subtitle: String,
-        color: Color,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 14) {
-                Image(systemName: icon)
-                    .font(.system(size: 20))
-                    .foregroundColor(isSelected ? color : Color.secondary)
-                    .frame(width: 32)
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(.primary)
-                    Text(subtitle)
-                        .font(.system(size: 13))
-                        .foregroundStyle(.secondary)
-                }
-                
-                Spacer()
-                
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 22))
-                    .foregroundColor(isSelected ? color : Color.secondary)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(isSelected ? color.opacity(0.15) : Color.secondaryBackground.opacity(0.5))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(isSelected ? color.opacity(0.3) : .clear, lineWidth: 1)
-                    )
-            )
-        }
-        .buttonStyle(.plain)
+        .tint(.green)
+        .listRowBackground(Color.secondaryBackground.opacity(0.5))
     }
     
     // MARK: - Tags
@@ -499,7 +451,9 @@ private struct TagChip: View {
 }
 
 #Preview {
-    WorkSettingsSheet(workEditor: WorkEditorViewModel(), chatViewModel: nil) {
+    @Previewable @State var workEditor = WorkEditorViewModel()
+    WorkOptionsSheet(workEditor: workEditor, chatViewModel: ChatViewModel(workEditor: workEditor)) {
         print("Delete tapped")
     }
 }
+

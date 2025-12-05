@@ -22,7 +22,7 @@ struct UserProfileView: View {
     
     var body: some View {
         GeometryReader { geometry in
-            let columnWidth = (geometry.size.width - 8) / 3
+            let columnWidth = max((geometry.size.width - 8) / 3, 1)
             
             ScrollView {
                 VStack(spacing: 8) {

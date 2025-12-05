@@ -16,7 +16,7 @@ struct CreateView: View {
     @Binding var selectedSubTab: CreateSubTab
     let onBack: () -> Void
     
-    @State private var showSettings = false
+    @State private var showOptions = false
     @FocusState private var isInputFocused: Bool
     
     var body: some View {
@@ -40,10 +40,10 @@ struct CreateView: View {
             onBack: onBack,
             workEditor: workEditor,
             selectedSubTab: selectedSubTab,
-            showSettings: $showSettings
+            showOptions: $showOptions
         ))
-        .sheet(isPresented: $showSettings) {
-            WorkSettingsSheet(workEditor: workEditor, chatViewModel: chatViewModel) {
+        .sheet(isPresented: $showOptions) {
+            WorkOptionsSheet(workEditor: workEditor, chatViewModel: chatViewModel) {
                 workEditor.reset()
                 chatViewModel.clear()
             }
@@ -102,18 +102,18 @@ private struct CreateNavigationModifier: ViewModifier {
     let onBack: () -> Void
     @Bindable var workEditor: WorkEditorViewModel
     let selectedSubTab: CreateSubTab
-    @Binding var showSettings: Bool
+    @Binding var showOptions: Bool
     
     func body(content: Content) -> some View {
         if #available(iOS 26.0, *) {
             content
-                .toolbar { iOS26CreateToolbar(onBack: onBack, workEditor: workEditor, selectedSubTab: selectedSubTab, showSettings: $showSettings) }
+                .toolbar { iOS26CreateToolbar(onBack: onBack, workEditor: workEditor, selectedSubTab: selectedSubTab, showOptions: $showOptions) }
                 .toolbarBackground(.hidden, for: .navigationBar)
         } else {
             content
                 .toolbar(.hidden, for: .navigationBar)
                 .safeAreaInset(edge: .top) {
-                    iOS18CreateTopBar(onBack: onBack, workEditor: workEditor, selectedSubTab: selectedSubTab, showSettings: $showSettings)
+                    iOS18CreateTopBar(onBack: onBack, workEditor: workEditor, selectedSubTab: selectedSubTab, showOptions: $showOptions)
                 }
         }
     }
@@ -143,7 +143,7 @@ private struct iOS26CreateToolbar: ToolbarContent {
     let onBack: () -> Void
     @Bindable var workEditor: WorkEditorViewModel
     let selectedSubTab: CreateSubTab
-    @Binding var showSettings: Bool
+    @Binding var showOptions: Bool
     
     private var actions: CreateToolbarActions {
         CreateToolbarActions(workEditor: workEditor)
@@ -179,7 +179,7 @@ private struct iOS26CreateToolbar: ToolbarContent {
             }
             .tint(workEditor.isPublished ? .green : .orange)
             
-            Button { showSettings = true } label: {
+            Button { showOptions = true } label: {
                 Image(systemName: "slider.horizontal.3")
             }
         }
@@ -192,8 +192,9 @@ private struct iOS18CreateTopBar: View {
     let onBack: () -> Void
     @Bindable var workEditor: WorkEditorViewModel
     let selectedSubTab: CreateSubTab
-    @Binding var showSettings: Bool
+    @Binding var showOptions: Bool
     
+    private let buttonWidth: CGFloat = 48
     private let buttonHeight: CGFloat = 44
     private let iconSize: CGFloat = 20
     
@@ -202,41 +203,38 @@ private struct iOS18CreateTopBar: View {
     }
     
     var body: some View {
-        HStack(spacing: 12) {
-            glassCircleButton("xmark", action: onBack)
+        HStack {
+            // Back button (circular, matching WorkViewerPage style)
+            Button(action: onBack) {
+                Image(systemName: "xmark")
+                    .font(.system(size: iconSize, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .frame(width: buttonHeight, height: buttonHeight)
+                    .background(.ultraThinMaterial, in: Circle())
+                    .overlay(
+                        Circle()
+                            .strokeBorder(Color.primary.opacity(0.2), lineWidth: 0.5)
+                    )
+            }
             
             Spacer()
             
-            actionButtonGroup
+            // Action buttons group (matching WorkViewerPage style)
+            HStack(spacing: 0) {
+                if selectedSubTab != .chat {
+                    saveIndicator
+                }
+                glassIconButton(workEditor.isPublished ? "eye" : "eye.slash", tint: workEditor.isPublished ? .green : .orange, action: actions.toggleVisibility)
+                glassIconButton("slider.horizontal.3", action: { showOptions = true })
+            }
+            .frame(height: buttonHeight)
+            .background(.ultraThinMaterial, in: Capsule())
+            .overlay(
+                Capsule()
+                    .strokeBorder(Color.primary.opacity(0.2), lineWidth: 0.5)
+            )
         }
         .padding(.horizontal, 16)
-    }
-    
-    private func glassCircleButton(_ icon: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: iconSize, weight: .semibold))
-                .foregroundStyle(.primary)
-                .frame(width: buttonHeight, height: buttonHeight)
-                .background(.ultraThinMaterial, in: Circle())
-                .overlay(Circle().strokeBorder(Color.primary.opacity(0.1), lineWidth: 0.5))
-        }
-    }
-    
-    private var actionButtonGroup: some View {
-        HStack(spacing: 0) {
-            if selectedSubTab != .chat {
-                saveIndicator
-                Divider().frame(height: 18).overlay(Color.border)
-            }
-            
-            visibilityButton
-            Divider().frame(height: 18).overlay(Color.border)
-            settingsButton
-        }
-        .frame(height: buttonHeight)
-        .background(.ultraThinMaterial, in: Capsule())
-        .overlay(Capsule().strokeBorder(Color.primary.opacity(0.1), lineWidth: 0.5))
     }
     
     private var saveIndicator: some View {
@@ -259,22 +257,12 @@ private struct iOS18CreateTopBar: View {
         .disabled(workEditor.isSaving || !workEditor.isDirty)
     }
     
-    private var visibilityButton: some View {
-        Button(action: actions.toggleVisibility) {
-            Image(systemName: workEditor.isPublished ? "eye" : "eye.slash")
-                .font(.system(size: iconSize - 2, weight: .medium))
-                .foregroundStyle(workEditor.isPublished ? .green : .orange)
-                .frame(width: buttonHeight, height: buttonHeight)
-                .contentShape(Rectangle())
-        }
-    }
-    
-    private var settingsButton: some View {
-        Button { showSettings = true } label: {
-            Image(systemName: "slider.horizontal.3")
-                .font(.system(size: iconSize - 2, weight: .medium))
-                .foregroundStyle(.primary)
-                .frame(width: buttonHeight, height: buttonHeight)
+    private func glassIconButton(_ icon: String, tint: Color = .primary, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: iconSize, weight: .medium))
+                .foregroundStyle(tint)
+                .frame(width: buttonWidth, height: buttonHeight)
                 .contentShape(Rectangle())
         }
     }

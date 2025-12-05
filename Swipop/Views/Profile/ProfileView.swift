@@ -65,7 +65,7 @@ struct ProfileContentView: View {
     
     var body: some View {
         GeometryReader { geometry in
-            let columnWidth = (geometry.size.width - 8) / 3
+            let columnWidth = max((geometry.size.width - 8) / 3, 1)
             
             ScrollView {
                 VStack(spacing: 8) {
@@ -202,7 +202,8 @@ struct ProfileWorkCell: View {
     var showDraftBadge = false
     
     private var imageHeight: CGFloat {
-        columnWidth / (work.thumbnailAspectRatio ?? 0.75)
+        let ratio = max(work.thumbnailAspectRatio ?? 0.75, 0.1)
+        return max(columnWidth / ratio, 1)
     }
     
     var body: some View {
