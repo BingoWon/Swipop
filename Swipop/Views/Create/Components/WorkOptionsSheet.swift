@@ -13,6 +13,7 @@ struct WorkOptionsSheet: View {
     @Bindable var chatViewModel: ChatViewModel
     var onDelete: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppearanceSettings.self) private var appearance
     @State private var tagInput = ""
     @State private var showDeleteConfirmation = false
     @State private var selectedPhoto: PhotosPickerItem?
@@ -73,6 +74,7 @@ struct WorkOptionsSheet: View {
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
         .glassSheetBackground()
+        .preferredColorScheme(appearance.colorScheme)
     }
     
     // MARK: - Form Content
@@ -106,7 +108,7 @@ struct WorkOptionsSheet: View {
                 TextField("Enter title", text: $workEditor.title)
                     .font(.system(size: 16))
             }
-            .listRowBackground(Color.secondaryBackground.opacity(0.5))
+            .listRowBackground(Color.tertiaryBackground.opacity(0.8))
             
             VStack(alignment: .leading, spacing: 6) {
                 Text("Description")
@@ -116,7 +118,7 @@ struct WorkOptionsSheet: View {
                     .font(.system(size: 16))
                     .lineLimit(3...6)
             }
-            .listRowBackground(Color.secondaryBackground.opacity(0.5))
+            .listRowBackground(Color.tertiaryBackground.opacity(0.8))
         } header: {
             Label("Details", systemImage: "doc.text")
         }
@@ -184,7 +186,7 @@ struct WorkOptionsSheet: View {
             captureHint
             removeButton
         }
-        .listRowBackground(Color.secondaryBackground.opacity(0.5))
+        .listRowBackground(Color.tertiaryBackground.opacity(0.8))
     }
     
     private var aspectRatioSelector: some View {
@@ -322,7 +324,7 @@ struct WorkOptionsSheet: View {
             }
         }
         .pickerStyle(.menu)
-        .listRowBackground(Color.secondaryBackground.opacity(0.5))
+        .listRowBackground(Color.tertiaryBackground.opacity(0.8))
     }
     
     // MARK: - Context Window
@@ -393,7 +395,7 @@ struct WorkOptionsSheet: View {
             }
         }
         .padding(.vertical, 4)
-        .listRowBackground(Color.secondaryBackground.opacity(0.5))
+        .listRowBackground(Color.tertiaryBackground.opacity(0.8))
     }
     
     private func statItem(label: String, value: String, color: Color) -> some View {
@@ -434,7 +436,7 @@ struct WorkOptionsSheet: View {
             }
         }
         .tint(.green)
-        .listRowBackground(Color.secondaryBackground.opacity(0.5))
+        .listRowBackground(Color.tertiaryBackground.opacity(0.8))
     }
     
     // MARK: - Tags
@@ -464,7 +466,7 @@ struct WorkOptionsSheet: View {
                 }
             }
         }
-        .listRowBackground(Color.secondaryBackground.opacity(0.5))
+        .listRowBackground(Color.tertiaryBackground.opacity(0.8))
     }
     
     private func addTag() {

@@ -28,7 +28,7 @@ struct SettingsView: View {
                     } label: {
                         Label("Theme", systemImage: "paintbrush")
                     }
-                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
+                    .listRowBackground(Color.tertiaryBackground.opacity(0.8))
                 } header: {
                     Label("Appearance", systemImage: "paintbrush.pointed")
                 }
@@ -40,21 +40,21 @@ struct SettingsView: View {
                     } label: {
                         Label("Account Settings", systemImage: "person.circle")
                     }
-                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
+                    .listRowBackground(Color.tertiaryBackground.opacity(0.8))
                     
                     NavigationLink {
                         NotificationSettingsView()
                     } label: {
                         Label("Notifications", systemImage: "bell")
                     }
-                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
+                    .listRowBackground(Color.tertiaryBackground.opacity(0.8))
                     
                     NavigationLink {
                         PrivacySettingsView()
                     } label: {
                         Label("Privacy", systemImage: "lock")
                     }
-                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
+                    .listRowBackground(Color.tertiaryBackground.opacity(0.8))
                 } header: {
                     Label("Account", systemImage: "person")
                 }
@@ -66,7 +66,7 @@ struct SettingsView: View {
                     } label: {
                         Label("About Swipop", systemImage: "info.circle")
                     }
-                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
+                    .listRowBackground(Color.tertiaryBackground.opacity(0.8))
                     
                     Link(destination: URL(string: "https://swipop.app/terms")!) {
                         HStack {
@@ -77,7 +77,7 @@ struct SettingsView: View {
                                 .foregroundStyle(.tertiary)
                         }
                     }
-                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
+                    .listRowBackground(Color.tertiaryBackground.opacity(0.8))
                     
                     Link(destination: URL(string: "https://swipop.app/privacy")!) {
                         HStack {
@@ -88,7 +88,7 @@ struct SettingsView: View {
                                 .foregroundStyle(.tertiary)
                         }
                     }
-                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
+                    .listRowBackground(Color.tertiaryBackground.opacity(0.8))
                 } header: {
                     Label("About", systemImage: "info.circle")
                 }
@@ -100,7 +100,7 @@ struct SettingsView: View {
                     } label: {
                         Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
                     }
-                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
+                    .listRowBackground(Color.tertiaryBackground.opacity(0.8))
                 }
             }
             .scrollContentBackground(.hidden)
@@ -132,6 +132,7 @@ struct SettingsView: View {
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .glassSheetBackground()
+        .preferredColorScheme(appearance.colorScheme)
     }
 }
 
@@ -147,7 +148,7 @@ struct AccountSettingsView: View {
                     Text(AuthService.shared.currentUser?.email ?? "Not set")
                         .foregroundStyle(.secondary)
                 }
-                .listRowBackground(Color.secondaryBackground.opacity(0.5))
+                .listRowBackground(Color.tertiaryBackground.opacity(0.8))
             } header: {
                 Label("Email", systemImage: "envelope")
             }
@@ -169,11 +170,11 @@ struct NotificationSettingsView: View {
         List {
             Section {
                 Toggle("Likes", isOn: $likesEnabled)
-                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
+                    .listRowBackground(Color.tertiaryBackground.opacity(0.8))
                 Toggle("Comments", isOn: $commentsEnabled)
-                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
+                    .listRowBackground(Color.tertiaryBackground.opacity(0.8))
                 Toggle("New Followers", isOn: $followsEnabled)
-                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
+                    .listRowBackground(Color.tertiaryBackground.opacity(0.8))
             } header: {
                 Label("Push Notifications", systemImage: "bell.badge")
             }
@@ -193,7 +194,7 @@ struct PrivacySettingsView: View {
         List {
             Section {
                 Toggle("Private Account", isOn: $privateAccount)
-                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
+                    .listRowBackground(Color.tertiaryBackground.opacity(0.8))
             } header: {
                 Label("Account Visibility", systemImage: "eye")
             } footer: {
@@ -218,7 +219,7 @@ struct AboutView: View {
                     Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0")
                         .foregroundStyle(.secondary)
                 }
-                .listRowBackground(Color.secondaryBackground.opacity(0.5))
+                .listRowBackground(Color.tertiaryBackground.opacity(0.8))
                 
                 HStack {
                     Text("Build")
@@ -226,7 +227,7 @@ struct AboutView: View {
                     Text(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1")
                         .foregroundStyle(.secondary)
                 }
-                .listRowBackground(Color.secondaryBackground.opacity(0.5))
+                .listRowBackground(Color.tertiaryBackground.opacity(0.8))
             } header: {
                 Label("App Info", systemImage: "app.badge")
             }
@@ -234,7 +235,7 @@ struct AboutView: View {
             Section {
                 Text("Swipop is a platform for discovering and sharing creative frontend works. Built with SwiftUI and Supabase.")
                     .foregroundStyle(.secondary)
-                    .listRowBackground(Color.secondaryBackground.opacity(0.5))
+                    .listRowBackground(Color.tertiaryBackground.opacity(0.8))
             }
         }
         .scrollContentBackground(.hidden)

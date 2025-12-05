@@ -11,6 +11,7 @@ struct SearchSheet: View {
     
     @Binding var showLogin: Bool
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppearanceSettings.self) private var appearance
     @State private var viewModel = SearchViewModel()
     @State private var selectedWork: Work?
     
@@ -45,6 +46,7 @@ struct SearchSheet: View {
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .glassSheetBackground()
+        .preferredColorScheme(appearance.colorScheme)
         .task {
             await viewModel.loadTrending()
         }
