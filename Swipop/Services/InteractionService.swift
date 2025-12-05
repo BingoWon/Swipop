@@ -105,25 +105,37 @@ actor InteractionService {
     // MARK: - Fetch Collections
     
     func fetchLikedWorks(userId: UUID) async throws -> [Work] {
-        let works: [Work] = try await supabase
+        // Query returns: [{ "works": {...} }, ...]
+        // Need to extract the nested works
+        struct LikeRow: Decodable {
+            let works: Work
+        }
+        
+        let rows: [LikeRow] = try await supabase
             .from("likes")
-            .select("works(*)")
+            .select("works(*, users(*))")
             .eq("user_id", value: userId)
+            .order("created_at", ascending: false)
             .execute()
             .value
         
-        return works
+        return rows.map(\.works)
     }
     
     func fetchCollectedWorks(userId: UUID) async throws -> [Work] {
-        let works: [Work] = try await supabase
+        struct CollectionRow: Decodable {
+            let works: Work
+        }
+        
+        let rows: [CollectionRow] = try await supabase
             .from("collections")
-            .select("works(*)")
+            .select("works(*, users(*))")
             .eq("user_id", value: userId)
+            .order("created_at", ascending: false)
             .execute()
             .value
         
-        return works
+        return rows.map(\.works)
     }
 }
 
