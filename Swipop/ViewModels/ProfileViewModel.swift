@@ -102,6 +102,10 @@ final class CurrentUserProfile {
             works = w
             likedWorks = l
             collectedWorks = c
+            
+            // Merge into interaction cache to prevent UI flash
+            InteractionCache.shared.mergeFromLikedWorks(l)
+            InteractionCache.shared.mergeFromCollectedWorks(c)
         } catch {
             print("Failed to load profile: \(error)")
         }

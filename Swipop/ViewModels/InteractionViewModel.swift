@@ -2,7 +2,7 @@
 //  InteractionViewModel.swift
 //  Swipop
 //
-//  Manages like/collect/share state for a work
+//  Manages like/collect state for a work with caching to prevent UI flash
 //
 
 import Foundation
@@ -13,22 +13,27 @@ final class InteractionViewModel {
     
     let work: Work
     
-    private(set) var isLiked = false
-    private(set) var isCollected = false
+    private(set) var isLiked: Bool
+    private(set) var isCollected: Bool
     private(set) var likeCount: Int
     private(set) var collectCount: Int
     
     private let service = InteractionService.shared
     private let auth = AuthService.shared
+    private let cache = InteractionCache.shared
     
     init(work: Work) {
         self.work = work
         self.likeCount = work.likeCount
         self.collectCount = work.collectCount
+        // Initialize from cache to prevent flash
+        self.isLiked = cache.isLiked(work.id)
+        self.isCollected = cache.isCollected(work.id)
     }
     
     // MARK: - Load State
     
+    @MainActor
     func loadState() async {
         guard let userId = auth.currentUser?.id else { return }
         
@@ -38,10 +43,11 @@ final class InteractionViewModel {
             
             let (likedResult, collectedResult) = try await (liked, collected)
             
-            await MainActor.run {
-                self.isLiked = likedResult
-                self.isCollected = collectedResult
-            }
+            // Update state and cache
+            isLiked = likedResult
+            isCollected = collectedResult
+            cache.setLiked(work.id, likedResult)
+            cache.setCollected(work.id, collectedResult)
         } catch {
             print("Failed to load interaction state: \(error)")
         }
@@ -57,6 +63,7 @@ final class InteractionViewModel {
         let wasLiked = isLiked
         isLiked.toggle()
         likeCount += isLiked ? 1 : -1
+        cache.setLiked(work.id, isLiked)
         
         do {
             if isLiked {
@@ -68,6 +75,7 @@ final class InteractionViewModel {
             // Revert on failure
             isLiked = wasLiked
             likeCount += wasLiked ? 1 : -1
+            cache.setLiked(work.id, wasLiked)
             print("Failed to toggle like: \(error)")
         }
     }
@@ -82,6 +90,7 @@ final class InteractionViewModel {
         let wasCollected = isCollected
         isCollected.toggle()
         collectCount += isCollected ? 1 : -1
+        cache.setCollected(work.id, isCollected)
         
         do {
             if isCollected {
@@ -93,8 +102,8 @@ final class InteractionViewModel {
             // Revert on failure
             isCollected = wasCollected
             collectCount += wasCollected ? 1 : -1
+            cache.setCollected(work.id, wasCollected)
             print("Failed to toggle collect: \(error)")
         }
     }
 }
-

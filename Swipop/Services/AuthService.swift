@@ -176,6 +176,7 @@ final class AuthService {
         try await supabase.auth.signOut()
         currentUser = nil
         CurrentUserProfile.shared.reset()
+        InteractionCache.shared.reset()
     }
 }
 

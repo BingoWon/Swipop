@@ -60,8 +60,19 @@ struct ProfileContentView: View {
     
     private var userProfile: CurrentUserProfile { CurrentUserProfile.shared }
     @State private var selectedTab = 0
+    @State private var previousTab = 0
     @State private var showSettings = false
     @State private var showEditProfile = false
+    
+    private var currentItems: [Work] {
+        switch selectedTab {
+        case 1: return userProfile.likedWorks
+        case 2: return userProfile.collectedWorks
+        default: return userProfile.works
+        }
+    }
+    
+    private var showDraftBadge: Bool { selectedTab == 0 }
     
     var body: some View {
         GeometryReader { geometry in
@@ -69,14 +80,12 @@ struct ProfileContentView: View {
             
             ScrollView {
                 VStack(spacing: 8) {
-                    // Header with Edit button
                     ProfileHeaderView(
                         profile: userProfile.profile,
                         showEditButton: true,
                         onEditTapped: { showEditProfile = true }
                     )
                     
-                    // Stats
                     ProfileStatsRow(
                         workCount: userProfile.workCount,
                         likeCount: userProfile.likeCount,
@@ -84,12 +93,16 @@ struct ProfileContentView: View {
                         followingCount: userProfile.followingCount
                     )
                     
-                    // Content tabs
                     contentTabs
                         .padding(.top, 8)
                     
-                    // Works grid
-                    workMasonryGrid(columnWidth: columnWidth)
+                    // Grid with slide transition
+                    gridContent(columnWidth: columnWidth)
+                        .id(selectedTab)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: selectedTab > previousTab ? .trailing : .leading),
+                            removal: .move(edge: selectedTab > previousTab ? .leading : .trailing)
+                        ))
                 }
             }
             .refreshable { await userProfile.refresh() }
@@ -97,15 +110,9 @@ struct ProfileContentView: View {
         .background(Color.appBackground)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbarContent }
-        .task {
-            await userProfile.refresh()
-        }
-        .sheet(isPresented: $showSettings) {
-            SettingsView()
-        }
-        .sheet(isPresented: $showEditProfile) {
-            EditProfileView(profile: userProfile.profile)
-        }
+        .task { await userProfile.refresh() }
+        .sheet(isPresented: $showSettings) { SettingsView() }
+        .sheet(isPresented: $showEditProfile) { EditProfileView(profile: userProfile.profile) }
     }
     
     // MARK: - Toolbar
@@ -125,33 +132,38 @@ struct ProfileContentView: View {
     private var contentTabs: some View {
         HStack(spacing: 0) {
             ProfileTabButton(icon: "square.grid.2x2", isSelected: selectedTab == 0) {
-                selectedTab = 0
+                switchTab(to: 0)
             }
             ProfileTabButton(icon: "heart", isSelected: selectedTab == 1) {
-                selectedTab = 1
+                switchTab(to: 1)
             }
             ProfileTabButton(icon: "bookmark", isSelected: selectedTab == 2) {
-                selectedTab = 2
+                switchTab(to: 2)
             }
         }
         .padding(.horizontal, 16)
     }
     
-    // MARK: - Work Masonry Grid
+    private func switchTab(to tab: Int) {
+        guard tab != selectedTab else { return }
+        previousTab = selectedTab
+        withAnimation(.easeInOut(duration: 0.25)) {
+            selectedTab = tab
+        }
+    }
     
-    private func workMasonryGrid(columnWidth: CGFloat) -> some View {
-        Group {
-            if currentItems.isEmpty {
-                emptyState
-            } else {
-                MasonryGrid(works: currentItems, columnWidth: columnWidth, columns: 3, spacing: 2) { work in
-                    ProfileWorkCell(work: work, columnWidth: columnWidth, showDraftBadge: !work.isPublished)
-                        .onTapGesture {
-                            editWork(work)
-                        }
-                }
-                .padding(.top, 2)
+    // MARK: - Grid Content
+    
+    @ViewBuilder
+    private func gridContent(columnWidth: CGFloat) -> some View {
+        if currentItems.isEmpty {
+            emptyState
+        } else {
+            MasonryGrid(works: currentItems, columnWidth: columnWidth, columns: 3, spacing: 2) { work in
+                ProfileWorkCell(work: work, columnWidth: columnWidth, showDraftBadge: showDraftBadge && !work.isPublished)
+                    .onTapGesture { editWork(work) }
             }
+            .padding(.top, 2)
         }
     }
     
@@ -182,14 +194,6 @@ struct ProfileContentView: View {
         case 1: return "No liked works yet"
         case 2: return "No saved works yet"
         default: return "No works created yet"
-        }
-    }
-    
-    private var currentItems: [Work] {
-        switch selectedTab {
-        case 1: return userProfile.likedWorks
-        case 2: return userProfile.collectedWorks
-        default: return userProfile.works
         }
     }
 }
