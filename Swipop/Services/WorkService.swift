@@ -19,7 +19,29 @@ actor WorkService {
     
     // MARK: - Fetch
     
-    func fetchFeed(limit: Int = 10, offset: Int = 0) async throws -> [Work] {
+    /// Fetch feed with current user's interaction states (is_liked, is_collected)
+    /// Uses RPC for single-query efficiency
+    func fetchFeed(limit: Int = 10, offset: Int = 0, userId: UUID? = nil) async throws -> [Work] {
+        // Build params - Supabase expects snake_case
+        var params: [String: AnyJSON] = [
+            "p_limit": .integer(limit),
+            "p_offset": .integer(offset)
+        ]
+        
+        if let userId {
+            params["p_user_id"] = .string(userId.uuidString)
+        }
+        
+        let rows: [FeedWorkRow] = try await supabase
+            .rpc("get_feed_with_interactions", params: params)
+            .execute()
+            .value
+        
+        return rows.map { $0.toWork() }
+    }
+    
+    /// Legacy fetch without interaction states (for non-authenticated users or fallback)
+    func fetchFeedBasic(limit: Int = 10, offset: Int = 0) async throws -> [Work] {
         try await supabase
             .from("works")
             .select(selectWithCreator)

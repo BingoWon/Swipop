@@ -83,10 +83,10 @@ private struct CodeTextView: UIViewRepresentable {
         textView.lineHeightMultiplier = 1.3
         textView.kern = 0.3
         textView.characterPairs = []
-        // Minimal gutter for maximum code space
-        textView.gutterLeadingPadding = 0
-        textView.gutterTrailingPadding = 6
-        textView.textContainerInset = UIEdgeInsets(top: 8, left: 2, bottom: 8, right: 2)
+        // Gutter padding
+        textView.gutterLeadingPadding = 5
+        textView.gutterTrailingPadding = 5
+        textView.textContainerInset = UIEdgeInsets(top: 8, left: 0, bottom: 8, right: 0)
         textView.theme = CodeTheme(colorScheme: colorScheme)
         
         // Use automatic adjustment like WebView - scrolls under safe areas

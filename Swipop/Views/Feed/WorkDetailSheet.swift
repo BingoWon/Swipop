@@ -185,37 +185,35 @@ struct WorkDetailSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             // Header with language picker and copy button
             HStack(spacing: 12) {
-                // Language picker (compact)
+                // Language picker (fills available space)
                 Picker("", selection: $selectedLanguage) {
                     ForEach(CodeLanguage.allCases, id: \.self) { lang in
                         Text(lang.rawValue).tag(lang)
                     }
                 }
                 .pickerStyle(.segmented)
-                .frame(width: 160)
                 
-                Spacer()
-                
-                // Copy button
+                // Copy button (fixed width)
                 Button {
                     copyCode()
                 } label: {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 4) {
                         Image(systemName: codeCopied ? "checkmark" : "doc.on.doc")
                             .font(.system(size: 13, weight: .medium))
                         Text(codeCopied ? "Copied" : "Copy")
                             .font(.system(size: 13, weight: .medium))
                     }
                     .foregroundStyle(codeCopied ? .green : .secondary)
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .background(Color.secondaryBackground, in: Capsule())
                 }
                 .buttonStyle(.plain)
+                .fixedSize()
                 .animation(.easeInOut(duration: 0.2), value: codeCopied)
             }
             
-            // Code view (2/3 screen height)
+            // Code view (2/3 screen height, no horizontal padding)
             GeometryReader { geo in
                 RunestoneCodeView(language: selectedLanguage, code: currentCode)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -226,6 +224,8 @@ struct WorkDetailSheet: View {
             }
             .frame(height: UIScreen.main.bounds.height * 2 / 3)
         }
+        .padding(.horizontal, -20) // Extend to edge (counter parent padding)
+        .padding(.horizontal, 8)   // Add smaller edge padding
     }
     
     private func copyCode() {

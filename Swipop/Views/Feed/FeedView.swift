@@ -171,7 +171,7 @@ struct WorkGridCell: View {
         .frame(width: columnWidth)
         .background(Color.secondaryBackground)
         .clipShape(RoundedRectangle(cornerRadius: 12))
-        .task { await viewModel.loadState() }
+        // No .task needed - interaction state preloaded from feed query
     }
 }
 

@@ -3,6 +3,7 @@
 //  Swipop
 //
 //  Manages like/collect state for a work with caching to prevent UI flash
+//  State is preloaded from feed query, no additional network requests needed
 //
 
 import Foundation
@@ -26,15 +27,29 @@ final class InteractionViewModel {
         self.work = work
         self.likeCount = work.likeCount
         self.collectCount = work.collectCount
-        // Initialize from cache to prevent flash
-        self.isLiked = cache.isLiked(work.id)
-        self.isCollected = cache.isCollected(work.id)
+        
+        // Priority: Work's preloaded state > Cache > Default (false)
+        // This eliminates UI flashing since state is available immediately
+        if let liked = work.isLikedByCurrentUser {
+            self.isLiked = liked
+        } else {
+            self.isLiked = cache.isLiked(work.id)
+        }
+        
+        if let collected = work.isCollectedByCurrentUser {
+            self.isCollected = collected
+        } else {
+            self.isCollected = cache.isCollected(work.id)
+        }
     }
     
-    // MARK: - Load State
+    // MARK: - Load State (only needed if not preloaded)
     
     @MainActor
     func loadState() async {
+        // Skip if already loaded from feed
+        if work.isLikedByCurrentUser != nil { return }
+        
         guard let userId = auth.currentUser?.id else { return }
         
         do {

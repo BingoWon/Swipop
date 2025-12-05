@@ -31,6 +31,10 @@ struct Work: Identifiable, Equatable, Hashable {
     /// Associated creator profile (loaded via join)
     var creator: Profile?
     
+    /// Current user's interaction state (from RPC, nil if not fetched)
+    var isLikedByCurrentUser: Bool?
+    var isCollectedByCurrentUser: Bool?
+    
     // MARK: - Equatable (exclude chatMessages which contains Any)
     
     static func == (lhs: Work, rhs: Work) -> Bool {
@@ -71,6 +75,120 @@ struct Work: Identifiable, Equatable, Hashable {
         case createdAt = "created_at"
         case updatedAt = "updated_at"
         case creator = "users"
+        case isLikedByCurrentUser = "is_liked"
+        case isCollectedByCurrentUser = "is_collected"
+    }
+}
+
+// MARK: - Feed Work (RPC Response with flattened creator)
+
+/// Specialized struct for decoding get_feed_with_interactions RPC response
+struct FeedWorkRow: Decodable {
+    let id: UUID
+    let userId: UUID
+    let title: String
+    let description: String?
+    let htmlContent: String?
+    let cssContent: String?
+    let jsContent: String?
+    let thumbnailUrl: String?
+    let thumbnailAspectRatio: Double?
+    let tags: [String]?
+    let chatMessages: [[String: AnyCodable]]?
+    let isPublished: Bool
+    let viewCount: Int
+    let likeCount: Int
+    let collectCount: Int
+    let commentCount: Int
+    let shareCount: Int
+    let createdAt: Date
+    let updatedAt: Date
+    let isLiked: Bool
+    let isCollected: Bool
+    // Flattened creator fields
+    let creatorId: UUID?
+    let creatorUsername: String?
+    let creatorDisplayName: String?
+    let creatorAvatarUrl: String?
+    let creatorBio: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case title
+        case description
+        case htmlContent = "html_content"
+        case cssContent = "css_content"
+        case jsContent = "js_content"
+        case thumbnailUrl = "thumbnail_url"
+        case thumbnailAspectRatio = "thumbnail_aspect_ratio"
+        case tags
+        case chatMessages = "chat_messages"
+        case isPublished = "is_published"
+        case viewCount = "view_count"
+        case likeCount = "like_count"
+        case collectCount = "collect_count"
+        case commentCount = "comment_count"
+        case shareCount = "share_count"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+        case isLiked = "is_liked"
+        case isCollected = "is_collected"
+        case creatorId = "creator_id"
+        case creatorUsername = "creator_username"
+        case creatorDisplayName = "creator_display_name"
+        case creatorAvatarUrl = "creator_avatar_url"
+        case creatorBio = "creator_bio"
+    }
+    
+    /// Convert to Work model
+    func toWork() -> Work {
+        var creator: Profile? = nil
+        if let creatorId = creatorId {
+            creator = Profile(
+                id: creatorId,
+                username: creatorUsername,
+                displayName: creatorDisplayName,
+                avatarUrl: creatorAvatarUrl,
+                bio: creatorBio,
+                links: [],
+                createdAt: Date(),
+                updatedAt: Date()
+            )
+        }
+        
+        // Parse chat messages
+        var parsedChatMessages: [[String: Any]]? = nil
+        if let messages = chatMessages {
+            parsedChatMessages = messages.map { dict in
+                dict.mapValues { $0.value }
+            }
+        }
+        
+        return Work(
+            id: id,
+            userId: userId,
+            title: title,
+            description: description,
+            htmlContent: htmlContent,
+            cssContent: cssContent,
+            jsContent: jsContent,
+            thumbnailUrl: thumbnailUrl,
+            thumbnailAspectRatio: thumbnailAspectRatio.map { CGFloat($0) },
+            tags: tags,
+            chatMessages: parsedChatMessages,
+            isPublished: isPublished,
+            viewCount: viewCount,
+            likeCount: likeCount,
+            collectCount: collectCount,
+            commentCount: commentCount,
+            shareCount: shareCount,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            creator: creator,
+            isLikedByCurrentUser: isLiked,
+            isCollectedByCurrentUser: isCollected
+        )
     }
 }
 
@@ -102,6 +220,10 @@ extension Work: Codable {
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
         creator = try container.decodeIfPresent(Profile.self, forKey: .creator)
+        
+        // Decode interaction states (optional, from RPC)
+        isLikedByCurrentUser = try container.decodeIfPresent(Bool.self, forKey: .isLikedByCurrentUser)
+        isCollectedByCurrentUser = try container.decodeIfPresent(Bool.self, forKey: .isCollectedByCurrentUser)
         
         // Decode chatMessages - JSONB comes as native JSON array from Supabase
         if container.contains(.chatMessages) {
@@ -147,6 +269,8 @@ extension Work: Codable {
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(updatedAt, forKey: .updatedAt)
         try container.encodeIfPresent(creator, forKey: .creator)
+        try container.encodeIfPresent(isLikedByCurrentUser, forKey: .isLikedByCurrentUser)
+        try container.encodeIfPresent(isCollectedByCurrentUser, forKey: .isCollectedByCurrentUser)
         
         // Encode chatMessages as JSON
         if let messages = chatMessages,
