@@ -1,67 +1,72 @@
-# Swipop Database Schema
+# Supabase Configuration
 
-## Structure
+## Directory Structure
 
 ```
 Supabase/
-├── schema/              ← 唯一事实来源，可直接执行
-│   ├── 01_tables.sql    # 表结构 + 索引
-│   ├── 02_rls.sql       # Row Level Security 策略
-│   ├── 03_functions.sql # PostgreSQL 函数
-│   ├── 04_triggers.sql  # 数据库触发器
-│   ├── 05_storage.sql   # 存储桶 + 策略
-│   └── 06_rpc.sql       # RPC 函数（客户端调用）
-│
-└── migrations/          ← 一次性脚本，执行后删除
-    └── (临时文件)
+├── config.sh          # Environment variables (gitignored, never commit!)
+├── config.toml        # Local development config
+├── README.md          # This file
+├── schema/            # Single source of truth for database schema
+│   ├── 01_tables.sql
+│   ├── 02_rls.sql
+│   ├── 03_functions.sql
+│   ├── 04_triggers.sql
+│   ├── 05_storage.sql
+│   └── 06_rpc.sql
+└── scripts/           # Automation scripts
+    └── db-query.sh
 ```
 
-## 核心原则
+## Schema Management
 
-### schema/ 是唯一事实来源
+**Critical Rules:**
+1. `schema/` is the **single source of truth**
+2. All files in `schema/` must be **idempotent** (safe to run multiple times)
+3. **DO NOT** create migration files - modify schema files directly
+4. After any schema change, **immediately execute** in Supabase Dashboard
 
-- 所有 SQL 文件都是 **幂等的**（可重复执行）
-- 使用 `CREATE TABLE IF NOT EXISTS`、`CREATE OR REPLACE FUNCTION`、`DROP POLICY IF EXISTS` 等
-- 新环境初始化：按顺序执行 01 → 06
-- 任何变更：直接修改 schema/ 中的文件
+### How to Apply Schema Changes
 
-### migrations/ 是一次性的
+Since our Supabase project has network restrictions blocking direct CLI connections,
+use the **Supabase Dashboard SQL Editor**:
 
-- 只用于 **临时的数据修复脚本**
-- **执行完毕后必须删除**
-- **禁止**在 migrations/ 中存放永久性 schema 定义
-- AI 智能体和开发者应 **只参考 schema/**
+1. Go to https://supabase.com/dashboard/project/axzembhfbmavvklsqsjs/sql
+2. Copy content from the modified schema file
+3. Execute
+4. Verify changes in Table Editor
 
-## 执行顺序
+### For New Environments
 
+Execute files in order:
+```
+01_tables.sql → 02_rls.sql → 03_functions.sql → 04_triggers.sql → 05_storage.sql → 06_rpc.sql
+```
+
+## Security
+
+- `config.sh` contains secrets and is gitignored
+- Never commit API keys to the repository
+- Use environment variables in CI/CD
+
+## Required Environment Variables
+
+Create `config.sh` with:
 ```bash
-# 新环境初始化
-01_tables.sql      # 先建表
-02_rls.sql         # 再设权限
-03_functions.sql   # 再建函数
-04_triggers.sql    # 再建触发器（依赖函数）
-05_storage.sql     # 存储配置
-06_rpc.sql         # RPC 函数
+export SUPABASE_ACCESS_TOKEN="your_access_token"
+export SUPABASE_PROJECT_REF="axzembhfbmavvklsqsjs"
+export SUPABASE_DB_PASSWORD="your_db_password"
 ```
 
-## 变更流程
+## Enable Direct Database Connection (Optional)
 
-1. **修改 schema/** 中对应的文件
-2. **在 Supabase SQL Editor 执行**修改的文件
-3. **提交代码**
-4. 如需一次性数据修复，在 migrations/ 创建临时脚本，执行后删除
+To allow CLI direct connections, disable network restrictions:
 
-## 设计决策
+1. Go to Supabase Dashboard → Settings → Database
+2. Under "Network Restrictions", add your IP or CIDR range
+3. Or disable restrictions entirely for development
 
-### 反范式计数器
-`works` 表存储 `like_count`、`collect_count` 等，通过触发器自动更新，避免 COUNT 查询。
+## Automation with GitHub Actions
 
-### 用户同步
-`auth.users` 插入时自动创建 `public.users`，包含自动生成的 username。
-
-### 通知系统
-点赞/评论/关注/收藏时通过触发器自动创建 `activities` 记录。
-
-### Feed RPC
-`get_feed_with_interactions()` 一次查询返回作品 + 当前用户交互状态，消除 N+1 问题。
-
+For CI/CD automation without manual SQL execution, set up GitHub Actions
+with Supabase CLI using `supabase db push` (requires network access).

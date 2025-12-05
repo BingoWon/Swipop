@@ -58,6 +58,8 @@ final class AuthService {
     @MainActor
     private func preloadUserData() async {
         await CurrentUserProfile.shared.preload()
+        // Refresh feed to get correct interaction states for logged-in user
+        await FeedViewModel.shared.refresh()
     }
     
     // MARK: - Email Authentication
