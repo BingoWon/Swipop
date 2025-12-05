@@ -121,6 +121,8 @@ struct ProfileContentView: View {
             }
         }
         .offset(x: -CGFloat(selectedTab) * screenWidth + dragOffset)
+        .frame(width: screenWidth, alignment: .leading)
+        .clipped()
         .gesture(
             DragGesture()
                 .onChanged { value in
