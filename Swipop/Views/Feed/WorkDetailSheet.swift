@@ -20,6 +20,7 @@ struct WorkDetailSheet: View {
     @State private var showShareSheet = false
     @State private var showCreatorProfile = false
     @State private var selectedLanguage: CodeLanguage = .html
+    @State private var codeCopied = false
     
     private var creator: Profile? { work.creator }
     private var isSelf: Bool { AuthService.shared.currentUser?.id == creator?.id }
@@ -181,29 +182,63 @@ struct WorkDetailSheet: View {
     }
     
     private var sourceCodeSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Image(systemName: "chevron.left.forwardslash.chevron.right")
-                    .foregroundStyle(Color.brand)
-                Text("Source Code")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(.primary)
-            }
-            
-            Picker("Language", selection: $selectedLanguage) {
-                ForEach(CodeLanguage.allCases, id: \.self) { lang in
-                    Text(lang.rawValue).tag(lang)
+        VStack(alignment: .leading, spacing: 12) {
+            // Header with language picker and copy button
+            HStack(spacing: 12) {
+                // Language picker (compact)
+                Picker("", selection: $selectedLanguage) {
+                    ForEach(CodeLanguage.allCases, id: \.self) { lang in
+                        Text(lang.rawValue).tag(lang)
+                    }
                 }
+                .pickerStyle(.segmented)
+                .frame(width: 160)
+                
+                Spacer()
+                
+                // Copy button
+                Button {
+                    copyCode()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: codeCopied ? "checkmark" : "doc.on.doc")
+                            .font(.system(size: 13, weight: .medium))
+                        Text(codeCopied ? "Copied" : "Copy")
+                            .font(.system(size: 13, weight: .medium))
+                    }
+                    .foregroundStyle(codeCopied ? .green : .secondary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.secondaryBackground, in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .animation(.easeInOut(duration: 0.2), value: codeCopied)
             }
-            .pickerStyle(.segmented)
             
+            // Code view (taller, edge-to-edge)
             RunestoneCodeView(language: selectedLanguage, code: currentCode)
-                .frame(height: 240)
+                .frame(height: 320)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
                         .stroke(Color.border, lineWidth: 1)
                 )
+        }
+    }
+    
+    private func copyCode() {
+        UIPasteboard.general.string = currentCode
+        
+        // Haptic feedback
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.impactOccurred()
+        
+        // Show "Copied" state
+        codeCopied = true
+        
+        // Reset after 2 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            codeCopied = false
         }
     }
     
