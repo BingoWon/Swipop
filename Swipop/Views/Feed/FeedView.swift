@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Auth
 
 struct FeedView: View {
     
@@ -120,6 +121,20 @@ struct WorkGridCell: View {
     let work: Work
     let columnWidth: CGFloat
     
+    @State private var isLiked: Bool
+    @State private var likeCount: Int
+    
+    private let cache = InteractionCache.shared
+    private let auth = AuthService.shared
+    
+    init(work: Work, columnWidth: CGFloat) {
+        self.work = work
+        self.columnWidth = columnWidth
+        // Initialize from cache
+        _isLiked = State(initialValue: InteractionCache.shared.isLiked(work.id))
+        _likeCount = State(initialValue: work.likeCount)
+    }
+    
     private var imageHeight: CGFloat {
         let ratio = max(work.thumbnailAspectRatio ?? 0.75, 0.1)
         return max(columnWidth / ratio, 1)
@@ -152,13 +167,7 @@ struct WorkGridCell: View {
                     
                     Spacer()
                     
-                    HStack(spacing: 2) {
-                        Image(systemName: "heart")
-                            .font(.system(size: 10))
-                        Text(work.likeCount.formatted)
-                            .font(.system(size: 11))
-                    }
-                    .foregroundStyle(.tertiary)
+                    likeButton
                 }
             }
             .padding(.horizontal, 10)
@@ -167,6 +176,24 @@ struct WorkGridCell: View {
         .frame(width: columnWidth)
         .background(Color.secondaryBackground)
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        .onAppear { syncFromCache() }
+    }
+    
+    private var likeButton: some View {
+        Button {
+            Task { await toggleLike() }
+        } label: {
+            HStack(spacing: 3) {
+                Image(systemName: isLiked ? "heart.fill" : "heart")
+                    .font(.system(size: 12))
+                Text(likeCount.formatted)
+                    .font(.system(size: 12))
+            }
+            .foregroundStyle(isLiked ? .red : .secondary)
+        }
+        .buttonStyle(.plain)
+        .contentShape(Rectangle())
+        .frame(minWidth: 44, minHeight: 28)
     }
     
     private var coverImage: some View {
@@ -175,6 +202,37 @@ struct WorkGridCell: View {
     
     private var creatorInitial: String {
         work.creator?.initial ?? "U"
+    }
+    
+    // MARK: - Sync & Interaction
+    
+    private func syncFromCache() {
+        isLiked = cache.isLiked(work.id)
+    }
+    
+    @MainActor
+    private func toggleLike() async {
+        guard let userId = auth.currentUser?.id else { return }
+        
+        // Optimistic update
+        let wasLiked = isLiked
+        isLiked.toggle()
+        likeCount += isLiked ? 1 : -1
+        cache.setLiked(work.id, isLiked)
+        
+        do {
+            let service = InteractionService.shared
+            if isLiked {
+                try await service.like(workId: work.id, userId: userId)
+            } else {
+                try await service.unlike(workId: work.id, userId: userId)
+            }
+        } catch {
+            // Revert
+            isLiked = wasLiked
+            likeCount += wasLiked ? 1 : -1
+            cache.setLiked(work.id, wasLiked)
+        }
     }
 }
 
