@@ -73,11 +73,20 @@ final class InteractionCache {
     
     func updateFromFeed(_ works: [Work]) {
         for work in works {
-            if work.isLikedByCurrentUser == true {
-                likedWorks.insert(work.id)
+            // Sync cache with server state (both add AND remove)
+            if let liked = work.isLikedByCurrentUser {
+                if liked {
+                    likedWorks.insert(work.id)
+                } else {
+                    likedWorks.remove(work.id)
+                }
             }
-            if work.isCollectedByCurrentUser == true {
-                collectedWorks.insert(work.id)
+            if let collected = work.isCollectedByCurrentUser {
+                if collected {
+                    collectedWorks.insert(work.id)
+                } else {
+                    collectedWorks.remove(work.id)
+                }
             }
         }
         save()
