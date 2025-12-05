@@ -93,6 +93,7 @@ struct CreateView: View {
                     .cornerRadius(25)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

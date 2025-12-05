@@ -28,6 +28,7 @@ struct LoginView: View {
     
     private enum AuthMode {
         case signIn, signUp
+        var title: String { self == .signIn ? "Sign In" : "Sign Up" }
         var buttonTitle: String { self == .signIn ? "Sign In" : "Create Account" }
         var switchPrompt: String { self == .signIn ? "Don't have an account?" : "Already have an account?" }
         var switchAction: String { self == .signIn ? "Sign Up" : "Sign In" }
@@ -79,12 +80,18 @@ struct LoginView: View {
             }
             .padding(.top, 8)
             
-            Text("Swipop")
-                .font(.system(size: 36, weight: .bold, design: .rounded))
-                .foregroundStyle(
-                    LinearGradient(colors: [.primary, .brand], startPoint: .leading, endPoint: .trailing)
-                )
-                .padding(.top, 24)
+            VStack(spacing: 8) {
+                Text("Swipop")
+                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .foregroundStyle(
+                        LinearGradient(colors: [.primary, .brand], startPoint: .leading, endPoint: .trailing)
+                    )
+                
+                Text(mode.title)
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.top, 24)
         }
     }
     
@@ -92,15 +99,23 @@ struct LoginView: View {
     
     private var socialButtons: some View {
         VStack(spacing: 12) {
-            // Apple
-            SignInWithAppleButton(.continue) { request in
-                request.requestedScopes = [.fullName, .email]
-            } onCompletion: { result in
-                Task { await handleApple(result) }
+            // Apple - Custom button to match style
+            SocialLoginButton(
+                icon: Image(systemName: "apple.logo"),
+                title: "Continue with Apple",
+                style: colorScheme == .dark ? .light : .dark
+            ) {
+                // Trigger hidden Apple Sign In button
             }
-            .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
-            .frame(height: 50)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay {
+                SignInWithAppleButton(.continue) { request in
+                    request.requestedScopes = [.fullName, .email]
+                } onCompletion: { result in
+                    Task { await handleApple(result) }
+                }
+                .blendMode(.destinationOver)
+                .opacity(0.02)
+            }
             
             // Google
             SocialLoginButton(
@@ -113,9 +128,9 @@ struct LoginView: View {
             
             // GitHub
             SocialLoginButton(
-                icon: Image("GitHubLogo"),
+                icon: Image("GitHubLogo").renderingMode(.template),
                 title: "Continue with GitHub",
-                style: colorScheme == .dark ? .light : .dark
+                style: .outline
             ) {
                 Task { await handleGitHub() }
             }
@@ -330,8 +345,13 @@ private struct SocialLoginButton: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 12) {
-                icon.resizable().scaledToFit().frame(width: 20, height: 20)
-                Text(title).font(.system(size: 16, weight: .medium))
+                icon
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 20, height: 20)
+                
+                Text(title)
+                    .font(.system(size: 16, weight: .medium))
             }
             .foregroundStyle(foregroundColor)
             .frame(maxWidth: .infinity)

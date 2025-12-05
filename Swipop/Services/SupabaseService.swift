@@ -22,7 +22,8 @@ final class SupabaseService {
             options: SupabaseClientOptions(
                 auth: SupabaseClientOptions.AuthOptions(
                     redirectToURL: Self.redirectURL,
-                    flowType: .pkce
+                    flowType: .pkce,
+                    emitLocalSessionAsInitialSession: true
                 )
             )
         )
