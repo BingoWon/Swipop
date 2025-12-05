@@ -127,11 +127,11 @@ struct FloatingCreateAccessory: View {
                 selectedSubTab = tab
             }
         } label: {
-            VStack(spacing: 2) {
+            VStack(spacing: 3) {
                 Image(systemName: tab.icon)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: 16, weight: .medium))
                 Text(tab.title)
-                    .font(.system(size: 9, weight: .medium))
+                    .font(.system(size: 11, weight: .medium))
             }
             .foregroundStyle(selectedSubTab == tab ? tab.color : .secondary)
             .frame(maxWidth: .infinity)

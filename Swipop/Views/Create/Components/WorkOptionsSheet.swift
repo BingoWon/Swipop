@@ -17,6 +17,7 @@ struct WorkOptionsSheet: View {
     @State private var showDeleteConfirmation = false
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var isSaving = false
+    @State private var selectedAspectRatio: ThumbnailAspectRatio = .portrait
     
     var body: some View {
         NavigationStack {
@@ -155,54 +156,80 @@ struct WorkOptionsSheet: View {
     }
     
     private var thumbnailEditor: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 16) {
             thumbnailPreview
+            aspectRatioSelector
+            captureButtons
+            captureHint
+            removeButton
+        }
+        .listRowBackground(Color.secondaryBackground.opacity(0.5))
+    }
+    
+    private var aspectRatioSelector: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Aspect Ratio")
+                .font(.system(size: 13))
+                .foregroundStyle(.secondary)
             
-            VStack(spacing: 8) {
-                Button {
-                    Task {
-                        await workEditor.captureThumbnail()
+            HStack(spacing: 8) {
+                ForEach(ThumbnailAspectRatio.allCases) { ratio in
+                    AspectRatioButton(ratio: ratio, isSelected: selectedAspectRatio == ratio) {
+                        selectedAspectRatio = ratio
                     }
-                } label: {
-                    Label("Capture from Preview", systemImage: "camera.viewfinder")
-                        .font(.system(size: 14, weight: .medium))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(captureDisabled ? Color.secondaryBackground.opacity(0.5) : Color.brand.opacity(0.2))
-                        .foregroundColor(captureDisabled ? Color.secondary : Color.brand)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                }
-                .buttonStyle(.plain)
-                .disabled(captureDisabled)
-                
-                PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                    Label("Upload from Photos", systemImage: "photo.on.rectangle")
-                        .font(.system(size: 14, weight: .medium))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.secondaryBackground)
-                        .foregroundStyle(.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                }
-                .buttonStyle(.plain)
-            }
-            
-            if captureDisabled && !workEditor.isCapturingThumbnail {
-                Text("Visit Preview tab first to enable capture")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.tertiary)
-            }
-            
-            if workEditor.hasThumbnail {
-                Button(role: .destructive) {
-                    workEditor.removeThumbnail()
-                } label: {
-                    Text("Remove Thumbnail")
-                        .font(.system(size: 13))
                 }
             }
         }
-        .listRowBackground(Color.secondaryBackground.opacity(0.5))
+    }
+    
+    private var captureButtons: some View {
+        VStack(spacing: 8) {
+            Button {
+                Task { await workEditor.captureThumbnail(aspectRatio: selectedAspectRatio) }
+            } label: {
+                Label("Capture from Preview", systemImage: "camera.viewfinder")
+                    .font(.system(size: 14, weight: .medium))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(captureDisabled ? Color.secondaryBackground.opacity(0.5) : Color.brand.opacity(0.2))
+                    .foregroundColor(captureDisabled ? Color.secondary : Color.brand)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            .buttonStyle(.plain)
+            .disabled(captureDisabled)
+            
+            PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                Label("Upload from Photos", systemImage: "photo.on.rectangle")
+                    .font(.system(size: 14, weight: .medium))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.secondaryBackground)
+                    .foregroundStyle(.primary)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+    
+    @ViewBuilder
+    private var captureHint: some View {
+        if captureDisabled && !workEditor.isCapturingThumbnail {
+            Text("Visit Preview tab first to enable capture")
+                .font(.system(size: 12))
+                .foregroundStyle(.tertiary)
+        }
+    }
+    
+    @ViewBuilder
+    private var removeButton: some View {
+        if workEditor.hasThumbnail {
+            Button(role: .destructive) {
+                workEditor.removeThumbnail()
+            } label: {
+                Text("Remove Thumbnail")
+                    .font(.system(size: 13))
+            }
+        }
     }
     
     @ViewBuilder
@@ -234,8 +261,8 @@ struct WorkOptionsSheet: View {
                     .tint(.white)
             }
         }
-        .aspectRatio(1, contentMode: .fit)
-        .frame(maxWidth: 200)
+        .aspectRatio(selectedAspectRatio.ratio, contentMode: .fit)
+        .frame(maxWidth: 180)
         .frame(maxWidth: .infinity)
     }
     
@@ -256,7 +283,7 @@ struct WorkOptionsSheet: View {
         do {
             if let data = try await item.loadTransferable(type: Data.self),
                let image = UIImage(data: data) {
-                workEditor.setThumbnail(image: image)
+                workEditor.setThumbnail(image: image, aspectRatio: selectedAspectRatio)
             }
         } catch {
             print("Failed to load photo: \(error)")
@@ -424,6 +451,35 @@ struct WorkOptionsSheet: View {
         guard !tag.isEmpty, !workEditor.tags.contains(tag) else { return }
         workEditor.tags.append(tag)
         tagInput = ""
+    }
+}
+
+// MARK: - Aspect Ratio Button
+
+private struct AspectRatioButton: View {
+    let ratio: ThumbnailAspectRatio
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: ratio.icon)
+                    .font(.system(size: 18))
+                Text(ratio.rawValue)
+                    .font(.system(size: 11, weight: .medium))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(isSelected ? Color.brand.opacity(0.2) : Color.secondaryBackground)
+            .foregroundStyle(isSelected ? Color.brand : .secondary)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(isSelected ? Color.brand : Color.clear, lineWidth: 1.5)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 

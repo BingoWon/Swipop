@@ -15,6 +15,31 @@ struct ThumbnailUploadResult {
     let aspectRatio: CGFloat  // width / height
 }
 
+/// Thumbnail aspect ratio presets
+enum ThumbnailAspectRatio: String, CaseIterable, Identifiable {
+    case portrait = "3:4"
+    case square = "1:1"
+    case landscape = "4:3"
+    
+    var id: String { rawValue }
+    
+    var ratio: CGFloat {
+        switch self {
+        case .portrait: return 3.0 / 4.0
+        case .square: return 1.0
+        case .landscape: return 4.0 / 3.0
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .portrait: return "rectangle.portrait"
+        case .square: return "square"
+        case .landscape: return "rectangle"
+        }
+    }
+}
+
 actor ThumbnailService {
     
     static let shared = ThumbnailService()
@@ -26,11 +51,11 @@ actor ThumbnailService {
     
     // MARK: - Public API
     
-    /// Capture screenshot from WKWebView and return cropped image (for preview)
+    /// Capture screenshot from WKWebView with specified aspect ratio
     @MainActor
-    func capture(from webView: WKWebView) async throws -> UIImage {
+    func capture(from webView: WKWebView, aspectRatio: ThumbnailAspectRatio) async throws -> UIImage {
         let screenshot = try await captureScreenshot(from: webView)
-        return Self.cropToValidRatio(screenshot)
+        return Self.cropToRatio(screenshot, targetRatio: aspectRatio.ratio)
     }
     
     /// Process and upload image to storage
@@ -85,7 +110,7 @@ actor ThumbnailService {
         return cropToRatio(image, targetRatio: targetRatio)
     }
     
-    private static func cropToRatio(_ image: UIImage, targetRatio: CGFloat) -> UIImage {
+    static func cropToRatio(_ image: UIImage, targetRatio: CGFloat) -> UIImage {
         let originalSize = image.size
         let originalRatio = originalSize.width / originalSize.height
         

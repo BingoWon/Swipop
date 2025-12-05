@@ -63,14 +63,14 @@ final class WorkEditorViewModel {
     
     // MARK: - Thumbnail Actions
     
-    func captureThumbnail() async {
+    func captureThumbnail(aspectRatio: ThumbnailAspectRatio) async {
         guard let webView = previewWebView else { return }
         
         isCapturingThumbnail = true
         defer { isCapturingThumbnail = false }
         
         do {
-            let cropped = try await ThumbnailService.shared.capture(from: webView)
+            let cropped = try await ThumbnailService.shared.capture(from: webView, aspectRatio: aspectRatio)
             thumbnailImage = cropped
             thumbnailAspectRatio = cropped.size.width / cropped.size.height
             isDirty = true
@@ -79,8 +79,8 @@ final class WorkEditorViewModel {
         }
     }
     
-    func setThumbnail(image: UIImage) {
-        let cropped = ThumbnailService.cropToValidRatio(image)
+    func setThumbnail(image: UIImage, aspectRatio: ThumbnailAspectRatio) {
+        let cropped = ThumbnailService.cropToRatio(image, targetRatio: aspectRatio.ratio)
         thumbnailImage = cropped
         thumbnailAspectRatio = cropped.size.width / cropped.size.height
         isDirty = true
