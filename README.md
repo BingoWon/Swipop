@@ -2,18 +2,18 @@
 
 > **Swipe through live code.**
 
-A platform where anyone can showcase interactive web-based works without showing their face — TikTok for Frontend Creations.
+A platform where anyone can showcase interactive web-based projects without showing their face — TikTok for Frontend Creations.
 
 ## Overview
 
-Swipop reimagines short-form content by replacing videos with interactive frontend creations. Users can browse, create, and share web-based works (HTML/CSS/JavaScript) in a familiar swipe-to-discover experience.
+Swipop reimagines short-form content by replacing videos with interactive frontend creations. Users can browse, create, and share web-based projects (HTML/CSS/JavaScript) in a familiar swipe-to-discover experience.
 
 ### Why Swipop?
 
 - **No Camera Required**: Express yourself through code, not video
-- **Interactive Content**: Works are not just viewed—they can be experienced and interacted with
+- **Interactive Content**: Projects are not just viewed—they can be experienced and interacted with
 - **AI-Assisted Creation**: Leverage vibe coding to bring ideas to life without deep technical expertise
-- **Responsive by Nature**: Frontend works adapt beautifully to any screen size
+- **Responsive by Nature**: Frontend projects adapt beautifully to any screen size
 
 ## Tech Stack
 
@@ -40,7 +40,7 @@ Swipop/
 
 ## Key Decisions
 
-- **No NPM, No Build Step**: Works are pure HTML/CSS/JS—no compilation required
+- **No NPM, No Build Step**: Projects are pure HTML/CSS/JS—no compilation required
 - **CDN Libraries Only**: Third-party libraries (Three.js, D3.js, etc.) loaded via CDN
 - **Button Navigation**: Swipe conflicts avoided by using dedicated up/down buttons
 - **SPM Only**: CocoaPods is explicitly forbidden

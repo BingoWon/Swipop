@@ -11,9 +11,9 @@ enum CreateSubTab: String, CaseIterable, Identifiable {
     case html
     case css
     case javascript
-    
+
     var id: String { rawValue }
-    
+
     var icon: String {
         switch self {
         case .chat: "bubble.left.fill"
@@ -23,7 +23,7 @@ enum CreateSubTab: String, CaseIterable, Identifiable {
         case .javascript: "bolt.fill"
         }
     }
-    
+
     var title: String {
         switch self {
         case .chat: "Chat"
@@ -33,7 +33,7 @@ enum CreateSubTab: String, CaseIterable, Identifiable {
         case .javascript: "JS"
         }
     }
-    
+
     var color: Color {
         switch self {
         case .chat: .brand
@@ -43,7 +43,7 @@ enum CreateSubTab: String, CaseIterable, Identifiable {
         case .javascript: .yellow
         }
     }
-    
+
     var isCodeTab: Bool {
         switch self {
         case .html, .css, .javascript: true
@@ -51,4 +51,3 @@ enum CreateSubTab: String, CaseIterable, Identifiable {
         }
     }
 }
-

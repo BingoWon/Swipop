@@ -12,37 +12,37 @@ struct Activity: Identifiable, Codable, Hashable {
     let userId: UUID
     let actorId: UUID
     let type: ActivityType
-    let workId: UUID?
+    let projectId: UUID?
     let commentId: UUID?
     let isRead: Bool
     let createdAt: Date
-    
+
     // Joined data
     let actor: Profile?
-    let work: Work?
-    
+    let project: Project?
+
     var timeAgo: String { createdAt.timeAgo }
-    
+
     // Hashable - only use id for equality/hashing
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
-    
+
     static func == (lhs: Activity, rhs: Activity) -> Bool {
         lhs.id == rhs.id
     }
-    
+
     enum CodingKeys: String, CodingKey {
         case id
         case userId = "user_id"
         case actorId = "actor_id"
         case type
-        case workId = "work_id"
+        case projectId = "project_id"
         case commentId = "comment_id"
         case isRead = "is_read"
         case createdAt = "created_at"
         case actor
-        case work
+        case project
     }
 }
 
@@ -51,7 +51,7 @@ enum ActivityType: String, Codable {
     case comment
     case follow
     case collect
-    
+
     var icon: String {
         switch self {
         case .like: "heart.fill"
@@ -60,7 +60,7 @@ enum ActivityType: String, Codable {
         case .collect: "bookmark.fill"
         }
     }
-    
+
     var color: Color {
         switch self {
         case .like: .red
@@ -69,37 +69,37 @@ enum ActivityType: String, Codable {
         case .collect: .yellow
         }
     }
-    
-    func message(actorName: String, workTitle: String?) -> AttributedString {
+
+    func message(actorName: String, projectTitle: String?) -> AttributedString {
         var result: AttributedString
-        
+
         switch self {
         case .like:
-            result = AttributedString("\(actorName) liked your work")
-            if let title = workTitle, !title.isEmpty {
+            result = AttributedString("\(actorName) liked your project")
+            if let title = projectTitle, !title.isEmpty {
                 result += AttributedString(" \"\(title)\"")
             }
         case .comment:
             result = AttributedString("\(actorName) commented on")
-            if let title = workTitle, !title.isEmpty {
+            if let title = projectTitle, !title.isEmpty {
                 result += AttributedString(" \"\(title)\"")
             } else {
-                result += AttributedString(" your work")
+                result += AttributedString(" your project")
             }
         case .follow:
             result = AttributedString("\(actorName) started following you")
         case .collect:
-            result = AttributedString("\(actorName) saved your work")
-            if let title = workTitle, !title.isEmpty {
+            result = AttributedString("\(actorName) saved your project")
+            if let title = projectTitle, !title.isEmpty {
                 result += AttributedString(" \"\(title)\"")
             }
         }
-        
+
         // Bold the actor name
         if let range = result.range(of: actorName) {
             result[range].font = .system(size: 14, weight: .semibold)
         }
-        
+
         return result
     }
 }

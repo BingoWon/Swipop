@@ -1,22 +1,21 @@
 //
-//  WorkRenderer.swift
+//  ProjectRenderer.swift
 //  Swipop
 //
 
 import Foundation
 
-enum WorkRenderer {
-    
-    /// Render from Work model (for Feed)
-    static func render(_ work: Work) -> String {
+enum ProjectRenderer {
+    /// Render from Project model (for Feed)
+    static func render(_ project: Project) -> String {
         render(
-            title: work.title,
-            html: work.htmlContent ?? "",
-            css: work.cssContent ?? "",
-            javascript: work.jsContent ?? ""
+            title: project.title,
+            html: project.htmlContent ?? "",
+            css: project.cssContent ?? "",
+            javascript: project.jsContent ?? ""
         )
     }
-    
+
     /// Render from raw content (for Preview)
     static func render(title: String = "", html: String, css: String, javascript: String) -> String {
         """
@@ -46,7 +45,7 @@ enum WorkRenderer {
         </html>
         """
     }
-    
+
     private static func escapeHTML(_ string: String) -> String {
         string
             .replacingOccurrences(of: "&", with: "&amp;")

@@ -3,28 +3,27 @@
 //  Swipop
 //
 
-import SwiftUI
 import Auth
+import SwiftUI
 
 struct CommentSheet: View {
-    
-    let work: Work
+    let project: Project
     @Binding var showLogin: Bool
-    
+
     @Environment(\.dismiss) private var dismiss
     @State private var comments: [Comment] = []
     @State private var newComment = ""
     @State private var isLoading = true
     @State private var isSending = false
-    
+
     private let auth = AuthService.shared
     private let service = CommentService.shared
-    
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.appBackground.ignoresSafeArea()
-                
+
                 VStack(spacing: 0) {
                     if isLoading {
                         Spacer()
@@ -35,12 +34,12 @@ struct CommentSheet: View {
                     } else {
                         commentList
                     }
-                    
+
                     Divider().background(Color.border)
                     commentInput
                 }
             }
-            .navigationTitle("\(work.commentCount) Comments")
+            .navigationTitle("\(project.commentCount) Comments")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -59,9 +58,9 @@ struct CommentSheet: View {
             await loadComments()
         }
     }
-    
+
     // MARK: - Empty State
-    
+
     private var emptyState: some View {
         VStack(spacing: 16) {
             Spacer()
@@ -76,9 +75,9 @@ struct CommentSheet: View {
             Spacer()
         }
     }
-    
+
     // MARK: - Comment List
-    
+
     private var commentList: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 16) {
@@ -91,9 +90,9 @@ struct CommentSheet: View {
             .padding(16)
         }
     }
-    
+
     // MARK: - Comment Input
-    
+
     private var commentInput: some View {
         HStack(spacing: 12) {
             Circle()
@@ -104,12 +103,12 @@ struct CommentSheet: View {
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(.white)
                 )
-            
+
             TextField("Add a comment...", text: $newComment)
                 .textFieldStyle(.plain)
                 .foregroundStyle(.primary)
                 .disabled(!auth.isAuthenticated)
-            
+
             Button {
                 Task { await sendComment() }
             } label: {
@@ -133,12 +132,12 @@ struct CommentSheet: View {
             }
         }
     }
-    
+
     // MARK: - Actions
-    
+
     private func loadComments() async {
         do {
-            let result = try await service.fetchComments(workId: work.id)
+            let result = try await service.fetchComments(projectId: project.id)
             await MainActor.run {
                 comments = result
                 isLoading = false
@@ -150,21 +149,21 @@ struct CommentSheet: View {
             print("Failed to load comments: \(error)")
         }
     }
-    
+
     private func sendComment() async {
         guard let userId = auth.currentUser?.id else {
             showLogin = true
             return
         }
-        
+
         let content = newComment.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !content.isEmpty else { return }
-        
+
         isSending = true
-        
+
         do {
             let comment = try await service.createComment(
-                workId: work.id,
+                projectId: project.id,
                 userId: userId,
                 content: content
             )
@@ -180,7 +179,7 @@ struct CommentSheet: View {
             print("Failed to send comment: \(error)")
         }
     }
-    
+
     private func deleteComment(_ comment: Comment) async {
         do {
             try await service.deleteComment(id: comment.id)
@@ -196,12 +195,11 @@ struct CommentSheet: View {
 // MARK: - Comment Row
 
 private struct CommentRow: View {
-    
     let comment: Comment
     let onDelete: () async -> Void
-    
+
     private let auth = AuthService.shared
-    
+
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Circle()
@@ -212,19 +210,19 @@ private struct CommentRow: View {
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(.white)
                 )
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text("@\(comment.user?.handle ?? "user")")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(.primary)
-                    
+
                     Text(comment.createdAt.timeAgo)
                         .font(.system(size: 12))
                         .foregroundStyle(.tertiary)
-                    
+
                     Spacer()
-                    
+
                     // Delete button (only for own comments)
                     if comment.userId == auth.currentUser?.id {
                         Button {
@@ -236,11 +234,11 @@ private struct CommentRow: View {
                         }
                     }
                 }
-                
+
                 Text(comment.content)
                     .font(.system(size: 15))
                     .foregroundStyle(.primary.opacity(0.9))
-                
+
                 if let replyCount = comment.replyCount, replyCount > 0 {
                     Text("\(replyCount) replies")
                         .font(.system(size: 13))
@@ -250,9 +248,8 @@ private struct CommentRow: View {
             }
         }
     }
-    
 }
 
 #Preview {
-    CommentSheet(work: .sample, showLogin: .constant(false))
+    CommentSheet(project: .sample, showLogin: .constant(false))
 }

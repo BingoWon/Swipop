@@ -7,7 +7,7 @@ import SwiftUI
 struct MessageBubble: View {
     let message: ChatMessage
     var onRetry: (() -> Void)?
-    
+
     var body: some View {
         switch message.role {
         case .error:
@@ -20,27 +20,27 @@ struct MessageBubble: View {
             systemBubble
         }
     }
-    
+
     // MARK: - System Message
-    
+
     private var systemBubble: some View {
         HStack(spacing: 6) {
             Image(systemName: "info.circle.fill")
                 .font(.system(size: 12))
-            Text(message.segments.first.flatMap { if case .content(let t) = $0 { return t } else { return nil } } ?? "")
+            Text(message.segments.first.flatMap { if case let .content(t) = $0 { return t } else { return nil } } ?? "")
                 .font(.system(size: 13))
         }
         .foregroundStyle(.secondary)
         .frame(maxWidth: .infinity, alignment: .center)
         .padding(.vertical, 8)
     }
-    
+
     // MARK: - User Message
-    
+
     private var userBubble: some View {
         HStack {
             Spacer(minLength: 40)
-            
+
             Text(message.userContent)
                 .font(.system(size: 15))
                 .foregroundStyle(.white)
@@ -50,9 +50,9 @@ struct MessageBubble: View {
                 .clipShape(RoundedRectangle(cornerRadius: 18))
         }
     }
-    
+
     // MARK: - Assistant Message
-    
+
     private var assistantBubble: some View {
         VStack(alignment: .leading, spacing: 8) {
             ForEach(Array(message.segments.enumerated()), id: \.offset) { index, segment in
@@ -61,15 +61,15 @@ struct MessageBubble: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
-    
+
     @ViewBuilder
     private func segmentView(_ segment: ChatMessage.Segment, at index: Int) -> some View {
         switch segment {
-        case .thinking(let info):
+        case let .thinking(info):
             ThinkingSegmentView(info: info)
-        case .toolCall(let info):
+        case let .toolCall(info):
             ToolCallView(toolCall: info)
-        case .content(let text):
+        case let .content(text):
             if !text.isEmpty {
                 contentBubble(text)
             } else if message.isStreaming && index == message.segments.count - 1 {
@@ -82,7 +82,7 @@ struct MessageBubble: View {
             }
         }
     }
-    
+
     private func contentBubble(_ text: String) -> some View {
         RichMessageContent(content: text)
             .padding(.horizontal, 14)
@@ -90,21 +90,21 @@ struct MessageBubble: View {
             .background(Color.assistantBubble)
             .clipShape(RoundedRectangle(cornerRadius: 18))
     }
-    
+
     // MARK: - Error Message
-    
+
     private var errorBubble: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 14))
                     .foregroundStyle(.red)
-                
+
                 Text(message.errorContent)
                     .font(.system(size: 14))
                     .foregroundStyle(.primary.opacity(0.9))
             }
-            
+
             if let onRetry {
                 Button(action: onRetry) {
                     HStack(spacing: 6) {
@@ -136,13 +136,13 @@ struct MessageBubble: View {
 
 struct ThinkingSegmentView: View {
     let info: ChatMessage.ThinkingSegment
-    
+
     private let iconWidth: CGFloat = 16
-    
+
     @State private var isExpanded = false
     @State private var elapsedSeconds = 0
     @State private var timer: Timer?
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             headerView
@@ -153,11 +153,11 @@ struct ThinkingSegmentView: View {
                         isExpanded.toggle()
                     }
                 }
-            
+
             if isExpanded && !info.text.isEmpty {
                 Divider()
                     .background(Color.border)
-                
+
                 ScrollView {
                     Text(info.text)
                         .font(.system(size: 13))
@@ -182,7 +182,7 @@ struct ThinkingSegmentView: View {
             if !isActive { stopTimer() }
         }
     }
-    
+
     private var headerView: some View {
         HStack(spacing: 8) {
             // Fixed-width icon container
@@ -191,19 +191,19 @@ struct ThinkingSegmentView: View {
                 .foregroundStyle(info.isActive ? Color.brand : Color.brand.opacity(0.8))
                 .symbolEffect(.pulse, options: .repeating, isActive: info.isActive)
                 .frame(width: iconWidth)
-            
+
             if info.isActive {
                 Text("Thinking \(elapsedSeconds)s")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.primary.opacity(0.8))
-                
+
                 ShimmerBar()
             } else {
                 Text("Thought for \(info.duration ?? 0)s")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.secondary)
             }
-            
+
             if !info.text.isEmpty {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 10, weight: .bold))
@@ -214,7 +214,7 @@ struct ThinkingSegmentView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
     }
-    
+
     private func startTimer() {
         if let start = info.startTime {
             elapsedSeconds = Int(Date().timeIntervalSince(start))
@@ -225,7 +225,7 @@ struct ThinkingSegmentView: View {
             }
         }
     }
-    
+
     private func stopTimer() {
         timer?.invalidate()
         timer = nil
@@ -236,7 +236,7 @@ struct ThinkingSegmentView: View {
 
 private struct ShimmerBar: View {
     @State private var phase: CGFloat = 0
-    
+
     var body: some View {
         RoundedRectangle(cornerRadius: 2)
             .fill(Color.brand.opacity(0.3))

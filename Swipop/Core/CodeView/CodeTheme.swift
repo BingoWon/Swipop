@@ -5,74 +5,73 @@
 //  Adaptive theme for Runestone code views (Light/Dark)
 //
 
-import SwiftUI
 import Runestone
+import SwiftUI
 
 final class CodeTheme: Runestone.Theme {
-    
     // MARK: - Configuration
-    
+
     private let fontSize: CGFloat
     private let isDark: Bool
-    
+
     init(fontSize: CGFloat = 14, colorScheme: ColorScheme = .dark) {
         self.fontSize = fontSize
-        self.isDark = colorScheme == .dark
+        isDark = colorScheme == .dark
     }
-    
+
     // MARK: - Fonts
-    
+
     var font: UIFont { .monospacedSystemFont(ofSize: fontSize, weight: .regular) }
     var lineNumberFont: UIFont { .monospacedSystemFont(ofSize: fontSize - 2, weight: .regular) }
-    
+
     // MARK: - Colors (Adaptive)
-    
+
     var textColor: UIColor {
         isDark ? UIColor(Color(hex: "e6edf3")) : UIColor(Color(hex: "24292f"))
     }
-    
+
     var gutterBackgroundColor: UIColor {
         isDark ? UIColor(Color(hex: "0d1117")) : UIColor(Color(hex: "f6f8fa"))
     }
-    
+
     var gutterHairlineColor: UIColor {
         isDark ? UIColor(Color(hex: "30363d")) : UIColor(Color(hex: "d0d7de"))
     }
-    
+
     var lineNumberColor: UIColor {
         isDark ? UIColor(Color(hex: "6e7681")) : UIColor(Color(hex: "8c959f"))
     }
-    
+
     var selectedLineBackgroundColor: UIColor {
         isDark ? UIColor(Color(hex: "161b22")) : UIColor(Color(hex: "fff8c5"))
     }
-    
+
     var selectedLinesLineNumberColor: UIColor {
         isDark ? UIColor(Color(hex: "e6edf3")) : UIColor(Color(hex: "24292f"))
     }
-    
+
     var selectedLinesGutterBackgroundColor: UIColor {
         isDark ? UIColor(Color(hex: "161b22")) : UIColor(Color(hex: "fff8c5"))
     }
-    
+
     var invisibleCharactersColor: UIColor {
         isDark ? UIColor(Color(hex: "484f58")) : UIColor(Color(hex: "a8b1bb"))
     }
-    
+
     var pageGuideHairlineColor: UIColor {
         isDark ? UIColor(Color(hex: "30363d")) : UIColor(Color(hex: "d0d7de"))
     }
-    
+
     var pageGuideBackgroundColor: UIColor {
         isDark ? UIColor(Color(hex: "161b22")) : UIColor(Color(hex: "f6f8fa"))
     }
-    
+
     var markedTextBackgroundColor: UIColor {
         isDark ? UIColor(Color(hex: "388bfd").opacity(0.3)) : UIColor(Color(hex: "0969da").opacity(0.2))
     }
-    
+
     // MARK: - Syntax Highlighting (Adaptive)
-    
+
     func textColor(for highlightName: String) -> UIColor? {
         if isDark {
             return darkTextColor(for: highlightName)
@@ -80,7 +79,7 @@ final class CodeTheme: Runestone.Theme {
             return lightTextColor(for: highlightName)
         }
     }
-    
+
     // Dark theme colors (GitHub Dark)
     private func darkTextColor(for highlightName: String) -> UIColor? {
         switch highlightName {
@@ -106,7 +105,7 @@ final class CodeTheme: Runestone.Theme {
             return nil
         }
     }
-    
+
     // Light theme colors (GitHub Light)
     private func lightTextColor(for highlightName: String) -> UIColor? {
         switch highlightName {
@@ -132,7 +131,7 @@ final class CodeTheme: Runestone.Theme {
             return nil
         }
     }
-    
+
     func fontTraits(for highlightName: String) -> FontTraits {
         switch highlightName {
         case "keyword", "keyword.control":

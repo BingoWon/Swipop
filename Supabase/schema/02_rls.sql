@@ -7,7 +7,7 @@
 -- ENABLE RLS
 -- ===================
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.works ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.likes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.collections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
@@ -35,26 +35,26 @@ CREATE POLICY "Users can insert own profile"
     WITH CHECK (auth.uid() = id);
 
 -- ===================
--- WORKS
+-- PROJECTS
 -- ===================
-DROP POLICY IF EXISTS "Users can view own works" ON public.works;
-CREATE POLICY "Users can view own works"
-    ON public.works FOR SELECT
+DROP POLICY IF EXISTS "Users can view own projects" ON public.projects;
+CREATE POLICY "Users can view own projects"
+    ON public.projects FOR SELECT
     USING (user_id = auth.uid() OR is_published = true);
 
-DROP POLICY IF EXISTS "Users can insert own works" ON public.works;
-CREATE POLICY "Users can insert own works"
-    ON public.works FOR INSERT
+DROP POLICY IF EXISTS "Users can insert own projects" ON public.projects;
+CREATE POLICY "Users can insert own projects"
+    ON public.projects FOR INSERT
     WITH CHECK (user_id = auth.uid());
 
-DROP POLICY IF EXISTS "Users can update own works" ON public.works;
-CREATE POLICY "Users can update own works"
-    ON public.works FOR UPDATE
+DROP POLICY IF EXISTS "Users can update own projects" ON public.projects;
+CREATE POLICY "Users can update own projects"
+    ON public.projects FOR UPDATE
     USING (user_id = auth.uid());
 
-DROP POLICY IF EXISTS "Users can delete own works" ON public.works;
-CREATE POLICY "Users can delete own works"
-    ON public.works FOR DELETE
+DROP POLICY IF EXISTS "Users can delete own projects" ON public.projects;
+CREATE POLICY "Users can delete own projects"
+    ON public.projects FOR DELETE
     USING (auth.uid() = user_id);
 
 -- ===================

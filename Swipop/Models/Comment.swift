@@ -7,19 +7,19 @@ import Foundation
 
 struct Comment: Identifiable, Codable, Equatable {
     let id: UUID
-    let workId: UUID
+    let projectId: UUID
     let userId: UUID
     var content: String
     var parentId: UUID?
     let createdAt: Date
-    
+
     // Joined data (not persisted)
     var user: CommentUser?
     var replyCount: Int?
-    
+
     enum CodingKeys: String, CodingKey {
         case id
-        case workId = "work_id"
+        case projectId = "project_id"
         case userId = "user_id"
         case content
         case parentId = "parent_id"
@@ -34,17 +34,17 @@ struct CommentUser: Codable, Equatable {
     let username: String?
     let displayName: String?
     let avatarUrl: String?
-    
+
     /// Username for @ mention
     var handle: String {
         username ?? displayName?.lowercased().replacingOccurrences(of: " ", with: "_") ?? "user"
     }
-    
+
     /// First character for avatar placeholder
     var initial: String {
         String((displayName ?? username ?? "U").prefix(1)).uppercased()
     }
-    
+
     enum CodingKeys: String, CodingKey {
         case id
         case username
@@ -58,7 +58,7 @@ struct CommentUser: Codable, Equatable {
 extension Comment {
     static let sample = Comment(
         id: UUID(),
-        workId: UUID(),
+        projectId: UUID(),
         userId: UUID(),
         content: "This is amazing! 🔥",
         parentId: nil,
@@ -71,12 +71,12 @@ extension Comment {
         ),
         replyCount: 2
     )
-    
+
     static let samples: [Comment] = [
         sample,
         Comment(
             id: UUID(),
-            workId: UUID(),
+            projectId: UUID(),
             userId: UUID(),
             content: "Love the animation effect!",
             parentId: nil,
@@ -86,14 +86,13 @@ extension Comment {
         ),
         Comment(
             id: UUID(),
-            workId: UUID(),
+            projectId: UUID(),
             userId: UUID(),
             content: "How did you make this? Tutorial please!",
             parentId: nil,
             createdAt: Date().addingTimeInterval(-7200),
             user: CommentUser(id: UUID(), username: "learner", displayName: "Learner", avatarUrl: nil),
             replyCount: 5
-        )
+        ),
     ]
 }
-

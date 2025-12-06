@@ -89,7 +89,7 @@
 
 **数据结构示意**：
 ```
-works 表
+projects 表
 ├── id: UUID
 ├── user_id: UUID
 ├── title: String

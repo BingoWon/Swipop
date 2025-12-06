@@ -53,9 +53,9 @@ users
 └── updated_at: Timestamp
 ```
 
-#### works（作品表）
+#### projects（作品表）
 ```
-works
+projects
 ├── id: UUID (主键)
 ├── user_id: UUID (外键 → users)
 ├── title: String
@@ -78,7 +78,7 @@ works
 likes
 ├── id: UUID (主键)
 ├── user_id: UUID (外键 → users)
-├── work_id: UUID (外键 → works)
+├── work_id: UUID (外键 → projects)
 ├── created_at: Timestamp
 └── UNIQUE(user_id, work_id)
 ```
@@ -88,7 +88,7 @@ likes
 collections
 ├── id: UUID (主键)
 ├── user_id: UUID (外键 → users)
-├── work_id: UUID (外键 → works)
+├── work_id: UUID (外键 → projects)
 ├── created_at: Timestamp
 └── UNIQUE(user_id, work_id)
 ```
@@ -98,7 +98,7 @@ collections
 comments
 ├── id: UUID (主键)
 ├── user_id: UUID (外键 → users)
-├── work_id: UUID (外键 → works)
+├── work_id: UUID (外键 → projects)
 ├── content: String
 ├── parent_id: UUID (外键 → comments, 可空, 用于回复)
 ├── created_at: Timestamp
@@ -125,7 +125,7 @@ follows
 |--------|------|---------|
 | avatars | 用户头像 | 公开读取 |
 | thumbnails | 作品预览图 | 公开读取 |
-| work-assets | 作品内资源(图片/音频等) | 公开读取 |
+| project-assets | 作品内资源(图片/音频等) | 公开读取 |
 
 ---
 

@@ -1,15 +1,15 @@
 //
-//  WorkOptionsSheet.swift
+//  ProjectOptionsSheet.swift
 //  Swipop
 //
-//  Sheet for editing work metadata and visibility
+//  Sheet for editing project metadata and visibility
 //
 
-import SwiftUI
 import PhotosUI
+import SwiftUI
 
-struct WorkOptionsSheet: View {
-    @Bindable var workEditor: WorkEditorViewModel
+struct ProjectOptionsSheet: View {
+    @Bindable var projectEditor: ProjectEditorViewModel
     @Bindable var chatViewModel: ChatViewModel
     var onDelete: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
@@ -19,66 +19,66 @@ struct WorkOptionsSheet: View {
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var isSaving = false
     @State private var selectedAspectRatio: ThumbnailAspectRatio = .portrait
-    
+
     var body: some View {
         NavigationStack {
             formContent
                 .scrollContentBackground(.hidden)
                 .background(Color.appBackground)
-                .navigationTitle("Work Options")
+                .navigationTitle("Project Options")
                 .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        Task {
-                            isSaving = true
-                            await workEditor.save()
-                            isSaving = false
-                            dismiss()
-                        }
-                    } label: {
-                        if isSaving {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                        } else {
-                            Text("Save")
-                                .fontWeight(.semibold)
-                                .foregroundStyle(Color.brand)
-                        }
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Cancel") { dismiss() }
                     }
-                    .disabled(isSaving)
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            Task {
+                                isSaving = true
+                                await projectEditor.save()
+                                isSaving = false
+                                dismiss()
+                            }
+                        } label: {
+                            if isSaving {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            } else {
+                                Text("Save")
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(Color.brand)
+                            }
+                        }
+                        .disabled(isSaving)
+                    }
                 }
-            }
-            .confirmationDialog(
-                "Delete this work?",
-                isPresented: $showDeleteConfirmation,
-                titleVisibility: .visible
-            ) {
-                Button("Delete", role: .destructive) {
-                    dismiss()
-                    onDelete?()
+                .confirmationDialog(
+                    "Delete this project?",
+                    isPresented: $showDeleteConfirmation,
+                    titleVisibility: .visible
+                ) {
+                    Button("Delete", role: .destructive) {
+                        dismiss()
+                        onDelete?()
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("This will permanently delete your project, including all code and chat history. This action cannot be undone.")
                 }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("This will permanently delete your work, including all code and chat history. This action cannot be undone.")
-            }
-            .onChange(of: selectedPhoto) { _, newItem in
-                Task {
-                    await loadSelectedPhoto(newItem)
+                .onChange(of: selectedPhoto) { _, newItem in
+                    Task {
+                        await loadSelectedPhoto(newItem)
+                    }
                 }
-            }
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
         .glassSheetBackground()
         .preferredColorScheme(appearance.colorScheme)
     }
-    
+
     // MARK: - Form Content
-    
+
     private var formContent: some View {
         Form {
             thumbnailSection
@@ -90,7 +90,7 @@ struct WorkOptionsSheet: View {
             dangerSection
         }
     }
-    
+
     private var thumbnailSection: some View {
         Section {
             thumbnailEditor
@@ -98,32 +98,32 @@ struct WorkOptionsSheet: View {
             Label("Thumbnail", systemImage: "photo")
         }
     }
-    
+
     private var detailsSection: some View {
         Section {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Title")
                     .font(.system(size: 13))
                     .foregroundStyle(.secondary)
-                TextField("Enter title", text: $workEditor.title)
+                TextField("Enter title", text: $projectEditor.title)
                     .font(.system(size: 16))
             }
             .listRowBackground(Color.tertiaryBackground.opacity(0.8))
-            
+
             VStack(alignment: .leading, spacing: 6) {
                 Text("Description")
                     .font(.system(size: 13))
                     .foregroundStyle(.secondary)
-                TextField("Enter description", text: $workEditor.description, axis: .vertical)
+                TextField("Enter description", text: $projectEditor.description, axis: .vertical)
                     .font(.system(size: 16))
-                    .lineLimit(3...6)
+                    .lineLimit(3 ... 6)
             }
             .listRowBackground(Color.tertiaryBackground.opacity(0.8))
         } header: {
             Label("Details", systemImage: "doc.text")
         }
     }
-    
+
     private var tagsSection: some View {
         Section {
             tagsEditor
@@ -131,7 +131,7 @@ struct WorkOptionsSheet: View {
             Label("Tags", systemImage: "tag")
         }
     }
-    
+
     private var visibilitySection: some View {
         Section {
             visibilityPicker
@@ -139,7 +139,7 @@ struct WorkOptionsSheet: View {
             Label("Visibility", systemImage: "eye")
         }
     }
-    
+
     private var modelSection: some View {
         Section {
             modelPicker
@@ -147,7 +147,7 @@ struct WorkOptionsSheet: View {
             Label("AI Model", systemImage: "cpu")
         }
     }
-    
+
     private var contextSection: some View {
         Section {
             contextWindowView
@@ -158,7 +158,7 @@ struct WorkOptionsSheet: View {
                 .font(.system(size: 12))
         }
     }
-    
+
     private var dangerSection: some View {
         Section {
             Button(role: .destructive) {
@@ -166,18 +166,18 @@ struct WorkOptionsSheet: View {
             } label: {
                 HStack {
                     Image(systemName: "trash")
-                    Text("Delete Work")
+                    Text("Delete Project")
                 }
             }
         }
     }
-    
+
     // MARK: - Thumbnail Editor
-    
+
     private var captureDisabled: Bool {
-        workEditor.previewWebView == nil || !workEditor.hasCode || workEditor.isCapturingThumbnail
+        projectEditor.previewWebView == nil || !projectEditor.hasCode || projectEditor.isCapturingThumbnail
     }
-    
+
     private var thumbnailEditor: some View {
         VStack(spacing: 16) {
             thumbnailPreview
@@ -188,13 +188,13 @@ struct WorkOptionsSheet: View {
         }
         .listRowBackground(Color.tertiaryBackground.opacity(0.8))
     }
-    
+
     private var aspectRatioSelector: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Aspect Ratio")
                 .font(.system(size: 13))
                 .foregroundStyle(.secondary)
-            
+
             HStack(spacing: 8) {
                 ForEach(ThumbnailAspectRatio.allCases) { ratio in
                     AspectRatioButton(ratio: ratio, isSelected: selectedAspectRatio == ratio) {
@@ -204,11 +204,11 @@ struct WorkOptionsSheet: View {
             }
         }
     }
-    
+
     private var captureButtons: some View {
         VStack(spacing: 8) {
             Button {
-                Task { await workEditor.captureThumbnail(aspectRatio: selectedAspectRatio) }
+                Task { await projectEditor.captureThumbnail(aspectRatio: selectedAspectRatio) }
             } label: {
                 Label("Capture from Preview", systemImage: "camera.viewfinder")
                     .font(.system(size: 14, weight: .medium))
@@ -220,7 +220,7 @@ struct WorkOptionsSheet: View {
             }
             .buttonStyle(.plain)
             .disabled(captureDisabled)
-            
+
             PhotosPicker(selection: $selectedPhoto, matching: .images) {
                 Label("Upload from Photos", systemImage: "photo.on.rectangle")
                     .font(.system(size: 14, weight: .medium))
@@ -233,41 +233,41 @@ struct WorkOptionsSheet: View {
             .buttonStyle(.plain)
         }
     }
-    
+
     @ViewBuilder
     private var captureHint: some View {
-        if captureDisabled && !workEditor.isCapturingThumbnail {
+        if captureDisabled && !projectEditor.isCapturingThumbnail {
             Text("Visit Preview tab first to enable capture")
                 .font(.system(size: 12))
                 .foregroundStyle(.tertiary)
         }
     }
-    
+
     @ViewBuilder
     private var removeButton: some View {
-        if workEditor.hasThumbnail {
+        if projectEditor.hasThumbnail {
             Button(role: .destructive) {
-                workEditor.removeThumbnail()
+                projectEditor.removeThumbnail()
             } label: {
                 Text("Remove Thumbnail")
                     .font(.system(size: 13))
             }
         }
     }
-    
+
     @ViewBuilder
     private var thumbnailPreview: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color.secondaryBackground.opacity(0.5))
-            
-            if let image = workEditor.thumbnailImage {
+
+            if let image = projectEditor.thumbnailImage {
                 // Local image (not yet uploaded)
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
                     .clipShape(RoundedRectangle(cornerRadius: 12))
-            } else if let url = workEditor.smallThumbnailURL {
+            } else if let url = projectEditor.smallThumbnailURL {
                 // Remote cached image
                 CachedThumbnail(url: url) {
                     thumbnailPlaceholder
@@ -276,8 +276,8 @@ struct WorkOptionsSheet: View {
             } else {
                 thumbnailPlaceholder
             }
-            
-            if workEditor.isCapturingThumbnail {
+
+            if projectEditor.isCapturingThumbnail {
                 Color.black.opacity(0.5)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                 ProgressView()
@@ -288,7 +288,7 @@ struct WorkOptionsSheet: View {
         .frame(maxWidth: 180)
         .frame(maxWidth: .infinity)
     }
-    
+
     private var thumbnailPlaceholder: some View {
         VStack(spacing: 8) {
             Image(systemName: "photo")
@@ -299,24 +299,25 @@ struct WorkOptionsSheet: View {
                 .foregroundStyle(.tertiary)
         }
     }
-    
+
     private func loadSelectedPhoto(_ item: PhotosPickerItem?) async {
         guard let item else { return }
-        
+
         do {
             if let data = try await item.loadTransferable(type: Data.self),
-               let image = UIImage(data: data) {
-                workEditor.setThumbnail(image: image, aspectRatio: selectedAspectRatio)
+               let image = UIImage(data: data)
+            {
+                projectEditor.setThumbnail(image: image, aspectRatio: selectedAspectRatio)
             }
         } catch {
             print("Failed to load photo: \(error)")
         }
-        
+
         selectedPhoto = nil
     }
-    
+
     // MARK: - AI Model Picker
-    
+
     private var modelPicker: some View {
         Picker("Model", selection: $chatViewModel.selectedModel) {
             ForEach(AIModel.allCases) { model in
@@ -326,27 +327,27 @@ struct WorkOptionsSheet: View {
         .pickerStyle(.menu)
         .listRowBackground(Color.tertiaryBackground.opacity(0.8))
     }
-    
+
     // MARK: - Context Window
-    
+
     private var contextWindowView: some View {
         VStack(spacing: 12) {
             // Progress bar with segments
             GeometryReader { geo in
                 let usedWidth = geo.size.width * min(chatViewModel.usagePercentage, 1.0)
                 let bufferStart = geo.size.width * (Double(ChatViewModel.usableLimit) / Double(ChatViewModel.contextLimit))
-                
+
                 ZStack(alignment: .leading) {
                     // Background
                     RoundedRectangle(cornerRadius: 4)
                         .fill(Color.secondaryBackground)
-                    
+
                     // Buffer zone indicator
                     RoundedRectangle(cornerRadius: 4)
                         .fill(Color.secondaryBackground.opacity(0.5))
                         .frame(width: geo.size.width - bufferStart)
                         .offset(x: bufferStart)
-                    
+
                     // Used portion
                     RoundedRectangle(cornerRadius: 4)
                         .fill(contextColor(for: chatViewModel.usagePercentage))
@@ -354,7 +355,7 @@ struct WorkOptionsSheet: View {
                 }
             }
             .frame(height: 8)
-            
+
             // Stats grid
             HStack(spacing: 0) {
                 statItem(
@@ -362,31 +363,31 @@ struct WorkOptionsSheet: View {
                     value: formatTokens(chatViewModel.promptTokens),
                     color: contextColor(for: chatViewModel.usagePercentage)
                 )
-                
+
                 Divider()
                     .frame(height: 28)
                     .background(Color.border)
-                
+
                 statItem(
                     label: "Available",
                     value: formatTokens(ChatViewModel.usableLimit - chatViewModel.promptTokens),
                     color: .primary
                 )
-                
+
                 Divider()
                     .frame(height: 28)
                     .background(Color.border)
-                
+
                 statItem(
                     label: "Buffer",
                     value: formatTokens(ChatViewModel.bufferSize),
                     color: .secondary
                 )
-                
+
                 Divider()
                     .frame(height: 28)
                     .background(Color.border)
-                
+
                 statItem(
                     label: "Total",
                     value: "128K",
@@ -397,7 +398,7 @@ struct WorkOptionsSheet: View {
         .padding(.vertical, 4)
         .listRowBackground(Color.tertiaryBackground.opacity(0.8))
     }
-    
+
     private func statItem(label: String, value: String, color: Color) -> some View {
         VStack(spacing: 2) {
             Text(value)
@@ -409,28 +410,28 @@ struct WorkOptionsSheet: View {
         }
         .frame(maxWidth: .infinity)
     }
-    
+
     private func contextColor(for percentage: Double) -> Color {
         if percentage >= 0.8 { return .red }
         if percentage >= 0.6 { return .orange }
         return .green
     }
-    
+
     private func formatTokens(_ count: Int) -> String {
         if count >= 1000 {
             return String(format: "%.0fK", Double(count) / 1000)
         }
         return "\(count)"
     }
-    
+
     // MARK: - Visibility
-    
+
     private var visibilityPicker: some View {
-        Toggle(isOn: $workEditor.isPublished) {
+        Toggle(isOn: $projectEditor.isPublished) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(workEditor.isPublished ? "Published" : "Draft")
+                Text(projectEditor.isPublished ? "Published" : "Draft")
                     .font(.system(size: 16, weight: .medium))
-                Text(workEditor.isPublished ? "Everyone can see this work" : "Only you can see this work")
+                Text(projectEditor.isPublished ? "Everyone can see this project" : "Only you can see this project")
                     .font(.system(size: 13))
                     .foregroundStyle(.secondary)
             }
@@ -438,9 +439,9 @@ struct WorkOptionsSheet: View {
         .tint(.green)
         .listRowBackground(Color.tertiaryBackground.opacity(0.8))
     }
-    
+
     // MARK: - Tags
-    
+
     private var tagsEditor: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -448,19 +449,19 @@ struct WorkOptionsSheet: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .onSubmit(addTag)
-                
+
                 Button(action: addTag) {
                     Image(systemName: "plus.circle.fill")
                         .foregroundColor(tagInput.isEmpty ? Color.secondary : Color.brand)
                 }
                 .disabled(tagInput.isEmpty)
             }
-            
-            if !workEditor.tags.isEmpty {
+
+            if !projectEditor.tags.isEmpty {
                 FlowLayout(spacing: 8) {
-                    ForEach(workEditor.tags, id: \.self) { tag in
+                    ForEach(projectEditor.tags, id: \.self) { tag in
                         TagChip(tag: tag) {
-                            workEditor.tags.removeAll { $0 == tag }
+                            projectEditor.tags.removeAll { $0 == tag }
                         }
                     }
                 }
@@ -468,11 +469,11 @@ struct WorkOptionsSheet: View {
         }
         .listRowBackground(Color.tertiaryBackground.opacity(0.8))
     }
-    
+
     private func addTag() {
         let tag = tagInput.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !tag.isEmpty, !workEditor.tags.contains(tag) else { return }
-        workEditor.tags.append(tag)
+        guard !tag.isEmpty, !projectEditor.tags.contains(tag) else { return }
+        projectEditor.tags.append(tag)
         tagInput = ""
     }
 }
@@ -483,7 +484,7 @@ private struct AspectRatioButton: View {
     let ratio: ThumbnailAspectRatio
     let isSelected: Bool
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             VStack(spacing: 4) {
@@ -511,7 +512,7 @@ private struct AspectRatioButton: View {
 private struct TagChip: View {
     let tag: String
     let onRemove: () -> Void
-    
+
     var body: some View {
         HStack(spacing: 4) {
             Text(tag)
@@ -530,9 +531,8 @@ private struct TagChip: View {
 }
 
 #Preview {
-    @Previewable @State var workEditor = WorkEditorViewModel()
-    WorkOptionsSheet(workEditor: workEditor, chatViewModel: ChatViewModel(workEditor: workEditor)) {
+    @Previewable @State var projectEditor = ProjectEditorViewModel()
+    ProjectOptionsSheet(projectEditor: projectEditor, chatViewModel: ChatViewModel(projectEditor: projectEditor)) {
         print("Delete tapped")
     }
 }
-

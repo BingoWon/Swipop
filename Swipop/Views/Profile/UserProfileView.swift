@@ -8,37 +8,36 @@
 import SwiftUI
 
 struct UserProfileView: View {
-    
     let userId: UUID
     @Binding var showLogin: Bool
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: OtherUserProfileViewModel
-    
+
     init(userId: UUID, showLogin: Binding<Bool>) {
         self.userId = userId
-        self._showLogin = showLogin
-        self._viewModel = State(initialValue: OtherUserProfileViewModel(userId: userId))
+        _showLogin = showLogin
+        _viewModel = State(initialValue: OtherUserProfileViewModel(userId: userId))
     }
-    
+
     var body: some View {
         GeometryReader { geometry in
             let columnWidth = max((geometry.size.width - 8) / 3, 1)
-            
+
             ScrollView {
                 VStack(spacing: 8) {
                     ProfileHeaderView(profile: viewModel.profile, isLoading: viewModel.isLoading)
-                    
+
                     ProfileStatsRow(
-                        workCount: viewModel.workCount,
+                        projectCount: viewModel.projectCount,
                         likeCount: viewModel.likeCount,
                         followerCount: viewModel.followerCount,
                         followingCount: viewModel.followingCount,
                         isLoading: viewModel.isLoading
                     )
-                    
+
                     actionButtons
-                    
-                    workMasonryGrid(columnWidth: columnWidth)
+
+                    projectMasonryGrid(columnWidth: columnWidth)
                 }
             }
         }
@@ -56,9 +55,9 @@ struct UserProfileView: View {
             await viewModel.load()
         }
     }
-    
+
     // MARK: - Action Buttons
-    
+
     @ViewBuilder
     private var actionButtons: some View {
         if !viewModel.isSelf {
@@ -80,25 +79,25 @@ struct UserProfileView: View {
             .padding(.horizontal, 16)
         }
     }
-    
-    // MARK: - Work Masonry Grid
-    
-    private func workMasonryGrid(columnWidth: CGFloat) -> some View {
+
+    // MARK: - Project Masonry Grid
+
+    private func projectMasonryGrid(columnWidth: CGFloat) -> some View {
         Group {
-            if viewModel.works.isEmpty && !viewModel.isLoading {
+            if viewModel.projects.isEmpty && !viewModel.isLoading {
                 VStack(spacing: 12) {
                     Image(systemName: "square.grid.2x2")
                         .font(.system(size: 40))
                         .foregroundStyle(.tertiary)
-                    Text("No works yet")
+                    Text("No projects yet")
                         .font(.system(size: 14))
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 60)
             } else {
-                MasonryGrid(works: viewModel.works, columnWidth: columnWidth, columns: 3, spacing: 2) { work in
-                    ProfileWorkCell(work: work, columnWidth: columnWidth)
+                MasonryGrid(projects: viewModel.projects, columnWidth: columnWidth, columns: 3, spacing: 2) { project in
+                    ProfileProjectCell(project: project, columnWidth: columnWidth)
                 }
                 .padding(.top, 2)
             }

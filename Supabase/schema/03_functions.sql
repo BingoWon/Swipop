@@ -103,40 +103,40 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- COUNTER UPDATES
 -- ===================
 
--- Update like_count on works
-CREATE OR REPLACE FUNCTION update_work_like_count()
+-- Update like_count on projects
+CREATE OR REPLACE FUNCTION update_project_like_count()
 RETURNS TRIGGER AS $$
 BEGIN
     IF TG_OP = 'INSERT' THEN
-        UPDATE public.works SET like_count = like_count + 1 WHERE id = NEW.work_id;
+        UPDATE public.projects SET like_count = like_count + 1 WHERE id = NEW.project_id;
     ELSIF TG_OP = 'DELETE' THEN
-        UPDATE public.works SET like_count = like_count - 1 WHERE id = OLD.work_id;
+        UPDATE public.projects SET like_count = like_count - 1 WHERE id = OLD.project_id;
     END IF;
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Update collect_count on works
-CREATE OR REPLACE FUNCTION update_work_collect_count()
+-- Update collect_count on projects
+CREATE OR REPLACE FUNCTION update_project_collect_count()
 RETURNS TRIGGER AS $$
 BEGIN
     IF TG_OP = 'INSERT' THEN
-        UPDATE public.works SET collect_count = collect_count + 1 WHERE id = NEW.work_id;
+        UPDATE public.projects SET collect_count = collect_count + 1 WHERE id = NEW.project_id;
     ELSIF TG_OP = 'DELETE' THEN
-        UPDATE public.works SET collect_count = collect_count - 1 WHERE id = OLD.work_id;
+        UPDATE public.projects SET collect_count = collect_count - 1 WHERE id = OLD.project_id;
     END IF;
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Update comment_count on works
-CREATE OR REPLACE FUNCTION update_work_comment_count()
+-- Update comment_count on projects
+CREATE OR REPLACE FUNCTION update_project_comment_count()
 RETURNS TRIGGER AS $$
 BEGIN
     IF TG_OP = 'INSERT' THEN
-        UPDATE public.works SET comment_count = comment_count + 1 WHERE id = NEW.work_id;
+        UPDATE public.projects SET comment_count = comment_count + 1 WHERE id = NEW.project_id;
     ELSIF TG_OP = 'DELETE' THEN
-        UPDATE public.works SET comment_count = comment_count - 1 WHERE id = OLD.work_id;
+        UPDATE public.projects SET comment_count = comment_count - 1 WHERE id = OLD.project_id;
     END IF;
     RETURN NULL;
 END;
@@ -150,13 +150,13 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION create_like_activity()
 RETURNS TRIGGER AS $$
 DECLARE
-    work_owner_id UUID;
+    project_owner_id UUID;
 BEGIN
-    SELECT user_id INTO work_owner_id FROM public.works WHERE id = NEW.work_id;
+    SELECT user_id INTO project_owner_id FROM public.projects WHERE id = NEW.project_id;
     
-    IF work_owner_id IS NOT NULL AND work_owner_id != NEW.user_id THEN
-        INSERT INTO public.activities (user_id, actor_id, type, work_id)
-        VALUES (work_owner_id, NEW.user_id, 'like', NEW.work_id);
+    IF project_owner_id IS NOT NULL AND project_owner_id != NEW.user_id THEN
+        INSERT INTO public.activities (user_id, actor_id, type, project_id)
+        VALUES (project_owner_id, NEW.user_id, 'like', NEW.project_id);
     END IF;
     
     RETURN NEW;
@@ -167,13 +167,13 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION create_collect_activity()
 RETURNS TRIGGER AS $$
 DECLARE
-    work_owner_id UUID;
+    project_owner_id UUID;
 BEGIN
-    SELECT user_id INTO work_owner_id FROM public.works WHERE id = NEW.work_id;
+    SELECT user_id INTO project_owner_id FROM public.projects WHERE id = NEW.project_id;
     
-    IF work_owner_id IS NOT NULL AND work_owner_id != NEW.user_id THEN
-        INSERT INTO public.activities (user_id, actor_id, type, work_id)
-        VALUES (work_owner_id, NEW.user_id, 'collect', NEW.work_id);
+    IF project_owner_id IS NOT NULL AND project_owner_id != NEW.user_id THEN
+        INSERT INTO public.activities (user_id, actor_id, type, project_id)
+        VALUES (project_owner_id, NEW.user_id, 'collect', NEW.project_id);
     END IF;
     
     RETURN NEW;
@@ -184,13 +184,13 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION create_comment_activity()
 RETURNS TRIGGER AS $$
 DECLARE
-    work_owner_id UUID;
+    project_owner_id UUID;
 BEGIN
-    SELECT user_id INTO work_owner_id FROM public.works WHERE id = NEW.work_id;
+    SELECT user_id INTO project_owner_id FROM public.projects WHERE id = NEW.project_id;
     
-    IF work_owner_id IS NOT NULL AND work_owner_id != NEW.user_id THEN
-        INSERT INTO public.activities (user_id, actor_id, type, work_id, comment_id)
-        VALUES (work_owner_id, NEW.user_id, 'comment', NEW.work_id, NEW.id);
+    IF project_owner_id IS NOT NULL AND project_owner_id != NEW.user_id THEN
+        INSERT INTO public.activities (user_id, actor_id, type, project_id, comment_id)
+        VALUES (project_owner_id, NEW.user_id, 'comment', NEW.project_id, NEW.id);
     END IF;
     
     RETURN NEW;

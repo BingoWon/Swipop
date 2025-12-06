@@ -17,9 +17,9 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('thumbnails', 'thumbnails', true)
 ON CONFLICT (id) DO UPDATE SET public = true;
 
--- Work assets bucket (public read)
+-- Project assets bucket (public read)
 INSERT INTO storage.buckets (id, name, public) 
-VALUES ('work-assets', 'work-assets', true)
+VALUES ('project-assets', 'project-assets', true)
 ON CONFLICT (id) DO UPDATE SET public = true;
 
 -- ===================
@@ -62,7 +62,7 @@ CREATE POLICY "Users can delete their own avatar"
 -- ===================
 -- THUMBNAILS POLICIES
 -- ===================
--- Path format: {user_id}/{work_id}.jpg
+-- Path format: {user_id}/{project_id}.jpg
 
 DROP POLICY IF EXISTS "Anyone can view thumbnails" ON storage.objects;
 CREATE POLICY "Anyone can view thumbnails"
@@ -98,39 +98,39 @@ CREATE POLICY "Users can delete their own thumbnails"
     );
 
 -- ===================
--- WORK ASSETS POLICIES
+-- PROJECT ASSETS POLICIES
 -- ===================
--- Path format: {user_id}/{work_id}/{asset_name}
+-- Path format: {user_id}/{project_id}/{asset_name}
 
-DROP POLICY IF EXISTS "Work assets are publicly accessible" ON storage.objects;
-CREATE POLICY "Work assets are publicly accessible"
+DROP POLICY IF EXISTS "Project assets are publicly accessible" ON storage.objects;
+CREATE POLICY "Project assets are publicly accessible"
     ON storage.objects FOR SELECT
-    USING (bucket_id = 'work-assets');
+    USING (bucket_id = 'project-assets');
 
-DROP POLICY IF EXISTS "Users can upload work assets" ON storage.objects;
-CREATE POLICY "Users can upload work assets"
+DROP POLICY IF EXISTS "Users can upload project assets" ON storage.objects;
+CREATE POLICY "Users can upload project assets"
     ON storage.objects FOR INSERT
     TO authenticated
     WITH CHECK (
-        bucket_id = 'work-assets' 
+        bucket_id = 'project-assets' 
         AND LOWER((storage.foldername(name))[1]) = LOWER(auth.uid()::text)
     );
 
-DROP POLICY IF EXISTS "Users can update their own work assets" ON storage.objects;
-CREATE POLICY "Users can update their own work assets"
+DROP POLICY IF EXISTS "Users can update their own project assets" ON storage.objects;
+CREATE POLICY "Users can update their own project assets"
     ON storage.objects FOR UPDATE
     TO authenticated
     USING (
-        bucket_id = 'work-assets' 
+        bucket_id = 'project-assets' 
         AND LOWER((storage.foldername(name))[1]) = LOWER(auth.uid()::text)
     );
 
-DROP POLICY IF EXISTS "Users can delete their own work assets" ON storage.objects;
-CREATE POLICY "Users can delete their own work assets"
+DROP POLICY IF EXISTS "Users can delete their own project assets" ON storage.objects;
+CREATE POLICY "Users can delete their own project assets"
     ON storage.objects FOR DELETE
     TO authenticated
     USING (
-        bucket_id = 'work-assets' 
+        bucket_id = 'project-assets' 
         AND LOWER((storage.foldername(name))[1]) = LOWER(auth.uid()::text)
     );
 

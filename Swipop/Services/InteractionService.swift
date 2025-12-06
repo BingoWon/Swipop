@@ -9,141 +9,139 @@ import Foundation
 import Supabase
 
 actor InteractionService {
-    
     // MARK: - Singleton
-    
+
     static let shared = InteractionService()
-    
+
     // MARK: - Private
-    
+
     private let supabase = SupabaseService.shared.client
-    
+
     private init() {}
-    
+
     // MARK: - Likes
-    
-    func like(workId: UUID, userId: UUID) async throws {
+
+    func like(projectId: UUID, userId: UUID) async throws {
         do {
             try await supabase
                 .from("likes")
-                .insert(["work_id": workId.uuidString, "user_id": userId.uuidString])
+                .insert(["project_id": projectId.uuidString, "user_id": userId.uuidString])
                 .execute()
         } catch let error as PostgrestError where error.code == "23505" {
             // Duplicate key - already liked, ignore
         }
     }
-    
-    func unlike(workId: UUID, userId: UUID) async throws {
+
+    func unlike(projectId: UUID, userId: UUID) async throws {
         try await supabase
             .from("likes")
             .delete()
-            .eq("work_id", value: workId)
+            .eq("project_id", value: projectId)
             .eq("user_id", value: userId)
             .execute()
     }
-    
-    func isLiked(workId: UUID, userId: UUID) async throws -> Bool {
+
+    func isLiked(projectId: UUID, userId: UUID) async throws -> Bool {
         let count = try await supabase
             .from("likes")
             .select("id", head: true, count: .exact)
-            .eq("work_id", value: workId)
+            .eq("project_id", value: projectId)
             .eq("user_id", value: userId)
             .execute()
             .count
-        
+
         return (count ?? 0) > 0
     }
-    
+
     // MARK: - Collections
-    
-    func collect(workId: UUID, userId: UUID) async throws {
+
+    func collect(projectId: UUID, userId: UUID) async throws {
         do {
             try await supabase
                 .from("collections")
-                .insert(["work_id": workId.uuidString, "user_id": userId.uuidString])
+                .insert(["project_id": projectId.uuidString, "user_id": userId.uuidString])
                 .execute()
         } catch let error as PostgrestError where error.code == "23505" {
             // Duplicate key - already collected, ignore
         }
     }
-    
-    func uncollect(workId: UUID, userId: UUID) async throws {
+
+    func uncollect(projectId: UUID, userId: UUID) async throws {
         try await supabase
             .from("collections")
             .delete()
-            .eq("work_id", value: workId)
+            .eq("project_id", value: projectId)
             .eq("user_id", value: userId)
             .execute()
     }
-    
-    func isCollected(workId: UUID, userId: UUID) async throws -> Bool {
+
+    func isCollected(projectId: UUID, userId: UUID) async throws -> Bool {
         let count = try await supabase
             .from("collections")
             .select("id", head: true, count: .exact)
-            .eq("work_id", value: workId)
+            .eq("project_id", value: projectId)
             .eq("user_id", value: userId)
             .execute()
             .count
-        
+
         return (count ?? 0) > 0
     }
-    
+
     // MARK: - Counts
-    
-    /// Total likes received on user's works
+
+    /// Total likes received on user's projects
     func fetchLikeCount(userId: UUID) async throws -> Int {
-        // Sum up like_count from all user's works
+        // Sum up like_count from all user's projects
         struct LikeSum: Decodable {
             let likeCount: Int
             enum CodingKeys: String, CodingKey {
                 case likeCount = "like_count"
             }
         }
-        
-        let works: [LikeSum] = try await supabase
-            .from("works")
+
+        let projects: [LikeSum] = try await supabase
+            .from("projects")
             .select("like_count")
             .eq("user_id", value: userId)
             .execute()
             .value
-        
-        return works.reduce(0) { $0 + $1.likeCount }
+
+        return projects.reduce(0) { $0 + $1.likeCount }
     }
-    
+
     // MARK: - Fetch Collections
-    
-    func fetchLikedWorks(userId: UUID) async throws -> [Work] {
-        // Query returns: [{ "works": {...} }, ...]
-        // Need to extract the nested works
+
+    func fetchLikedProjects(userId: UUID) async throws -> [Project] {
+        // Query returns: [{ "projects": {...} }, ...]
+        // Need to extract the nested projects
         struct LikeRow: Decodable {
-            let works: Work
+            let projects: Project
         }
-        
+
         let rows: [LikeRow] = try await supabase
             .from("likes")
-            .select("works(*, users(*))")
+            .select("projects(*, users(*))")
             .eq("user_id", value: userId)
             .order("created_at", ascending: false)
             .execute()
             .value
-        
-        return rows.map(\.works)
+
+        return rows.map(\.projects)
     }
-    
-    func fetchCollectedWorks(userId: UUID) async throws -> [Work] {
+
+    func fetchCollectedProjects(userId: UUID) async throws -> [Project] {
         struct CollectionRow: Decodable {
-            let works: Work
+            let projects: Project
         }
-        
+
         let rows: [CollectionRow] = try await supabase
             .from("collections")
-            .select("works(*, users(*))")
+            .select("projects(*, users(*))")
             .eq("user_id", value: userId)
             .order("created_at", ascending: false)
             .execute()
             .value
-        
-        return rows.map(\.works)
+
+        return rows.map(\.projects)
     }
 }
-

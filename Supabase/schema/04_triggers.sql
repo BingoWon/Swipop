@@ -13,9 +13,9 @@ CREATE TRIGGER update_users_updated_at
     BEFORE UPDATE ON public.users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
-DROP TRIGGER IF EXISTS update_works_updated_at ON public.works;
-CREATE TRIGGER update_works_updated_at
-    BEFORE UPDATE ON public.works
+DROP TRIGGER IF EXISTS update_projects_updated_at ON public.projects;
+CREATE TRIGGER update_projects_updated_at
+    BEFORE UPDATE ON public.projects
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 DROP TRIGGER IF EXISTS update_comments_updated_at ON public.comments;
@@ -36,22 +36,22 @@ CREATE TRIGGER on_auth_user_created
 -- ===================
 -- COUNTER TRIGGERS
 -- ===================
--- Maintain denormalized counters on works table
+-- Maintain denormalized counters on projects table
 
 DROP TRIGGER IF EXISTS on_like_change ON public.likes;
 CREATE TRIGGER on_like_change
     AFTER INSERT OR DELETE ON public.likes
-    FOR EACH ROW EXECUTE FUNCTION update_work_like_count();
+    FOR EACH ROW EXECUTE FUNCTION update_project_like_count();
 
 DROP TRIGGER IF EXISTS on_collect_change ON public.collections;
 CREATE TRIGGER on_collect_change
     AFTER INSERT OR DELETE ON public.collections
-    FOR EACH ROW EXECUTE FUNCTION update_work_collect_count();
+    FOR EACH ROW EXECUTE FUNCTION update_project_collect_count();
 
 DROP TRIGGER IF EXISTS on_comment_change ON public.comments;
 CREATE TRIGGER on_comment_change
     AFTER INSERT OR DELETE ON public.comments
-    FOR EACH ROW EXECUTE FUNCTION update_work_comment_count();
+    FOR EACH ROW EXECUTE FUNCTION update_project_comment_count();
 
 -- ===================
 -- ACTIVITY TRIGGERS

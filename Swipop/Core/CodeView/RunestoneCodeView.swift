@@ -5,10 +5,10 @@
 //  SwiftUI wrapper for Runestone TextView with Tree-sitter syntax highlighting
 //
 
-import SwiftUI
 import Runestone
-import TreeSitterHTMLRunestone
+import SwiftUI
 import TreeSitterCSSRunestone
+import TreeSitterHTMLRunestone
 import TreeSitterJavaScriptRunestone
 
 // MARK: - Code Language
@@ -17,7 +17,7 @@ enum CodeLanguage: String, CaseIterable {
     case html = "HTML"
     case css = "CSS"
     case javascript = "JS"
-    
+
     var treeSitterLanguage: TreeSitterLanguage {
         switch self {
         case .html: .html
@@ -25,7 +25,7 @@ enum CodeLanguage: String, CaseIterable {
         case .javascript: .javaScript
         }
     }
-    
+
     var color: Color {
         switch self {
         case .html: .orange
@@ -42,20 +42,20 @@ struct RunestoneCodeView: View {
     @Binding var code: String
     let isEditable: Bool
     @Environment(\.colorScheme) private var colorScheme
-    
+
     init(language: CodeLanguage, code: Binding<String>, isEditable: Bool = false) {
         self.language = language
-        self._code = code
+        _code = code
         self.isEditable = isEditable
     }
-    
+
     /// Read-only convenience initializer
     init(language: CodeLanguage, code: String) {
         self.language = language
-        self._code = .constant(code)
-        self.isEditable = false
+        _code = .constant(code)
+        isEditable = false
     }
-    
+
     var body: some View {
         CodeTextView(code: $code, language: language, isEditable: isEditable, colorScheme: colorScheme)
             .background(colorScheme == .dark ? Color(hex: "0d1117") : Color(hex: "f6f8fa"))
@@ -69,11 +69,11 @@ private struct CodeTextView: UIViewRepresentable {
     let language: CodeLanguage
     let isEditable: Bool
     let colorScheme: ColorScheme
-    
+
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
-    
+
     func makeUIView(context: Context) -> TextView {
         let textView = TextView()
         textView.backgroundColor = colorScheme == .dark ? UIColor(Color(hex: "0d1117")) : UIColor(Color(hex: "f6f8fa"))
@@ -88,22 +88,22 @@ private struct CodeTextView: UIViewRepresentable {
         textView.gutterTrailingPadding = 5
         textView.textContainerInset = UIEdgeInsets(top: 8, left: 0, bottom: 8, right: 0)
         textView.theme = CodeTheme(colorScheme: colorScheme)
-        
+
         // Use automatic adjustment like WebView - scrolls under safe areas
         textView.contentInsetAdjustmentBehavior = .scrollableAxes
-        
+
         if isEditable {
             textView.editorDelegate = context.coordinator
         }
-        
+
         return textView
     }
-    
-    func updateUIView(_ textView: TextView, context: Context) {
+
+    func updateUIView(_ textView: TextView, context _: Context) {
         // Update theme if color scheme changed
         let newTheme = CodeTheme(colorScheme: colorScheme)
         textView.backgroundColor = colorScheme == .dark ? UIColor(Color(hex: "0d1117")) : UIColor(Color(hex: "f6f8fa"))
-        
+
         if textView.text != code {
             let state = TextViewState(
                 text: code,
@@ -115,14 +115,14 @@ private struct CodeTextView: UIViewRepresentable {
             textView.theme = newTheme
         }
     }
-    
+
     class Coordinator: NSObject, TextViewDelegate {
         var parent: CodeTextView
-        
+
         init(_ parent: CodeTextView) {
             self.parent = parent
         }
-        
+
         func textViewDidChange(_ textView: TextView) {
             parent.code = textView.text
         }

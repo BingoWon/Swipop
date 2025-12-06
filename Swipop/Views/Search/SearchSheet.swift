@@ -2,24 +2,23 @@
 //  SearchSheet.swift
 //  Swipop
 //
-//  Search works and creators
+//  Search projects and creators
 //
 
 import SwiftUI
 
 struct SearchSheet: View {
-    
     @Binding var showLogin: Bool
     @Environment(\.dismiss) private var dismiss
     @Environment(AppearanceSettings.self) private var appearance
     @State private var viewModel = SearchViewModel()
-    @State private var selectedWork: Work?
-    
+    @State private var selectedProject: Project?
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.appBackground.ignoresSafeArea()
-                
+
                 if viewModel.searchQuery.isEmpty {
                     trendingContent
                 } else {
@@ -28,7 +27,7 @@ struct SearchSheet: View {
             }
             .navigationTitle("Search")
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $viewModel.searchQuery, prompt: "Works, creators, #tags...")
+            .searchable(text: $viewModel.searchQuery, prompt: "Projects, creators, #tags...")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { dismiss() } label: {
@@ -39,8 +38,8 @@ struct SearchSheet: View {
                     }
                 }
             }
-            .navigationDestination(item: $selectedWork) { work in
-                WorkViewerPage(work: work, showLogin: .constant(false))
+            .navigationDestination(item: $selectedProject) { project in
+                ProjectViewerPage(project: project, showLogin: .constant(false))
             }
         }
         .presentationDetents([.large])
@@ -51,9 +50,9 @@ struct SearchSheet: View {
             await viewModel.loadTrending()
         }
     }
-    
+
     // MARK: - Trending Content
-    
+
     private var trendingContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -69,7 +68,7 @@ struct SearchSheet: View {
             .padding(16)
         }
     }
-    
+
     private var loadingState: some View {
         VStack {
             Spacer()
@@ -79,15 +78,15 @@ struct SearchSheet: View {
         }
         .frame(minHeight: 200)
     }
-    
+
     // MARK: - Trending Tags
-    
+
     private var trendingSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Label("Trending", systemImage: "flame.fill")
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(.primary)
-            
+
             FlowLayout(spacing: 8) {
                 ForEach(viewModel.trendingTags, id: \.self) { tag in
                     Button {
@@ -105,15 +104,15 @@ struct SearchSheet: View {
             }
         }
     }
-    
+
     // MARK: - Suggested Creators
-    
+
     private var suggestedCreatorsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Label("Creators", systemImage: "person.2.fill")
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(.primary)
-            
+
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 16) {
                     ForEach(viewModel.suggestedCreators) { creator in
@@ -127,7 +126,7 @@ struct SearchSheet: View {
             }
         }
     }
-    
+
     private func creatorCard(_ creator: Profile) -> some View {
         VStack(spacing: 8) {
             Circle()
@@ -138,7 +137,7 @@ struct SearchSheet: View {
                         .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(.white)
                 )
-            
+
             Text("@\(creator.handle)")
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
@@ -146,28 +145,28 @@ struct SearchSheet: View {
         }
         .frame(width: 80)
     }
-    
+
     // MARK: - Search Results
-    
+
     private var searchResults: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 if viewModel.isSearching {
                     searchingIndicator
-                } else if viewModel.works.isEmpty && viewModel.users.isEmpty {
+                } else if viewModel.projects.isEmpty && viewModel.users.isEmpty {
                     emptyResults
                 } else {
                     if !viewModel.users.isEmpty {
                         usersResults
                     }
-                    if !viewModel.works.isEmpty {
-                        worksResults
+                    if !viewModel.projects.isEmpty {
+                        projectsResults
                     }
                 }
             }
         }
     }
-    
+
     private var searchingIndicator: some View {
         HStack {
             Spacer()
@@ -176,7 +175,7 @@ struct SearchSheet: View {
             Spacer()
         }
     }
-    
+
     private var emptyResults: some View {
         VStack(spacing: 12) {
             Image(systemName: "magnifyingglass")
@@ -189,9 +188,9 @@ struct SearchSheet: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 60)
     }
-    
+
     // MARK: - Users Results
-    
+
     private var usersResults: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Creators")
@@ -199,7 +198,7 @@ struct SearchSheet: View {
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
-            
+
             ForEach(viewModel.users) { user in
                 NavigationLink {
                     UserProfileView(userId: user.id, showLogin: $showLogin)
@@ -213,7 +212,7 @@ struct SearchSheet: View {
                                     .font(.system(size: 16, weight: .bold))
                                     .foregroundStyle(.white)
                             )
-                        
+
                         VStack(alignment: .leading, spacing: 2) {
                             Text(user.displayName ?? user.handle)
                                 .font(.system(size: 15, weight: .medium))
@@ -222,9 +221,9 @@ struct SearchSheet: View {
                                 .font(.system(size: 13))
                                 .foregroundStyle(.secondary)
                         }
-                        
+
                         Spacer()
-                        
+
                         Image(systemName: "chevron.right")
                             .font(.system(size: 12))
                             .foregroundStyle(.tertiary)
@@ -233,60 +232,60 @@ struct SearchSheet: View {
                     .padding(.vertical, 10)
                 }
             }
-            
+
             Divider()
                 .padding(.vertical, 8)
         }
     }
-    
-    // MARK: - Works Results
-    
-    private var worksResults: some View {
+
+    // MARK: - Projects Results
+
+    private var projectsResults: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Works")
+            Text("Projects")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
-            
-            ForEach(viewModel.works) { work in
+
+            ForEach(viewModel.projects) { project in
                 Button {
-                    selectedWork = work
+                    selectedProject = project
                 } label: {
-                    workRow(work)
+                    projectRow(project)
                 }
             }
         }
     }
-    
-    private func workRow(_ work: Work) -> some View {
+
+    private func projectRow(_ project: Project) -> some View {
         HStack(spacing: 12) {
-            CachedThumbnail(work: work, transform: .small, size: CGSize(width: 60, height: 60))
+            CachedThumbnail(project: project, transform: .small, size: CGSize(width: 60, height: 60))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
-            
+
             VStack(alignment: .leading, spacing: 4) {
-                Text(work.displayTitle)
+                Text(project.displayTitle)
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
-                
+
                 HStack(spacing: 8) {
-                    Text("@\(work.creator?.handle ?? "unknown")")
+                    Text("@\(project.creator?.handle ?? "unknown")")
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
-                    
+
                     HStack(spacing: 2) {
                         Image(systemName: "heart.fill")
                             .font(.system(size: 10))
-                        Text(work.likeCount.formatted)
+                        Text(project.likeCount.formatted)
                             .font(.system(size: 11))
                     }
                     .foregroundStyle(.tertiary)
                 }
             }
-            
+
             Spacer()
-            
+
             Image(systemName: "chevron.right")
                 .font(.system(size: 12))
                 .foregroundStyle(.tertiary)

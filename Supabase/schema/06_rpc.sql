@@ -15,7 +15,7 @@ CREATE OR REPLACE FUNCTION get_feed_with_interactions(
     p_offset INTEGER DEFAULT 0
 )
 RETURNS TABLE (
-    -- Work fields
+    -- Project fields
     id UUID,
     user_id UUID,
     title TEXT,
@@ -24,7 +24,7 @@ RETURNS TABLE (
     css_content TEXT,
     js_content TEXT,
     thumbnail_url TEXT,
-    thumbnail_aspect_ratio REAL,  -- Must match works table type (REAL, not DOUBLE PRECISION)
+    thumbnail_aspect_ratio REAL,  -- Must match projects table type (REAL, not DOUBLE PRECISION)
     tags TEXT[],
     chat_messages JSONB,
     is_published BOOLEAN,
@@ -70,13 +70,13 @@ BEGIN
         -- Check if current user liked/collected (false if no user)
         COALESCE(
             p_user_id IS NOT NULL AND EXISTS(
-                SELECT 1 FROM likes l WHERE l.work_id = w.id AND l.user_id = p_user_id
+                SELECT 1 FROM likes l WHERE l.project_id = w.id AND l.user_id = p_user_id
             ),
             FALSE
         ) AS is_liked,
         COALESCE(
             p_user_id IS NOT NULL AND EXISTS(
-                SELECT 1 FROM collections c WHERE c.work_id = w.id AND c.user_id = p_user_id
+                SELECT 1 FROM collections c WHERE c.project_id = w.id AND c.user_id = p_user_id
             ),
             FALSE
         ) AS is_collected,
@@ -86,7 +86,7 @@ BEGIN
         u.display_name AS creator_display_name,
         u.avatar_url AS creator_avatar_url,
         u.bio AS creator_bio
-    FROM works w
+    FROM projects w
     LEFT JOIN users u ON u.id = w.user_id
     WHERE w.is_published = true
     ORDER BY w.created_at DESC
@@ -104,6 +104,6 @@ GRANT EXECUTE ON FUNCTION get_feed_with_interactions TO anon;
 -- ===================
 -- Add more client-callable functions here as needed:
 -- - get_user_profile_with_stats(user_id)
--- - search_works(query, tags, limit, offset)
--- - get_trending_works(time_range, limit)
+-- - search_projects(query, tags, limit, offset)
+-- - get_trending_projects(time_range, limit)
 

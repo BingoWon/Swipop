@@ -28,7 +28,6 @@ Podfile.lock
 
 # Project-specific
 Docs/
-References/
 
 # Environment files (contains secrets)
 .env

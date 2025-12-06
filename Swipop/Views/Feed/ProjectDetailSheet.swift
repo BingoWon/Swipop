@@ -1,18 +1,17 @@
 //
-//  WorkDetailSheet.swift
+//  ProjectDetailSheet.swift
 //  Swipop
 //
-//  Work details with creator info, stats, and source code
+//  Project details with creator info, stats, and source code
 //
 
-import SwiftUI
 import Auth
+import SwiftUI
 
-struct WorkDetailSheet: View {
-    
-    let work: Work
+struct ProjectDetailSheet: View {
+    let project: Project
     @Binding var showLogin: Bool
-    
+
     @Environment(\.dismiss) private var dismiss
     @State private var followState = FollowState()
     @State private var showComments = false
@@ -20,18 +19,18 @@ struct WorkDetailSheet: View {
     @State private var showCreatorProfile = false
     @State private var selectedLanguage: CodeLanguage = .html
     @State private var codeCopied = false
-    
+
     private let store = InteractionStore.shared
-    private var creator: Profile? { work.creator }
+    private var creator: Profile? { project.creator }
     private var isSelf: Bool { AuthService.shared.currentUser?.id == creator?.id }
-    
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     creatorSection
                     Divider().background(Color.border)
-                    workSection
+                    projectSection
                     Divider().background(Color.border)
                     actionsSection
                     Divider().background(Color.border)
@@ -40,7 +39,7 @@ struct WorkDetailSheet: View {
                 .padding(20)
             }
             .background(Color.appBackground)
-            .navigationTitle(work.displayTitle)
+            .navigationTitle(project.displayTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -64,15 +63,15 @@ struct WorkDetailSheet: View {
             await loadFollowState()
         }
         .sheet(isPresented: $showComments) {
-            CommentSheet(work: work, showLogin: $showLogin)
+            CommentSheet(project: project, showLogin: $showLogin)
         }
         .sheet(isPresented: $showShareSheet) {
-            ShareSheet(work: work)
+            ShareSheet(project: project)
         }
     }
-    
+
     // MARK: - Creator Section
-    
+
     private var creatorSection: some View {
         HStack(spacing: 12) {
             Button { showCreatorProfile = true } label: {
@@ -85,12 +84,12 @@ struct WorkDetailSheet: View {
                                 .font(.system(size: 22, weight: .bold))
                                 .foregroundStyle(.white)
                         )
-                    
+
                     VStack(alignment: .leading, spacing: 4) {
                         Text("@\(creator?.handle ?? "unknown")")
                             .font(.system(size: 17, weight: .semibold))
                             .foregroundStyle(.primary)
-                        
+
                         if let bio = creator?.bio, !bio.isEmpty {
                             Text(bio)
                                 .font(.system(size: 14))
@@ -101,10 +100,10 @@ struct WorkDetailSheet: View {
                 }
             }
             .buttonStyle(.plain)
-            
+
             Spacer()
-            
-            // Only show Follow button if not viewing own work
+
+            // Only show Follow button if not viewing own project
             if !isSelf {
                 Button {
                     requireLogin {
@@ -123,57 +122,57 @@ struct WorkDetailSheet: View {
             }
         }
     }
-    
-    private var workSection: some View {
+
+    private var projectSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(work.displayTitle)
+            Text(project.displayTitle)
                 .font(.system(size: 20, weight: .bold))
                 .foregroundStyle(.primary)
-            
-            if let description = work.description, !description.isEmpty {
+
+            if let description = project.description, !description.isEmpty {
                 Text(description)
                     .font(.system(size: 15))
                     .foregroundStyle(.secondary)
                     .lineSpacing(4)
             }
-            
-            Text(work.createdAt.timeAgo)
+
+            Text(project.createdAt.timeAgo)
                 .font(.system(size: 13))
                 .foregroundStyle(.tertiary)
                 .padding(.top, 4)
         }
     }
-    
+
     private var actionsSection: some View {
         HStack(spacing: 0) {
-            StatActionTile(icon: "eye", count: work.viewCount, tint: .primary)
-            
+            StatActionTile(icon: "eye", count: project.viewCount, tint: .primary)
+
             StatActionTile(
-                icon: store.isLiked(work.id) ? "heart.fill" : "heart",
-                count: store.likeCount(work.id),
-                tint: store.isLiked(work.id) ? .red : .primary
+                icon: store.isLiked(project.id) ? "heart.fill" : "heart",
+                count: store.likeCount(project.id),
+                tint: store.isLiked(project.id) ? .red : .primary
             ) {
-                requireLogin { Task { await store.toggleLike(workId: work.id) } }
+                requireLogin { Task { await store.toggleLike(projectId: project.id) } }
             }
-            
-            StatActionTile(icon: "bubble.right", count: work.commentCount, tint: .primary) {
+
+            StatActionTile(icon: "bubble.right", count: project.commentCount, tint: .primary) {
                 showComments = true
             }
-            
+
             StatActionTile(
-                icon: store.isCollected(work.id) ? "bookmark.fill" : "bookmark",
-                count: store.collectCount(work.id),
-                tint: store.isCollected(work.id) ? .yellow : .primary
+                icon: store.isCollected(project.id) ? "bookmark.fill" : "bookmark",
+                count: store.collectCount(project.id),
+                tint: store.isCollected(project.id) ? .yellow : .primary
             ) {
-                requireLogin { Task { await store.toggleCollect(workId: work.id) } }
+                requireLogin { Task { await store.toggleCollect(projectId: project.id) } }
             }
-            
-            StatActionTile(icon: "square.and.arrow.up", count: work.shareCount, tint: .primary) {
+
+            StatActionTile(icon: "square.and.arrow.up", count: project.shareCount, tint: .primary) {
                 showShareSheet = true
             }
         }
     }
-    
+
     private var sourceCodeSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Header with language picker and copy button
@@ -185,7 +184,7 @@ struct WorkDetailSheet: View {
                     }
                 }
                 .pickerStyle(.segmented)
-                
+
                 // Copy button (fixed width)
                 Button {
                     copyCode()
@@ -205,9 +204,9 @@ struct WorkDetailSheet: View {
                 .fixedSize()
                 .animation(.easeInOut(duration: 0.2), value: codeCopied)
             }
-            
+
             // Code view (2/3 screen height, no horizontal padding)
-            GeometryReader { geo in
+            GeometryReader { _ in
                 RunestoneCodeView(language: selectedLanguage, code: currentCode)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .overlay(
@@ -218,43 +217,43 @@ struct WorkDetailSheet: View {
             .frame(height: UIScreen.main.bounds.height * 2 / 3)
         }
         .padding(.horizontal, -20) // Extend to edge (counter parent padding)
-        .padding(.horizontal, 8)   // Add smaller edge padding
+        .padding(.horizontal, 8) // Add smaller edge padding
     }
-    
+
     private func copyCode() {
         UIPasteboard.general.string = currentCode
-        
+
         // Haptic feedback
         let generator = UIImpactFeedbackGenerator(style: .light)
         generator.impactOccurred()
-        
+
         // Show "Copied" state
         codeCopied = true
-        
+
         // Reset after 2 seconds
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             codeCopied = false
         }
     }
-    
+
     private var currentCode: String {
         switch selectedLanguage {
-        case .html: work.htmlContent ?? "<!-- No HTML content -->"
-        case .css: work.cssContent ?? "/* No CSS content */"
-        case .javascript: work.jsContent ?? "// No JavaScript content"
+        case .html: project.htmlContent ?? "<!-- No HTML content -->"
+        case .css: project.cssContent ?? "/* No CSS content */"
+        case .javascript: project.jsContent ?? "// No JavaScript content"
         }
     }
-    
+
     // MARK: - Actions
-    
+
     private func loadFollowState() async {
         guard let creatorId = creator?.id,
               let currentUserId = AuthService.shared.currentUser?.id,
               creatorId != currentUserId else { return }
-        
+
         followState.isLoading = true
         defer { followState.isLoading = false }
-        
+
         do {
             followState.isFollowing = try await UserService.shared.isFollowing(
                 followerId: currentUserId,
@@ -264,15 +263,15 @@ struct WorkDetailSheet: View {
             print("Failed to load follow state: \(error)")
         }
     }
-    
+
     private func toggleFollow() async {
         guard let creatorId = creator?.id,
               let currentUserId = AuthService.shared.currentUser?.id,
               creatorId != currentUserId else { return }
-        
+
         let wasFollowing = followState.isFollowing
         followState.isFollowing.toggle()
-        
+
         do {
             if followState.isFollowing {
                 try await UserService.shared.follow(followerId: currentUserId, followingId: creatorId)
@@ -284,7 +283,7 @@ struct WorkDetailSheet: View {
             print("Failed to toggle follow: \(error)")
         }
     }
-    
+
     private func requireLogin(action: @escaping () -> Void) {
         if AuthService.shared.isAuthenticated {
             action()
@@ -311,7 +310,7 @@ private struct StatActionTile: View {
     let count: Int
     var tint: Color = .primary
     var action: (() -> Void)?
-    
+
     var body: some View {
         Group {
             if let action {
@@ -322,7 +321,7 @@ private struct StatActionTile: View {
         }
         .frame(maxWidth: .infinity)
     }
-    
+
     private var content: some View {
         VStack(spacing: 4) {
             Image(systemName: icon)
@@ -336,5 +335,5 @@ private struct StatActionTile: View {
 }
 
 #Preview {
-    WorkDetailSheet(work: .sample, showLogin: .constant(false))
+    ProjectDetailSheet(project: .sample, showLogin: .constant(false))
 }

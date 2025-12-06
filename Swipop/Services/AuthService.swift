@@ -5,8 +5,8 @@
 //  Authentication service with Email, GitHub, Apple, and Google providers
 //
 
-import Foundation
 import AuthenticationServices
+import Foundation
 import GoogleSignIn
 import Supabase
 
@@ -21,34 +21,33 @@ enum SignUpResult {
 
 @Observable
 final class AuthService {
-    
     // MARK: - Singleton
-    
+
     static let shared = AuthService()
-    
+
     // MARK: - State
-    
+
     private(set) var currentUser: User?
     private(set) var isLoading = false
     private(set) var sessionChecked = false
-    
+
     var isAuthenticated: Bool { currentUser != nil }
-    
+
     // MARK: - Private
-    
+
     private let supabase = SupabaseService.shared.client
     private var sessionContinuation: CheckedContinuation<Void, Never>?
-    
+
     private init() {
         Task { await checkSession() }
     }
-    
+
     // MARK: - Session Management
-    
+
     /// Wait for initial session check to complete
     func waitForSession() async {
         if sessionChecked { return }
-        
+
         await withCheckedContinuation { continuation in
             if sessionChecked {
                 continuation.resume()
@@ -57,7 +56,7 @@ final class AuthService {
             }
         }
     }
-    
+
     func checkSession() async {
         print("[Auth] checkSession started")
         do {
@@ -71,111 +70,113 @@ final class AuthService {
             currentUser = nil
             print("[Auth] checkSession: no session")
         }
-        
+
         sessionChecked = true
         sessionContinuation?.resume()
         sessionContinuation = nil
         print("[Auth] checkSession completed")
     }
-    
+
     @MainActor
     private func preloadUserData() async {
         await CurrentUserProfile.shared.preload()
     }
-    
+
     // MARK: - Email Authentication
-    
+
     @discardableResult
     func signUp(email: String, password: String) async throws -> SignUpResult {
         isLoading = true
         defer { isLoading = false }
-        
+
         let response = try await supabase.auth.signUp(email: email, password: password)
-        
+
         if response.session != nil {
             currentUser = response.user
             await preloadUserData()
             return .success
         }
-        
+
         return .confirmationRequired(email: email)
     }
-    
+
     func signIn(email: String, password: String) async throws {
         isLoading = true
         defer { isLoading = false }
-        
+
         let session = try await supabase.auth.signIn(email: email, password: password)
         currentUser = session.user
         await preloadUserData()
     }
-    
+
     func resetPassword(email: String) async throws {
         try await supabase.auth.resetPasswordForEmail(email)
     }
-    
+
     // MARK: - GitHub OAuth
-    
+
     @MainActor
     func signInWithGitHub() async throws {
         isLoading = true
         defer { isLoading = false }
-        
+
         let url = try await supabase.auth.getOAuthSignInURL(
             provider: .github,
             redirectTo: SupabaseService.redirectURL
         )
-        
+
         _ = await UIApplication.shared.open(url)
     }
-    
+
     @MainActor
     func handleOAuthCallback(_ url: URL) async throws {
         isLoading = true
         defer { isLoading = false }
-        
+
         let session = try await supabase.auth.session(from: url)
         currentUser = session.user
         await preloadUserData()
     }
-    
+
     // MARK: - Apple Sign In
-    
+
     func signInWithApple(credential: ASAuthorizationAppleIDCredential) async throws {
         guard let identityToken = credential.identityToken,
-              let tokenString = String(data: identityToken, encoding: .utf8) else {
+              let tokenString = String(data: identityToken, encoding: .utf8)
+        else {
             throw AuthError.invalidCredential
         }
-        
+
         isLoading = true
         defer { isLoading = false }
-        
+
         let session = try await supabase.auth.signInWithIdToken(
             credentials: .init(provider: .apple, idToken: tokenString)
         )
-        
+
         currentUser = session.user
         await preloadUserData()
     }
-    
+
     // MARK: - Google Sign In
-    
+
     @MainActor
     func signInWithGoogle() async throws {
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let rootViewController = windowScene.windows.first?.rootViewController else {
+              let rootViewController = windowScene.windows.first?.rootViewController
+        else {
             throw AuthError.signInFailed
         }
-        
+
         isLoading = true
         defer { isLoading = false }
-        
+
         let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController)
-        
+
         guard let idToken = result.user.idToken?.tokenString else {
             throw AuthError.invalidCredential
         }
-        
+
         let session = try await supabase.auth.signInWithIdToken(
             credentials: .init(
                 provider: .google,
@@ -183,18 +184,18 @@ final class AuthService {
                 accessToken: result.user.accessToken.tokenString
             )
         )
-        
+
         currentUser = session.user
         await preloadUserData()
     }
-    
+
     // MARK: - Sign Out
-    
+
     @MainActor
     func signOut() async throws {
         isLoading = true
         defer { isLoading = false }
-        
+
         GIDSignIn.sharedInstance.signOut()
         try await supabase.auth.signOut()
         currentUser = nil
@@ -208,7 +209,7 @@ final class AuthService {
 enum AuthError: LocalizedError {
     case invalidCredential
     case signInFailed
-    
+
     var errorDescription: String? {
         switch self {
         case .invalidCredential: return "Invalid authentication credential"

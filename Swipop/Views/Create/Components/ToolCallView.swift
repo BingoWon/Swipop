@@ -6,25 +6,25 @@ import SwiftUI
 
 struct ToolCallView: View {
     let toolCall: ChatMessage.ToolCallSegment
-    
+
     private let iconWidth: CGFloat = 16
-    
+
     @State private var isExpanded = false
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
-            
+
             if isExpanded && !toolCall.arguments.isEmpty {
                 Divider()
                     .background(Color.border)
-                
+
                 argumentsContent
-                
+
                 if let result = toolCall.result {
                     Divider()
                         .background(Color.border)
-                    
+
                     resultContent(result)
                 }
             }
@@ -36,7 +36,7 @@ struct ToolCallView: View {
                 .stroke(toolCall.isStreaming ? Color.orange.opacity(0.4) : Color.green.opacity(0.3), lineWidth: 1)
         )
     }
-    
+
     private var header: some View {
         HStack(spacing: 8) {
             // Fixed-width icon container
@@ -45,18 +45,18 @@ struct ToolCallView: View {
                 .foregroundStyle(toolCall.isStreaming ? .orange : .green)
                 .symbolEffect(.pulse, options: .repeating, isActive: toolCall.isStreaming)
                 .frame(width: iconWidth)
-            
+
             // Status text - consistent layout for both states
             Text(toolCall.isStreaming ? "Calling \(displayName)..." : "Called \(displayName)")
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.primary.opacity(0.9))
-            
+
             // Always reserve space for ProgressView to maintain consistent height
             ProgressView()
                 .scaleEffect(0.6)
                 .tint(.orange)
                 .opacity(toolCall.isStreaming ? 1 : 0)
-            
+
             if !toolCall.arguments.isEmpty {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 10, weight: .bold))
@@ -74,13 +74,13 @@ struct ToolCallView: View {
             }
         }
     }
-    
+
     private var argumentsContent: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(toolCall.isStreaming ? "Arguments (streaming...)" : "Arguments")
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.secondary)
-            
+
             ScrollView {
                 Text(toolCall.arguments)
                     .font(.system(size: 12, design: .monospaced))
@@ -92,13 +92,13 @@ struct ToolCallView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
     }
-    
+
     private func resultContent(_ result: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Result")
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.secondary)
-            
+
             Text(result)
                 .font(.system(size: 12, design: .monospaced))
                 .foregroundStyle(.green)
@@ -106,7 +106,7 @@ struct ToolCallView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
     }
-    
+
     private var iconForTool: String {
         if toolCall.name.contains("html") { return "chevron.left.forwardslash.chevron.right" }
         if toolCall.name.contains("css") { return "paintbrush" }
@@ -114,7 +114,7 @@ struct ToolCallView: View {
         if toolCall.name.contains("metadata") { return "text.badge.star" }
         return "wrench"
     }
-    
+
     private var displayName: String {
         toolCall.name
     }

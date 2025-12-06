@@ -10,11 +10,11 @@ import Supabase
 
 final class SupabaseService {
     static let shared = SupabaseService()
-    
+
     static let redirectURL = URL(string: "swipop://auth/callback")!
-    
+
     let client: SupabaseClient
-    
+
     private init() {
         client = SupabaseClient(
             supabaseURL: Secrets.supabaseURL,

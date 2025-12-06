@@ -3,19 +3,19 @@
 //  Swipop
 //
 
-import SwiftUI
 import Auth
+import SwiftUI
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppearanceSettings.self) private var appearance
     @State private var showLogoutConfirm = false
-    
+
     private let auth = AuthService.shared
-    
+
     var body: some View {
         @Bindable var appearance = appearance
-        
+
         NavigationStack {
             List {
                 // Appearance
@@ -32,7 +32,7 @@ struct SettingsView: View {
                 } header: {
                     Label("Appearance", systemImage: "paintbrush.pointed")
                 }
-                
+
                 // Account
                 Section {
                     NavigationLink {
@@ -41,14 +41,14 @@ struct SettingsView: View {
                         Label("Account Settings", systemImage: "person.circle")
                     }
                     .listRowBackground(Color.tertiaryBackground.opacity(0.8))
-                    
+
                     NavigationLink {
                         NotificationSettingsView()
                     } label: {
                         Label("Notifications", systemImage: "bell")
                     }
                     .listRowBackground(Color.tertiaryBackground.opacity(0.8))
-                    
+
                     NavigationLink {
                         PrivacySettingsView()
                     } label: {
@@ -58,7 +58,7 @@ struct SettingsView: View {
                 } header: {
                     Label("Account", systemImage: "person")
                 }
-                
+
                 // About
                 Section {
                     NavigationLink {
@@ -67,7 +67,7 @@ struct SettingsView: View {
                         Label("About Swipop", systemImage: "info.circle")
                     }
                     .listRowBackground(Color.tertiaryBackground.opacity(0.8))
-                    
+
                     Link(destination: URL(string: "https://swipop.app/terms")!) {
                         HStack {
                             Label("Terms of Service", systemImage: "doc.text")
@@ -78,7 +78,7 @@ struct SettingsView: View {
                         }
                     }
                     .listRowBackground(Color.tertiaryBackground.opacity(0.8))
-                    
+
                     Link(destination: URL(string: "https://swipop.app/privacy")!) {
                         HStack {
                             Label("Privacy Policy", systemImage: "hand.raised")
@@ -92,7 +92,7 @@ struct SettingsView: View {
                 } header: {
                     Label("About", systemImage: "info.circle")
                 }
-                
+
                 // Sign Out
                 Section {
                     Button(role: .destructive) {
@@ -165,7 +165,7 @@ struct NotificationSettingsView: View {
     @State private var likesEnabled = true
     @State private var commentsEnabled = true
     @State private var followsEnabled = true
-    
+
     var body: some View {
         List {
             Section {
@@ -189,7 +189,7 @@ struct NotificationSettingsView: View {
 
 struct PrivacySettingsView: View {
     @State private var privateAccount = false
-    
+
     var body: some View {
         List {
             Section {
@@ -198,7 +198,7 @@ struct PrivacySettingsView: View {
             } header: {
                 Label("Account Visibility", systemImage: "eye")
             } footer: {
-                Text("When enabled, only approved followers can see your works.")
+                Text("When enabled, only approved followers can see your projects.")
             }
         }
         .scrollContentBackground(.hidden)
@@ -220,7 +220,7 @@ struct AboutView: View {
                         .foregroundStyle(.secondary)
                 }
                 .listRowBackground(Color.tertiaryBackground.opacity(0.8))
-                
+
                 HStack {
                     Text("Build")
                     Spacer()
@@ -231,9 +231,9 @@ struct AboutView: View {
             } header: {
                 Label("App Info", systemImage: "app.badge")
             }
-            
+
             Section {
-                Text("Swipop is a platform for discovering and sharing creative frontend works. Built with SwiftUI and Supabase.")
+                Text("Swipop is a platform for discovering and sharing creative frontend projects. Built with SwiftUI and Supabase.")
                     .foregroundStyle(.secondary)
                     .listRowBackground(Color.tertiaryBackground.opacity(0.8))
             }

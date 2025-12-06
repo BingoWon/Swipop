@@ -3,39 +3,38 @@
 //  Swipop
 //
 
-import SwiftUI
 import Auth
+import SwiftUI
 
 struct ProfileView: View {
-    
     @Binding var showLogin: Bool
-    let editWork: (Work) -> Void
+    let editProject: (Project) -> Void
     private let auth = AuthService.shared
-    
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.appBackground.ignoresSafeArea()
-                
+
                 if auth.isAuthenticated {
-                    ProfileContentView(showLogin: $showLogin, editWork: editWork)
+                    ProfileContentView(showLogin: $showLogin, editProject: editProject)
                 } else {
                     signInPrompt
                 }
             }
         }
     }
-    
+
     private var signInPrompt: some View {
         VStack(spacing: 24) {
             Image(systemName: "person.circle")
                 .font(.system(size: 64))
                 .foregroundStyle(.secondary)
-            
+
             Text("Sign in to see your profile")
                 .font(.title3)
                 .foregroundStyle(.primary)
-            
+
             Button {
                 showLogin = true
             } label: {
@@ -54,31 +53,30 @@ struct ProfileView: View {
 // MARK: - Profile Content View (Current User)
 
 struct ProfileContentView: View {
-    
     @Binding var showLogin: Bool
-    let editWork: (Work) -> Void
-    
+    let editProject: (Project) -> Void
+
     private var userProfile: CurrentUserProfile { CurrentUserProfile.shared }
     @State private var selectedTab = 0
     @State private var dragOffset: CGFloat = 0
     @State private var showSettings = false
     @State private var showEditProfile = false
-    
+
     private let tabCount = 3
-    
-    private func itemsForTab(_ tab: Int) -> [Work] {
+
+    private func itemsForTab(_ tab: Int) -> [Project] {
         switch tab {
-        case 1: return userProfile.likedWorks
-        case 2: return userProfile.collectedWorks
-        default: return userProfile.works
+        case 1: return userProfile.likedProjects
+        case 2: return userProfile.collectedProjects
+        default: return userProfile.projects
         }
     }
-    
+
     var body: some View {
         GeometryReader { geometry in
             let columnWidth = max((geometry.size.width - 8) / 3, 1)
             let screenWidth = geometry.size.width
-            
+
             ScrollView {
                 VStack(spacing: 8) {
                     ProfileHeaderView(
@@ -86,17 +84,17 @@ struct ProfileContentView: View {
                         showEditButton: true,
                         onEditTapped: { showEditProfile = true }
                     )
-                    
+
                     ProfileStatsRow(
-                        workCount: userProfile.workCount,
+                        projectCount: userProfile.projectCount,
                         likeCount: userProfile.likeCount,
                         followerCount: userProfile.followerCount,
                         followingCount: userProfile.followingCount
                     )
-                    
+
                     contentTabs
                         .padding(.top, 8)
-                    
+
                     // Swipeable grid container
                     swipeableGrids(columnWidth: columnWidth, screenWidth: screenWidth)
                 }
@@ -110,12 +108,12 @@ struct ProfileContentView: View {
         .sheet(isPresented: $showSettings) { SettingsView() }
         .sheet(isPresented: $showEditProfile) { EditProfileView(profile: userProfile.profile) }
     }
-    
+
     // MARK: - Swipeable Grids (Lazy: renders current ±1 tabs only)
-    
+
     private func swipeableGrids(columnWidth: CGFloat, screenWidth: CGFloat) -> some View {
         HStack(spacing: 0) {
-            ForEach(0..<tabCount, id: \.self) { tab in
+            ForEach(0 ..< tabCount, id: \.self) { tab in
                 // Only render current tab and adjacent tabs for performance
                 if abs(tab - selectedTab) <= 1 {
                     gridContent(tab: tab, columnWidth: columnWidth)
@@ -141,22 +139,22 @@ struct ProfileContentView: View {
                 .onEnded { value in
                     let horizontal = abs(value.translation.width)
                     let vertical = abs(value.translation.height)
-                    
+
                     // Only switch tabs for horizontal swipes
                     guard horizontal > vertical else {
                         withAnimation(.tabSwitch) { dragOffset = 0 }
                         return
                     }
-                    
+
                     let threshold = screenWidth * 0.25
                     var newTab = selectedTab
-                    
-                    if value.translation.width < -threshold && selectedTab < tabCount - 1 {
+
+                    if value.translation.width < -threshold, selectedTab < tabCount - 1 {
                         newTab = selectedTab + 1
-                    } else if value.translation.width > threshold && selectedTab > 0 {
+                    } else if value.translation.width > threshold, selectedTab > 0 {
                         newTab = selectedTab - 1
                     }
-                    
+
                     withAnimation(.tabSwitch) {
                         selectedTab = newTab
                         dragOffset = 0
@@ -165,9 +163,9 @@ struct ProfileContentView: View {
         )
         .animation(.tabSwitch, value: selectedTab)
     }
-    
+
     // MARK: - Toolbar
-    
+
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
@@ -177,9 +175,9 @@ struct ProfileContentView: View {
             }
         }
     }
-    
+
     // MARK: - Content Tabs
-    
+
     private var contentTabs: some View {
         HStack(spacing: 0) {
             ProfileTabButton(icon: "square.grid.2x2", isSelected: selectedTab == 0) {
@@ -194,46 +192,46 @@ struct ProfileContentView: View {
         }
         .padding(.horizontal, 16)
     }
-    
+
     // MARK: - Grid Content
-    
+
     @ViewBuilder
     private func gridContent(tab: Int, columnWidth: CGFloat) -> some View {
         let items = itemsForTab(tab)
         let showDraft = tab == 0
-        
+
         if items.isEmpty {
             emptyState(for: tab)
         } else {
-            MasonryGrid(works: items, columnWidth: columnWidth, columns: 3, spacing: 2) { work in
-                ProfileWorkCell(work: work, columnWidth: columnWidth, showDraftBadge: showDraft && !work.isPublished)
-                    .onTapGesture { editWork(work) }
+            MasonryGrid(projects: items, columnWidth: columnWidth, columns: 3, spacing: 2) { project in
+                ProfileProjectCell(project: project, columnWidth: columnWidth, showDraftBadge: showDraft && !project.isPublished)
+                    .onTapGesture { editProject(project) }
             }
             .padding(.top, 2)
         }
     }
-    
+
     private func emptyState(for tab: Int) -> some View {
         let icon: String
         let message: String
-        
+
         switch tab {
         case 1:
             icon = "heart"
-            message = "No liked works yet"
+            message = "No liked projects yet"
         case 2:
             icon = "bookmark"
-            message = "No saved works yet"
+            message = "No saved projects yet"
         default:
             icon = "square.grid.2x2"
-            message = "No works created yet"
+            message = "No projects created yet"
         }
-        
+
         return VStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.system(size: 40))
                 .foregroundStyle(.tertiary)
-            
+
             Text(message)
                 .font(.system(size: 14))
                 .foregroundStyle(.secondary)
@@ -243,23 +241,23 @@ struct ProfileContentView: View {
     }
 }
 
-// MARK: - Profile Work Cell (Cover only, minimal)
+// MARK: - Profile Project Cell (Cover only, minimal)
 
-struct ProfileWorkCell: View {
-    let work: Work
+struct ProfileProjectCell: View {
+    let project: Project
     let columnWidth: CGFloat
     var showDraftBadge = false
-    
+
     private var imageHeight: CGFloat {
-        let ratio = max(work.thumbnailAspectRatio ?? 0.75, 0.1)
+        let ratio = max(project.thumbnailAspectRatio ?? 0.75, 0.1)
         return max(columnWidth / ratio, 1)
     }
-    
+
     var body: some View {
         ZStack(alignment: .topTrailing) {
             coverImage
                 .clipShape(RoundedRectangle(cornerRadius: 4))
-            
+
             if showDraftBadge {
                 Text("Draft")
                     .font(.system(size: 8, weight: .semibold))
@@ -272,12 +270,12 @@ struct ProfileWorkCell: View {
             }
         }
     }
-    
+
     private var coverImage: some View {
-        CachedThumbnail(work: work, transform: .small, size: CGSize(width: columnWidth, height: imageHeight))
+        CachedThumbnail(project: project, transform: .small, size: CGSize(width: columnWidth, height: imageHeight))
     }
 }
 
 #Preview {
-    ProfileView(showLogin: .constant(false), editWork: { _ in })
+    ProfileView(showLogin: .constant(false), editProject: { _ in })
 }

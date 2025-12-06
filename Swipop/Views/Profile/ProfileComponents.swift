@@ -14,7 +14,7 @@ struct ProfileHeaderView: View {
     var isLoading = false
     var showEditButton = false
     var onEditTapped: (() -> Void)?
-    
+
     var body: some View {
         VStack(spacing: 16) {
             // Avatar + Name + Handle row
@@ -29,23 +29,23 @@ struct ProfileHeaderView: View {
                             .foregroundStyle(.white)
                     )
                     .redacted(reason: isLoading ? .placeholder : [])
-                
+
                 // Name + Handle
                 VStack(alignment: .leading, spacing: 4) {
                     Text(profile?.name ?? "User")
                         .font(.system(size: 20, weight: .bold))
                         .foregroundStyle(.primary)
                         .lineLimit(1)
-                    
+
                     Text("@\(profile?.handle ?? "user")")
                         .font(.system(size: 14))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
                 .redacted(reason: isLoading ? .placeholder : [])
-                
+
                 Spacer()
-                
+
                 // Edit button (optional)
                 if showEditButton {
                     Button {
@@ -62,7 +62,7 @@ struct ProfileHeaderView: View {
                     .buttonStyle(.plain)
                 }
             }
-            
+
             // Bio
             if let bio = profile?.bio, !bio.isEmpty {
                 Text(bio)
@@ -72,7 +72,7 @@ struct ProfileHeaderView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .lineLimit(3)
             }
-            
+
             // Links
             if let links = profile?.links, !links.isEmpty {
                 linksView(links)
@@ -82,7 +82,7 @@ struct ProfileHeaderView: View {
         .padding(.top, 16)
         .padding(.bottom, 8)
     }
-    
+
     @ViewBuilder
     private func linksView(_ links: [ProfileLink]) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -99,7 +99,7 @@ struct ProfileHeaderView: View {
 
 private struct LinkChip: View {
     let link: ProfileLink
-    
+
     var body: some View {
         Link(destination: URL(string: link.url) ?? URL(string: "https://swipop.app")!) {
             HStack(spacing: 6) {
@@ -115,7 +115,7 @@ private struct LinkChip: View {
             .clipShape(Capsule())
         }
     }
-    
+
     private func iconForLink(_ link: ProfileLink) -> String {
         let lowercased = link.url.lowercased()
         if lowercased.contains("github") { return "link" }
@@ -130,32 +130,32 @@ private struct LinkChip: View {
 // MARK: - Compact Stats Row
 
 struct ProfileStatsRow: View {
-    let workCount: Int
+    let projectCount: Int
     let likeCount: Int
     let followerCount: Int
     let followingCount: Int
     var isLoading = false
-    
+
     var body: some View {
         HStack(spacing: 0) {
-            statItem(value: workCount, label: "Works")
-            
+            statItem(value: projectCount, label: "Projects")
+
             Divider()
                 .frame(height: 24)
                 .overlay(Color.border)
-            
+
             statItem(value: followerCount, label: "Followers")
-            
+
             Divider()
                 .frame(height: 24)
                 .overlay(Color.border)
-            
+
             statItem(value: followingCount, label: "Following")
-            
+
             Divider()
                 .frame(height: 24)
                 .overlay(Color.border)
-            
+
             statItem(value: likeCount, label: "Likes")
         }
         .padding(.vertical, 12)
@@ -164,7 +164,7 @@ struct ProfileStatsRow: View {
         .padding(.horizontal, 16)
         .redacted(reason: isLoading ? .placeholder : [])
     }
-    
+
     private func statItem(value: Int, label: String) -> some View {
         VStack(spacing: 2) {
             Text(value.formatted)
@@ -184,14 +184,14 @@ struct ProfileTabButton: View {
     let icon: String
     let isSelected: Bool
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             VStack(spacing: 8) {
                 Image(systemName: isSelected ? "\(icon).fill" : icon)
                     .font(.system(size: 18))
                     .foregroundStyle(isSelected ? .primary : .tertiary)
-                
+
                 Rectangle()
                     .fill(isSelected ? Color.primary : Color.clear)
                     .frame(height: 2)
@@ -201,4 +201,3 @@ struct ProfileTabButton: View {
         .buttonStyle(.plain)
     }
 }
-

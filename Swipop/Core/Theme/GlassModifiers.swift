@@ -11,11 +11,11 @@ import SwiftUI
 
 struct GlassBackgroundModifier: ViewModifier {
     var shape: GlassShape = .capsule
-    
+
     enum GlassShape {
         case capsule, roundedRect(cornerRadius: CGFloat)
     }
-    
+
     func body(content: Content) -> some View {
         if #available(iOS 26.0, *) {
             content.modifier(LiquidGlassBackground(shape: shape))
@@ -28,12 +28,12 @@ struct GlassBackgroundModifier: ViewModifier {
 @available(iOS 26.0, *)
 private struct LiquidGlassBackground: ViewModifier {
     let shape: GlassBackgroundModifier.GlassShape
-    
+
     func body(content: Content) -> some View {
         switch shape {
         case .capsule:
             content.background(Capsule().fill(.clear).glassEffect())
-        case .roundedRect(let radius):
+        case let .roundedRect(radius):
             content.background(RoundedRectangle(cornerRadius: radius).fill(.clear).glassEffect())
         }
     }
@@ -41,7 +41,7 @@ private struct LiquidGlassBackground: ViewModifier {
 
 private struct MaterialGlassBackground: ViewModifier {
     let shape: GlassBackgroundModifier.GlassShape
-    
+
     func body(content: Content) -> some View {
         switch shape {
         case .capsule:
@@ -52,7 +52,7 @@ private struct MaterialGlassBackground: ViewModifier {
                         .overlay(Capsule().strokeBorder(Color.white.opacity(0.2), lineWidth: 0.5))
                 )
                 .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: 4)
-        case .roundedRect(let radius):
+        case let .roundedRect(radius):
             content
                 .background(
                     RoundedRectangle(cornerRadius: radius)
@@ -87,7 +87,7 @@ extension View {
     func glassBackground(shape: GlassBackgroundModifier.GlassShape = .capsule) -> some View {
         modifier(GlassBackgroundModifier(shape: shape))
     }
-    
+
     /// Apply glass sheet background (System Liquid Glass on iOS 26, Material on iOS 18)
     func glassSheetBackground() -> some View {
         modifier(GlassSheetModifier())

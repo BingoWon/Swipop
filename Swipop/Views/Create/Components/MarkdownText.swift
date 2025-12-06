@@ -10,7 +10,7 @@ import SwiftUI
 struct MarkdownText: View {
     let content: String
     @Environment(\.colorScheme) private var colorScheme
-    
+
     var body: some View {
         if content.isEmpty {
             Text("...")
@@ -20,7 +20,7 @@ struct MarkdownText: View {
                 .textSelection(.enabled)
         }
     }
-    
+
     private var attributedContent: AttributedString {
         // Try to parse as Markdown, fallback to plain text
         do {
@@ -29,11 +29,11 @@ struct MarkdownText: View {
                 interpretedSyntax: .inlineOnlyPreservingWhitespace,
                 failurePolicy: .returnPartiallyParsedIfPossible
             ))
-            
+
             // Apply base styling
             attributed.foregroundColor = colorScheme == .dark ? .white : .black
             attributed.font = .system(size: 15)
-            
+
             // Style inline code
             for run in attributed.runs {
                 if run.inlinePresentationIntent?.contains(.code) == true {
@@ -42,7 +42,7 @@ struct MarkdownText: View {
                     attributed[range].backgroundColor = colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1)
                 }
             }
-            
+
             return attributed
         } catch {
             // Fallback to plain text
@@ -59,7 +59,7 @@ struct MarkdownText: View {
 struct CodeBlockView: View {
     let code: String
     let language: String?
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header with language label
@@ -81,7 +81,7 @@ struct CodeBlockView: View {
                 .padding(.vertical, 8)
                 .background(Color.secondaryBackground.opacity(0.5))
             }
-            
+
             // Code content
             ScrollView(.horizontal, showsIndicators: false) {
                 Text(code)
@@ -104,46 +104,46 @@ struct CodeBlockView: View {
 
 struct RichMessageContent: View {
     let content: String
-    
+
     var body: some View {
         let blocks = parseContentBlocks(content)
-        
+
         VStack(alignment: .leading, spacing: 8) {
             ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
                 switch block {
-                case .text(let text):
+                case let .text(text):
                     MarkdownText(content: text)
-                case .code(let code, let language):
+                case let .code(code, language):
                     CodeBlockView(code: code, language: language)
                 }
             }
         }
     }
-    
+
     // MARK: - Parsing
-    
+
     private enum ContentBlock {
         case text(String)
         case code(String, language: String?)
     }
-    
+
     private func parseContentBlocks(_ content: String) -> [ContentBlock] {
         var blocks: [ContentBlock] = []
         var remaining = content
-        
+
         // Regex to match code blocks: ```language\ncode\n```
         let codeBlockPattern = #"```(\w*)\n?([\s\S]*?)```"#
-        
+
         guard let regex = try? NSRegularExpression(pattern: codeBlockPattern) else {
             return [.text(content)]
         }
-        
+
         var lastEnd = 0
         let nsString = remaining as NSString
-        
+
         regex.enumerateMatches(in: remaining, range: NSRange(location: 0, length: nsString.length)) { match, _, _ in
             guard let match else { return }
-            
+
             // Text before code block
             if match.range.location > lastEnd {
                 let textRange = NSRange(location: lastEnd, length: match.range.location - lastEnd)
@@ -152,7 +152,7 @@ struct RichMessageContent: View {
                     blocks.append(.text(text))
                 }
             }
-            
+
             // Code block
             let language = match.range(at: 1).location != NSNotFound
                 ? nsString.substring(with: match.range(at: 1))
@@ -160,14 +160,14 @@ struct RichMessageContent: View {
             let code = match.range(at: 2).location != NSNotFound
                 ? nsString.substring(with: match.range(at: 2)).trimmingCharacters(in: .whitespacesAndNewlines)
                 : ""
-            
+
             if !code.isEmpty {
                 blocks.append(.code(code, language: language?.isEmpty == true ? nil : language))
             }
-            
+
             lastEnd = match.range.location + match.range.length
         }
-        
+
         // Remaining text after last code block
         if lastEnd < nsString.length {
             let text = nsString.substring(from: lastEnd).trimmingCharacters(in: .whitespacesAndNewlines)
@@ -175,12 +175,12 @@ struct RichMessageContent: View {
                 blocks.append(.text(text))
             }
         }
-        
+
         // If no blocks found, return the whole content as text
         if blocks.isEmpty {
             blocks.append(.text(content))
         }
-        
+
         return blocks
     }
 }

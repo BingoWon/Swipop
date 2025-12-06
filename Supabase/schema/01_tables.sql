@@ -19,10 +19,10 @@ CREATE TABLE IF NOT EXISTS public.users (
 );
 
 -- ===================
--- WORKS
+-- PROJECTS
 -- ===================
 -- Frontend creations (HTML/CSS/JS)
-CREATE TABLE IF NOT EXISTS public.works (
+CREATE TABLE IF NOT EXISTS public.projects (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     title TEXT DEFAULT '',
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS public.works (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-COMMENT ON COLUMN public.works.thumbnail_aspect_ratio IS 'Thumbnail image aspect ratio (width/height). Range: 0.75 to 1.33';
+COMMENT ON COLUMN public.projects.thumbnail_aspect_ratio IS 'Thumbnail image aspect ratio (width/height). Range: 0.75 to 1.33';
 
 -- ===================
 -- LIKES
@@ -52,9 +52,9 @@ COMMENT ON COLUMN public.works.thumbnail_aspect_ratio IS 'Thumbnail image aspect
 CREATE TABLE IF NOT EXISTS public.likes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-    work_id UUID NOT NULL REFERENCES public.works(id) ON DELETE CASCADE,
+    project_id UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(user_id, work_id)
+    UNIQUE(user_id, project_id)
 );
 
 -- ===================
@@ -63,9 +63,9 @@ CREATE TABLE IF NOT EXISTS public.likes (
 CREATE TABLE IF NOT EXISTS public.collections (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-    work_id UUID NOT NULL REFERENCES public.works(id) ON DELETE CASCADE,
+    project_id UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(user_id, work_id)
+    UNIQUE(user_id, project_id)
 );
 
 -- ===================
@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS public.collections (
 CREATE TABLE IF NOT EXISTS public.comments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-    work_id UUID NOT NULL REFERENCES public.works(id) ON DELETE CASCADE,
+    project_id UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
     content TEXT NOT NULL,
     parent_id UUID REFERENCES public.comments(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS public.activities (
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,   -- Recipient
     actor_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,  -- Who triggered
     type TEXT NOT NULL CHECK (type IN ('like', 'comment', 'follow', 'collect')),
-    work_id UUID REFERENCES public.works(id) ON DELETE CASCADE,
+    project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE,
     comment_id UUID REFERENCES public.comments(id) ON DELETE CASCADE,
     is_read BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW()
@@ -133,21 +133,21 @@ CREATE TABLE IF NOT EXISTS public.chat_sessions (
 -- INDEXES
 -- ===================
 
--- Works
-CREATE INDEX IF NOT EXISTS idx_works_user_id ON public.works(user_id);
-CREATE INDEX IF NOT EXISTS idx_works_is_published ON public.works(is_published);
-CREATE INDEX IF NOT EXISTS idx_works_created_at ON public.works(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_works_tags ON public.works USING GIN(tags);
+-- Projects
+CREATE INDEX IF NOT EXISTS idx_projects_user_id ON public.projects(user_id);
+CREATE INDEX IF NOT EXISTS idx_projects_is_published ON public.projects(is_published);
+CREATE INDEX IF NOT EXISTS idx_projects_created_at ON public.projects(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_projects_tags ON public.projects USING GIN(tags);
 
 -- Likes
-CREATE INDEX IF NOT EXISTS idx_likes_work_id ON public.likes(work_id);
+CREATE INDEX IF NOT EXISTS idx_likes_project_id ON public.likes(project_id);
 CREATE INDEX IF NOT EXISTS idx_likes_user_id ON public.likes(user_id);
 
 -- Collections
 CREATE INDEX IF NOT EXISTS idx_collections_user_id ON public.collections(user_id);
 
 -- Comments
-CREATE INDEX IF NOT EXISTS idx_comments_work_id ON public.comments(work_id);
+CREATE INDEX IF NOT EXISTS idx_comments_project_id ON public.comments(project_id);
 
 -- Follows
 CREATE INDEX IF NOT EXISTS idx_follows_follower_id ON public.follows(follower_id);

@@ -11,43 +11,43 @@ struct ChatMessage: Identifiable {
     var segments: [Segment] = []
     var isStreaming = false
     let timestamp = Date()
-    
+
     enum Role: String {
         case user
         case assistant
         case error
         case system
     }
-    
+
     /// A segment of an assistant message - can be thinking, tool call, or content
     enum Segment: Identifiable {
         case thinking(ThinkingSegment)
         case toolCall(ToolCallSegment)
         case content(String)
-        
+
         var id: UUID {
             switch self {
-            case .thinking(let info): info.id
-            case .toolCall(let info): info.id
+            case let .thinking(info): info.id
+            case let .toolCall(info): info.id
             case .content: UUID()
             }
         }
     }
-    
+
     struct ThinkingSegment: Identifiable {
         let id = UUID()
         var text: String = ""
         var startTime: Date?
         var endTime: Date?
         var isActive: Bool = true
-        
+
         var duration: Int? {
             guard let start = startTime else { return nil }
             let end = endTime ?? Date()
             return Int(end.timeIntervalSince(start))
         }
     }
-    
+
     struct ToolCallSegment: Identifiable {
         let id: UUID
         let callId: String
@@ -55,48 +55,48 @@ struct ChatMessage: Identifiable {
         var arguments: String
         var result: String?
         var isStreaming: Bool
-        
+
         init(callId: String, name: String, arguments: String = "", isStreaming: Bool = false) {
-            self.id = UUID()
+            id = UUID()
             self.callId = callId
             self.name = name
             self.arguments = arguments
             self.isStreaming = isStreaming
         }
     }
-    
+
     // MARK: - Convenience
-    
+
     static func user(_ content: String) -> ChatMessage {
         var msg = ChatMessage(role: .user)
         msg.segments = [.content(content)]
         return msg
     }
-    
+
     static func error(_ content: String) -> ChatMessage {
         var msg = ChatMessage(role: .error)
         msg.segments = [.content(content)]
         return msg
     }
-    
+
     static func system(_ content: String) -> ChatMessage {
         var msg = ChatMessage(role: .system)
         msg.segments = [.content(content)]
         return msg
     }
-    
+
     var userContent: String {
         guard role == .user else { return "" }
         for segment in segments {
-            if case .content(let text) = segment { return text }
+            if case let .content(text) = segment { return text }
         }
         return ""
     }
-    
+
     var errorContent: String {
         guard role == .error else { return "" }
         for segment in segments {
-            if case .content(let text) = segment { return text }
+            if case let .content(text) = segment { return text }
         }
         return ""
     }

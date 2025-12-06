@@ -6,7 +6,7 @@
 
 | 术语 | 说明 |
 |-----|------|
-| 作品 (Work) | 用户创作的前端页面，由 HTML/CSS/JS 组成 |
+| 作品 (Project) | 用户创作的前端页面，由 HTML/CSS/JS 组成 |
 | 氛围编程 (Vibe Coding) | 通过 AI 辅助，用自然语言描述来生成代码的编程方式 |
 | 三件套 | HTML + CSS + JavaScript，前端开发的基础技术栈 |
 

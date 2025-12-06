@@ -1,13 +1,13 @@
 //
-//  Work.swift
+//  Project.swift
 //  Swipop
 //
-//  Work model representing a frontend creation
+//  Project model representing a frontend creation
 //
 
 import Foundation
 
-struct Work: Identifiable, Equatable, Hashable {
+struct Project: Identifiable, Equatable, Hashable {
     let id: UUID
     let userId: UUID
     var title: String
@@ -16,7 +16,7 @@ struct Work: Identifiable, Equatable, Hashable {
     var cssContent: String?
     var jsContent: String?
     var thumbnailUrl: String?
-    var thumbnailAspectRatio: CGFloat?  // width / height, range: 0.75 ~ 1.33
+    var thumbnailAspectRatio: CGFloat? // width / height, range: 0.75 ~ 1.33
     var tags: [String]?
     var chatMessages: [[String: Any]]?
     var isPublished: Bool
@@ -27,33 +27,33 @@ struct Work: Identifiable, Equatable, Hashable {
     var shareCount: Int
     let createdAt: Date
     var updatedAt: Date
-    
+
     /// Associated creator profile (loaded via join)
     var creator: Profile?
-    
+
     /// Current user's interaction state (from RPC, nil if not fetched)
     var isLikedByCurrentUser: Bool?
     var isCollectedByCurrentUser: Bool?
-    
+
     // MARK: - Equatable (exclude chatMessages which contains Any)
-    
-    static func == (lhs: Work, rhs: Work) -> Bool {
+
+    static func == (lhs: Project, rhs: Project) -> Bool {
         lhs.id == rhs.id &&
-        lhs.userId == rhs.userId &&
-        lhs.title == rhs.title &&
-        lhs.description == rhs.description &&
-        lhs.htmlContent == rhs.htmlContent &&
-        lhs.cssContent == rhs.cssContent &&
-        lhs.jsContent == rhs.jsContent &&
-        lhs.isPublished == rhs.isPublished
+            lhs.userId == rhs.userId &&
+            lhs.title == rhs.title &&
+            lhs.description == rhs.description &&
+            lhs.htmlContent == rhs.htmlContent &&
+            lhs.cssContent == rhs.cssContent &&
+            lhs.jsContent == rhs.jsContent &&
+            lhs.isPublished == rhs.isPublished
     }
-    
+
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
-    
+
     // MARK: - Coding Keys
-    
+
     enum CodingKeys: String, CodingKey {
         case id
         case userId = "user_id"
@@ -80,10 +80,10 @@ struct Work: Identifiable, Equatable, Hashable {
     }
 }
 
-// MARK: - Feed Work (RPC Response with flattened creator)
+// MARK: - Feed Project (RPC Response with flattened creator)
 
 /// Specialized struct for decoding get_feed_with_interactions RPC response
-struct FeedWorkRow: Decodable {
+struct FeedProjectRow: Decodable {
     let id: UUID
     let userId: UUID
     let title: String
@@ -111,7 +111,7 @@ struct FeedWorkRow: Decodable {
     let creatorDisplayName: String?
     let creatorAvatarUrl: String?
     let creatorBio: String?
-    
+
     enum CodingKeys: String, CodingKey {
         case id
         case userId = "user_id"
@@ -140,9 +140,9 @@ struct FeedWorkRow: Decodable {
         case creatorAvatarUrl = "creator_avatar_url"
         case creatorBio = "creator_bio"
     }
-    
-    /// Convert to Work model
-    func toWork() -> Work {
+
+    /// Convert to Project model
+    func toProject() -> Project {
         var creator: Profile? = nil
         if let creatorId = creatorId {
             creator = Profile(
@@ -156,7 +156,7 @@ struct FeedWorkRow: Decodable {
                 updatedAt: Date()
             )
         }
-        
+
         // Parse chat messages
         var parsedChatMessages: [[String: Any]]? = nil
         if let messages = chatMessages {
@@ -164,8 +164,8 @@ struct FeedWorkRow: Decodable {
                 dict.mapValues { $0.value }
             }
         }
-        
-        return Work(
+
+        return Project(
             id: id,
             userId: userId,
             title: title,
@@ -194,7 +194,7 @@ struct FeedWorkRow: Decodable {
 
 // MARK: - Codable (custom for chatMessages)
 
-extension Work: Codable {
+extension Project: Codable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
@@ -220,11 +220,11 @@ extension Work: Codable {
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
         creator = try container.decodeIfPresent(Profile.self, forKey: .creator)
-        
+
         // Decode interaction states (optional, from RPC)
         isLikedByCurrentUser = try container.decodeIfPresent(Bool.self, forKey: .isLikedByCurrentUser)
         isCollectedByCurrentUser = try container.decodeIfPresent(Bool.self, forKey: .isCollectedByCurrentUser)
-        
+
         // Decode chatMessages - JSONB comes as native JSON array from Supabase
         if container.contains(.chatMessages) {
             // Try decoding as raw JSON array first (JSONB native format)
@@ -236,7 +236,8 @@ extension Work: Codable {
             // Fallback: try as JSON string
             else if let messagesString = try? container.decode(String.self, forKey: .chatMessages),
                     let data = messagesString.data(using: .utf8),
-                    let messages = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+                    let messages = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+            {
                 chatMessages = messages
             } else {
                 chatMessages = nil
@@ -245,7 +246,7 @@ extension Work: Codable {
             chatMessages = nil
         }
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
@@ -271,10 +272,11 @@ extension Work: Codable {
         try container.encodeIfPresent(creator, forKey: .creator)
         try container.encodeIfPresent(isLikedByCurrentUser, forKey: .isLikedByCurrentUser)
         try container.encodeIfPresent(isCollectedByCurrentUser, forKey: .isCollectedByCurrentUser)
-        
+
         // Encode chatMessages as JSON
         if let messages = chatMessages,
-           let data = try? JSONSerialization.data(withJSONObject: messages) {
+           let data = try? JSONSerialization.data(withJSONObject: messages)
+        {
             try container.encode(data, forKey: .chatMessages)
         }
     }
@@ -285,61 +287,62 @@ extension Work: Codable {
 /// Supabase Image Transformation helper
 /// Transforms: /storage/v1/object/public/... → /storage/v1/render/image/public/...?width=X&quality=Y
 enum ThumbnailTransform {
-    case small   // Profile grid, Settings preview: 420px, 60%
-    case medium  // Home feed: 640px, 70%
-    
+    case small // Profile grid, Settings preview: 420px, 60%
+    case medium // Home feed: 640px, 70%
+
     var width: Int {
         switch self {
         case .small: return 420
         case .medium: return 640
         }
     }
-    
+
     var quality: Int {
         switch self {
         case .small: return 60
         case .medium: return 70
         }
     }
-    
+
     /// Transform original Supabase storage URL to render URL
     static func url(from originalUrl: String?, size: ThumbnailTransform) -> URL? {
         guard let urlString = originalUrl,
               let url = URL(string: urlString),
-              var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+              var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        else {
             return nil
         }
-        
+
         // Replace /object/ with /render/image/
         components.path = components.path.replacingOccurrences(of: "/object/", with: "/render/image/")
-        
+
         // Add transformation parameters
         // resize=contain: scale to fit within width while preserving aspect ratio (no cropping)
         components.queryItems = [
             URLQueryItem(name: "width", value: "\(size.width)"),
             URLQueryItem(name: "quality", value: "\(size.quality)"),
-            URLQueryItem(name: "resize", value: "contain")
+            URLQueryItem(name: "resize", value: "contain"),
         ]
-        
+
         return components.url
     }
 }
 
-extension Work {
+extension Project {
     /// Display title - returns "Untitled" if title is empty
     var displayTitle: String { title.isEmpty ? "Untitled" : title }
-    
+
     /// Small thumbnail URL for profile grid (200px)
     var smallThumbnailURL: URL? { ThumbnailTransform.url(from: thumbnailUrl, size: .small) }
-    
+
     /// Medium thumbnail URL for home feed (400px)
     var mediumThumbnailURL: URL? { ThumbnailTransform.url(from: thumbnailUrl, size: .medium) }
 }
 
 // MARK: - Sample Data
 
-extension Work {
-    static let sample = Work(
+extension Project {
+    static let sample = Project(
         id: UUID(),
         userId: Profile.sample.id,
         title: "Neon Pulse",
@@ -395,10 +398,10 @@ extension Work {
         updatedAt: Date(),
         creator: Profile.sample
     )
-    
-    static let samples: [Work] = [
+
+    static let samples: [Project] = [
         sample,
-        Work(
+        Project(
             id: UUID(),
             userId: Profile.sample.id,
             title: "Particle Storm",
@@ -455,7 +458,7 @@ extension Work {
             updatedAt: Date(),
             creator: Profile.sample
         ),
-        Work(
+        Project(
             id: UUID(),
             userId: Profile.sample.id,
             title: "Gradient Wave",
@@ -488,7 +491,7 @@ extension Work {
             createdAt: Date(),
             updatedAt: Date(),
             creator: Profile.sample
-        )
+        ),
     ]
 }
 
@@ -496,14 +499,14 @@ extension Work {
 
 struct AnyCodable: Codable {
     let value: Any
-    
+
     init(_ value: Any) {
         self.value = value
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        
+
         if container.decodeNil() {
             value = NSNull()
         } else if let bool = try? container.decode(Bool.self) {
@@ -522,10 +525,10 @@ struct AnyCodable: Codable {
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unable to decode value")
         }
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        
+
         switch value {
         case is NSNull:
             try container.encodeNil()
@@ -546,4 +549,3 @@ struct AnyCodable: Codable {
         }
     }
 }
-

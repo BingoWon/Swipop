@@ -9,7 +9,7 @@
 
 ### A2. 数据库表结构
 - [ ] 创建 users 表
-- [ ] 创建 works 表
+- [ ] 创建 projects 表
 - [ ] 创建 likes 表
 - [ ] 创建 collections 表
 - [ ] 创建 comments 表
@@ -19,7 +19,7 @@
 ### A3. Supabase Storage
 - [ ] 创建 avatars bucket
 - [ ] 创建 thumbnails bucket
-- [ ] 创建 work-assets bucket
+- [ ] 创建 project-assets bucket
 - [ ] 配置 bucket 访问权限
 
 ### A4. OAuth 配置
@@ -82,12 +82,12 @@
 
 ### D1. 数据模型
 - [ ] User 模型
-- [ ] Work 模型
+- [ ] Project 模型
 - [ ] Comment 模型
 - [ ] 模型与 Supabase 映射
 
 ### D2. 数据服务
-- [ ] WorkService（作品 CRUD）
+- [ ] ProjectService（作品 CRUD）
 - [ ] UserService（用户信息）
 - [ ] InteractionService（点赞、收藏）
 - [ ] CommentService（评论）
