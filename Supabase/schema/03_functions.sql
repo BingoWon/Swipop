@@ -79,8 +79,8 @@ BEGIN
         'User'
     );
     
-    -- Generate unique username
-    user_username := generate_username(user_display_name);
+    -- Generate unique username (explicit schema prefix for auth trigger context)
+    user_username := public.generate_username(user_display_name);
     
     INSERT INTO public.users (id, username, display_name, avatar_url)
     VALUES (
@@ -97,7 +97,7 @@ BEGIN
     
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- ===================
 -- COUNTER UPDATES
