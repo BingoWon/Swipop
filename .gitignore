@@ -34,8 +34,3 @@ Docs/
 .env.local
 .env*.local
 
-# Supabase secrets
-Supabase/config.sh
-
-# Apple auth key (sensitive)
-AuthKey_*.p8
