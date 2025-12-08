@@ -62,9 +62,9 @@ final class ProjectEditorViewModel {
 
     // MARK: - Content
 
-    var html = defaultHTML { didSet { if html != oldValue { isDirty = true } } }
-    var css = defaultCSS { didSet { if css != oldValue { isDirty = true } } }
-    var javascript = defaultJS { didSet { if javascript != oldValue { isDirty = true } } }
+    var html = defaultHTML { didSet { if html != oldValue { markDirty() } } }
+    var css = defaultCSS { didSet { if css != oldValue { markDirty() } } }
+    var javascript = defaultJS { didSet { if javascript != oldValue { markDirty() } } }
 
     // MARK: - Chat
 
@@ -72,10 +72,10 @@ final class ProjectEditorViewModel {
 
     // MARK: - Metadata
 
-    var title = "" { didSet { if title != oldValue { isDirty = true } } }
-    var description = "" { didSet { if description != oldValue { isDirty = true } } }
-    var tags: [String] = [] { didSet { if tags != oldValue { isDirty = true } } }
-    var isPublished = false { didSet { if isPublished != oldValue { isDirty = true } } }
+    var title = "" { didSet { if title != oldValue { markDirty() } } }
+    var description = "" { didSet { if description != oldValue { markDirty() } } }
+    var tags: [String] = [] { didSet { if tags != oldValue { markDirty() } } }
+    var isPublished = false { didSet { if isPublished != oldValue { markDirty() } } }
 
     // MARK: - Thumbnail
 
@@ -88,7 +88,7 @@ final class ProjectEditorViewModel {
 
     // MARK: - State
 
-    var isDirty = false
+    var isDirty = false { didSet { if isDirty && !oldValue { scheduleAutoSave() } } }
     var isSaving = false
     var lastSaved: Date?
     var saveError: Error?
@@ -233,7 +233,25 @@ final class ProjectEditorViewModel {
         lastSaved = project.updatedAt
     }
 
+    // MARK: - Auto-Save
+
+    private var autoSaveTask: Task<Void, Never>?
+    private let autoSaveDelay: UInt64 = 2_000_000_000 // 2 seconds in nanoseconds
+
     func markDirty() {
         isDirty = true
+    }
+
+    private func scheduleAutoSave() {
+        autoSaveTask?.cancel()
+        autoSaveTask = Task {
+            do {
+                try await Task.sleep(nanoseconds: autoSaveDelay)
+                guard !Task.isCancelled, hasContent, isDirty, !isSaving else { return }
+                await save()
+            } catch {
+                // Task was cancelled, ignore
+            }
+        }
     }
 }
